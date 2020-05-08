@@ -97,6 +97,8 @@ comtypes.client中有三种方式获取COM对象：
 - comtypes类型库（Typelibraries）  
 GetModule方法可以为某个COM对象生成一个Python类型库封装。    
 
+*注意不要在python3.7.6至3.8.1使用comtypes，这个版本的python中，libffi中缺少一个功能，该功能恰好是ctypes用于Python/C集成的调用约定处理库。该问题在python3.8.2中应该被修复。参考[https://github.com/enthought/comtypes/issues/202](https://github.com/enthought/comtypes/issues/202)。  
+
 ### <font color=#009900>Pywinauto</font>   
 pywinauto是一个用纯Python编写的GUI自动化库，它底层采用了PyWin32，comtypes这两个库。  
 基于pywinauto开发自己的GUI自动化测试工具是一个可行的选择。  

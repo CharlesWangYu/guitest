@@ -9,6 +9,7 @@ from comtypes.client import *
 from ctypes import *
 
 UIAutomationClient = GetModule('UIAutomationCore.dll')
+IUIAutomation = CreateObject('{ff48dba4-60ef-4201-aa87-54103eef594e}', interface=UIAutomationClient.IUIAutomation)
 
 def searchOneElement(startNode, key, type,
 					 flag = UIAutomationClient.PropertyConditionFlags_None,
@@ -23,7 +24,9 @@ def searchAllElement(startNode, key, type,
 					 scope = UIAutomationClient.TreeScope_Descendants):
     cnd = IUIAutomation.CreatePropertyConditionEx(type, key, flag)
     all = startNode.FindAll(scope, cnd)
-    for x in range(0, totalRow - paramStartRow):
+    size = all.Length
+    logging.info('Parameter Array size = %d' % size)
+    for x in range(0, size):
       element = all.GetElement(x)
       logging.info('[%s]Element1[%s] is searched.' % (element.CurrentProcessId, element.CurrentName))
     return all
@@ -48,7 +51,7 @@ if __name__ == '__main__':
   viewLabel					= [''] * MAX_MENU_ITEM_NUM
 
   #pdb.set_trace()
-  logging.basicConfig(level = logging.ERROR)
+  logging.basicConfig(level = logging.INFO)
   
   # Load and parser config file
   logging.info('***********************************************************')
@@ -103,9 +106,10 @@ if __name__ == '__main__':
   logging.info('****** Start UI Automation')
   logging.info('***********************************************************')
   #UIAutomationClient = GetModule('UIAutomationCore.dll')
-  IUIAutomation = CreateObject('{ff48dba4-60ef-4201-aa87-54103eef594e}', interface=UIAutomationClient.IUIAutomation)
+  #IUIAutomation = CreateObject('{ff48dba4-60ef-4201-aa87-54103eef594e}', interface=UIAutomationClient.IUIAutomation)
   root = IUIAutomation.GetRootElement()
   rrteRoot = searchOneElement(root, 'Reference Run-time Environment', UIAutomationClient.UIA_NamePropertyId)
+  logging.info('RRTE window root: Class name = %s, Name = %s, Bounding Rectangle = %s, Process ID = %d' % (rrteRoot.CurrentClassName, rrteRoot.CurrentName, rrteRoot.CurrentBoundingRectangle, rrteRoot.CurrentProcessId))
   
   # Push "Online" TAB
   logging.info('')
