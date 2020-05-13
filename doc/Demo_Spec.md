@@ -21,3 +21,38 @@ UI Automation是Microsoft提供的一套Windows图形界面程序的操控接口
 - 启动RRTE获取相应LOG文件  
 - 启动DPCTT获取相应报告  
 - 将所有LOG文件及报告文件按照规定格式打包   
+
+### <font color=#009900>自动化可能的项目</font>   
+必要项目（最适合自动化测试的项目）：  
+内检的初次测试，以及每次变更后的回归测试：  
+- RRTE中各Menu项名称的Label  
+- RRTE中各Parameter项名称的Label  
+- RRTE中各Method项名称的Label  
+- RRTE中各Menu项的层级结构  
+- RRTE中Parameter和Method的排列顺序  
+- RRTE中TAB项及Group项的包含范围   
+- RRTE中各固定单位的Label及对应关系  
+- RRTE中各Parameter项的R/W属性（R/W或ReadOnly？）  
+- RRTE中各Float型Parameter项的表示格式（DISPLAY_FORMART）  
+- RRTE中各可写项目的上下限值  
+- RRTE中各可写Enum/BitEnum项的选择肢Label及顺序   
+- DPCTT执行及报告检查  
+最终获取登录用LOG时：  
+- 用RRTE和DPCTT取得FCG登录用LOG文件和报告文件   
+
+挑战项目：  
+- RRTE中动态单位表示  
+- RRTE中Validity条件的表示  
+- RRTE中各Float型Parameter项的写入格式（WRITE_FORMART）  
+- RRTE中各可写项目的写入操作的可执行性（非DD测试范围）  
+- RRTE中各可写项目与DB的一致性（可通过其它途径修改DB时）  
+- FieldMate中的各种测试  
+
+迫切需要自动化但目前无方案的项目：  
+- Trex中的各种测试  
+- Trex取得登录用LOG文件   
+
+自动化无意义的项目：  
+- RRTE中METHOD各对话框Label表示（依赖于实机外部输入信号）  
+- Read Only的Enum/BitEnum项的选择肢Label及顺序   
+- RRTE中各测量值与输入信号的一致性（非DD测试范围）  

@@ -45,10 +45,15 @@ if __name__ == '__main__':
   DELAY_OPEN_RRET			= 6
   DELAY_PUSH_BUTTON			= 4
   MAX_MENU_ITEM_NUM			= 30
-  MENU_ITEM_TPE_COLUMN		= 6
+  MENU_ITEM_TYPE_COLUMN		= 6
+  MENU_ITEM_RW_COLUMN		= 7
+  MENU_ITEM_MIN_COLUMN		= 10
+  MENU_ITEM_MAX_COLUMN		= 11
   label						= [''] * MAX_MENU_ITEM_NUM
   type						= [''] * MAX_MENU_ITEM_NUM
-  viewLabel					= [''] * MAX_MENU_ITEM_NUM
+  rw						= ['RO'] * MAX_MENU_ITEM_NUM
+  max						= [float('inf')] * MAX_MENU_ITEM_NUM
+  min						= [float('-inf')] * MAX_MENU_ITEM_NUM
 
   #pdb.set_trace()
   logging.basicConfig(level = logging.INFO)
@@ -91,14 +96,20 @@ if __name__ == '__main__':
   logging.info('****** Read spec. file (Excel, unified format)')
   logging.info('***********************************************************')
   excel = xlrd.open_workbook(specFile)
-  sheet = excel.sheet_by_name('Label')
+  sheet = excel.sheet_by_name('Spec')
   totalRow = sheet.nrows - 1
+  logging.info('totalRow = %d' % totalRow)
   
   for currRow in range(1, sheet.nrows):
-    for currCol in range(MENU_ITEM_TPE_COLUMN):
+    for currCol in range(MENU_ITEM_TYPE_COLUMN):
       label[currRow-1] += sheet.cell(currRow, currCol).value
-    type[currRow-1] = sheet.cell(currRow, MENU_ITEM_TPE_COLUMN).value;
-    logging.info('No.%d, (Label = %s, Type = %s)' % (currRow-1, label[currRow-1], type[currRow-1]))
+    type[currRow-1] = sheet.cell(currRow, MENU_ITEM_TYPE_COLUMN).value;
+    rw[currRow-1] = sheet.cell(currRow, MENU_ITEM_RW_COLUMN).value;
+    if (not sheet.cell(currRow, MENU_ITEM_MIN_COLUMN).value == ''):
+      min[currRow-1] = float(sheet.cell(currRow, MENU_ITEM_MIN_COLUMN).value);
+    if (not sheet.cell(currRow, MENU_ITEM_MAX_COLUMN).value == ''):
+      max[currRow-1] = float(sheet.cell(currRow, MENU_ITEM_MAX_COLUMN).value);
+    logging.info('No.%d, (Label = %s, Type = %s, Min = %.2f, Max = %.2f)' % (currRow-1, label[currRow-1], type[currRow-1], min[currRow-1], max[currRow-1]))
   
   # Start UI Automation
   logging.info('')
@@ -135,11 +146,12 @@ if __name__ == '__main__':
   # Find and push menu item
   logging.info('')
   logging.info('***********************************************************')
-  logging.info('****** Check menu and parameter label')
+  logging.info('****** Check menu and parameter labels')
   logging.info('***********************************************************')
-  for currRow in range(1, 3):
-    logging.info('Comparing the menu label[%s].' % label[currRow])
+  print('--- Check menu and parameter labels. ---')
+  for currRow in range(1, totalRow - 1):
     if (type[currRow] == 'Menu' and type[currRow+1] == 'Menu'):
+      logging.info('Comparing the menu label[%s].' % label[currRow])
       txt = None
       txt = searchOneElement(menuTreeRoot, label[currRow], UIAutomationClient.UIA_NamePropertyId)
       if (txt is None):
@@ -151,6 +163,7 @@ if __name__ == '__main__':
         ctrl = cast(pattern, POINTER(UIAutomationClient.IUIAutomationTogglePattern))
         ctrl.Toggle()
     elif (type[currRow] == 'Menu' and type[currRow+1] != 'Menu'):
+      logging.info('Comparing the menu label[%s].' % label[currRow])
       paramStartRow = currRow + 1;
       txt = None
       txt = searchOneElement(menuTreeRoot, label[currRow], UIAutomationClient.UIA_NamePropertyId)
@@ -165,9 +178,18 @@ if __name__ == '__main__':
         logging.info('Comparing labels under menu item[%s].' % label[currRow])
         line = searchOneElement(rrteRoot, 'Fdi.Ui.ViewModel.Content.NumericParameterViewModel', UIAutomationClient.UIA_NamePropertyId)
         pane = seekParentElement(line)
-        logging.info('totalRow = %d' % totalRow)
         logging.info('paramStartRow = %d' % paramStartRow)
         all = searchAllElement(pane, 'Label', UIAutomationClient.UIA_AutomationIdPropertyId)
         for x in range(paramStartRow, totalRow):
+          if (type[x] == 'Menu'):
+            break;
           if (not compareLabel(label[x], all.GetElement(x-paramStartRow).CurrentName)):
             print('!!! Failed: Param label [%s] does not exist!' % label[x])
+    #else:
+
+  logging.info('')
+  logging.info('***********************************************************')
+  logging.info('****** Check data limits')
+  logging.info('***********************************************************')
+  print('--- Check data limits. ---')
+  
