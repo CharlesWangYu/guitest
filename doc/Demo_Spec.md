@@ -41,6 +41,7 @@ UI Automation是Microsoft提供的一套Windows图形界面程序的操控接口
 - 用RRTE和DPCTT取得FCG登录用LOG文件和报告文件   
 
 挑战项目：  
+- RRTE中多国语的Label
 - RRTE中动态单位表示  
 - RRTE中Validity条件的表示  
 - RRTE中各Float型Parameter项的写入格式（WRITE_FORMART）  
