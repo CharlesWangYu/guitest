@@ -1,7 +1,7 @@
 ## <font color=#009900>自动化测试Demo工程式样</font>  
 
 ---
-### <font color=#009900>背景</font>   
+### <font color=#009900>背景</font>  
 DD/FDI开发中，尤其是测试中，需要大量的使用到Windows GUI程序，比如各种Host程序（RRTE、FieldMate）、DPCTT等。这类GUI程序的自动化测试较命令行程序的自动化要复杂很多。  
 UI Automation是Microsoft提供的一套Windows图形界面程序的操控接口，借助它可以在很大程度上实现这类程序的自动化。  
 本示例工程计划借助UI Automation实现典型程序（如RRTE和DPCTT执行）在某个具体场景下的自动化执行，快速确立原型，为今后实现全面的DD/FDI测试自动化确立技术路线，并尽可能提供参考。  
@@ -38,7 +38,7 @@ UI Automation是Microsoft提供的一套Windows图形界面程序的操控接口
 - RRTE中各可写Enum/BitEnum项的选择肢Label及顺序   
 - DPCTT执行及报告检查  
 最终获取登录用LOG时：  
-- 用RRTE和DPCTT取得FCG登录用LOG文件和报告文件   
+- 用RRTE和DPCTT取得FCG登录用LOG文件和报告文件（Validity条件影响？）   
 
 挑战项目：  
 - RRTE中多国语的Label
@@ -47,7 +47,7 @@ UI Automation是Microsoft提供的一套Windows图形界面程序的操控接口
 - RRTE中各Float型Parameter项的写入格式（WRITE_FORMART）  
 - RRTE中各可写项目的写入操作的可执行性（非DD测试范围）  
 - RRTE中各可写项目与DB的一致性（可通过其它途径修改DB时）  
-- FieldMate中的各种测试  
+- FieldMate中的上述各种测试  
 
 迫切需要自动化但目前无方案的项目：  
 - Trex中的各种测试  

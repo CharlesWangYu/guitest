@@ -42,18 +42,18 @@ def compareLabel(specLabel, appLabel):
 
 if __name__ == '__main__':
 	# Define const and parameter
-	DELAY_OPEN_RRET			= 6
+	DELAY_OPEN_RRET				= 6
 	DELAY_PUSH_BUTTON			= 4
 	MAX_MENU_ITEM_NUM			= 30
 	MENU_ITEM_TYPE_COLUMN		= 6
-	MENU_ITEM_RW_COLUMN		= 7
+	MENU_ITEM_RW_COLUMN			= 7
 	MENU_ITEM_MIN_COLUMN		= 10
 	MENU_ITEM_MAX_COLUMN		= 11
 	label						= [''] * MAX_MENU_ITEM_NUM
 	type						= [''] * MAX_MENU_ITEM_NUM
-	rw						= ['RO'] * MAX_MENU_ITEM_NUM
-	max						= [float('inf')] * MAX_MENU_ITEM_NUM
-	min						= [float('-inf')] * MAX_MENU_ITEM_NUM
+	rw							= ['RO'] * MAX_MENU_ITEM_NUM
+	max							= [float('inf')] * MAX_MENU_ITEM_NUM
+	min							= [float('-inf')] * MAX_MENU_ITEM_NUM
 	
 	#pdb.set_trace()
 	logging.basicConfig(level = logging.INFO)
