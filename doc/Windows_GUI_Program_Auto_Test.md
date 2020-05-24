@@ -94,6 +94,12 @@ comtypes.client中有三种方式获取COM对象：
  - ShowEvents  
  - PumpEvents  
 
+- 如何安装comtypes？  
+在Python下安装comtypes非常简单，只要执行下列命令：  
+```Shell
+pip install comtypes
+```
+
 - comtypes类型库（Typelibraries）  
 GetModule方法可以为某个COM对象生成一个Python类型库封装。    
 
