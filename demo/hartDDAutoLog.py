@@ -153,8 +153,8 @@ class RRTECtrl:
 		self.Explorer	= UIA.FindOneElem(self.TopRoot, RRTECtrl.NAME_TREE_ROOT, UIA.Client.UIA_AutomationIdPropertyId)
 		#self.TreeRoot	= UIA.GetSiblingElem(self.Explorer)
 		#self.PaneRoot	= UIA.GetSiblingElem(self.TreeRoot)
-		self.Apply		= UIA.FindOneElem(self.TopRoot, RRTECtrl.NAME_APPLY_BTN, UIA.Client.UIA_AutomationIdPropertyId)
-		self.Revert		= UIA.FindOneElem(self.TopRoot, RRTECtrl.NAME_REVERT_BTN, UIA.Client.UIA_AutomationIdPropertyId)
+		self.Apply		= UIA.FindOneElem(self.TopRoot, RRTECtrl.NAME_APPLY_BTN, UIA.Client.UIA_NamePropertyId)
+		self.Revert		= UIA.FindOneElem(self.TopRoot, RRTECtrl.NAME_REVERT_BTN, UIA.Client.UIA_NamePropertyId)
 		# layer5
 		self.Online		= UIA.FindElemBySubText(self.TABRoot, RRTECtrl.NAME_ONLINE_TAB)
 		self.OnlineX	= UIA.FindOneElem(self.Online, RRTECtrl.NAME_X_BTN, UIA.Client.UIA_NamePropertyId)
