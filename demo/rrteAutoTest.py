@@ -32,19 +32,68 @@ def searchAllElement(startNode, key, type,
 	return all
 
 def seekParentElement(currentElement):
-   walker = IUIAutomation.ControlViewWalker
-   parent = walker.GetParentElement(currentElement)
-   return parent
+	walker = IUIAutomation.ControlViewWalker
+	parent = walker.GetParentElement(currentElement)
+	return parent
 
+def GetNextSiblingElem(elem):
+	walker = IUIAutomation.ControlViewWalker
+	element = walker.GetNextSiblingElement(elem)
+	return element
+
+def GetPreviousSiblingElem(elem):
+	walker = IUIAutomation.ControlViewWalker
+	element = walker.GetPreviousSiblingElement(elem)
+	return element
+	
 def compareLabel(specLabel, appLabel):
-   #logging.info('specLabel is [%s]. appLabel is [%s]' % (specLabel, appLabel))
-   return (specLabel == appLabel)
+	#logging.info('specLabel is [%s]. appLabel is [%s]' % (specLabel, appLabel))
+	return (specLabel == appLabel)
+	
+def isError():
+	root = IUIAutomation.GetRootElement()
+	rrteRoot = searchOneElement(root, 'Reference Run-time Environment', UIAutomationClient.UIA_NamePropertyId)
+	all = searchAllElement(rrteRoot, UIAutomationClient.UIA_WindowControlTypeId, UIAutomationClient.UIA_ControlTypePropertyId)
+	size = all.Length
+	logging.info('found windows count = %d' % size)
+	pdb.set_trace()
+	if win is None:
+		pass
+	else:
+		OKBtn = searchOneElement(win, 'OK', UIAutomationClient.UIA_NamePropertyId)
+		pattern = OKBtn.GetCurrentPattern(UIAutomationClient.UIA_InvokePatternId)
+		ctrl = cast(pattern, POINTER(UIAutomationClient.IUIAutomationInvokePattern))
+		ctrl.Invoke()
+		return 1
+	
+'''
+def isValidData(img):
+	#time.sleep(DELAY_OPEN_RRET)
+	#image = GetPreviousSiblingElem(textbox)
+	#parent = seekParentElement(image)
+	#grand = seekParentElement(parent)
+	#parent.SetFocus()
+	#grand.SetFocus()
+	#textbox.SetFocus()
+	#logging.info('textb class name = %s, help text = %s, process id = %s' % (textbox.CurrentClassName, textbox.CurrentHelpText, textbox.CurrentProcessId))
+	parent = seekParentElement(img)
+	image = searchOneElement(parent, 'Icon', UIAutomationClient.UIA_AutomationIdPropertyId)
+	parent = seekParentElement(image)
+	image = searchOneElement(parent, 'Icon', UIAutomationClient.UIA_AutomationIdPropertyId)
+	parent = seekParentElement(image)
+	image = searchOneElement(parent, 'Icon', UIAutomationClient.UIA_AutomationIdPropertyId)
+	logging.info('Image class name = %s, help text = %s, automation id = %s' % (image.CurrentClassName, image.CurrentHelpText, image.CurrentAutomationId))
+	pdb.set_trace()
+	result = compareLabel(image.CurrentHelpText, '') or compareLabel(image.CurrentHelpText, 'The Value has been modified in the EditContext and is not yet in the Device.')
+	return result	
+'''
 
 if __name__ == '__main__':
 	# Define const and parameter
 	DELAY_OPEN_RRET				= 6
 	DELAY_PUSH_BUTTON			= 4
-	MAX_MENU_ITEM_NUM			= 30
+	DELAY_FOR_DEMO				= 3
+	MAX_MENU_ITEM_NUM			= 28
 	MENU_ITEM_TYPE_COLUMN		= 6
 	MENU_ITEM_RW_COLUMN			= 7
 	MENU_ITEM_MIN_COLUMN		= 10
@@ -66,10 +115,10 @@ if __name__ == '__main__':
 	config.read('testRrte.conf', encoding='UTF-8')
 	
 	inputMode	= config['MISC']['TEST_FILE_TYPE'].strip("'")
-	hostApp	= config['MISC']['HOST_APP_FILE'].strip("'")
+	hostApp		= config['MISC']['HOST_APP_FILE'].strip("'")
 	specFile	= config['MISC']['INPUT_SPEC_FILE'].strip("'")
 	testFile	= config['MISC']['TEST_FILE'].strip("'")
-	outPath	= config['MISC']['OUTPUT_PATH'].strip("'")
+	outPath		= config['MISC']['OUTPUT_PATH'].strip("'")
 	
 	logging.info('inputMode = %s' % inputMode)
 	logging.info('hostApp = %s' % hostApp)
@@ -100,7 +149,7 @@ if __name__ == '__main__':
 	totalRow = sheet.nrows - 1
 	logging.info('totalRow = %d' % totalRow)
 	
-	for currRow in range(1, sheet.nrows):
+	for currRow in range(1, totalRow+1):
 		for currCol in range(MENU_ITEM_TYPE_COLUMN):
 			label[currRow-1] += sheet.cell(currRow, currCol).value
 		type[currRow-1] = sheet.cell(currRow, MENU_ITEM_TYPE_COLUMN).value;
@@ -143,7 +192,7 @@ if __name__ == '__main__':
 	parent = seekParentElement(txt)
 	menuTreeRoot = seekParentElement(parent)
 	
-	# Find and push menu item
+	# Check menu and parameter labels
 	logging.info('')
 	logging.info('***********************************************************')
 	logging.info('****** Check menu and parameter labels')
@@ -162,6 +211,7 @@ if __name__ == '__main__':
 				pattern = toggle.GetCurrentPattern(UIAutomationClient.UIA_TogglePatternId)
 				ctrl = cast(pattern, POINTER(UIAutomationClient.IUIAutomationTogglePattern))
 				ctrl.Toggle()
+				time.sleep(DELAY_FOR_DEMO)
 		elif (type[currRow] == 'Menu' and type[currRow+1] != 'Menu'):
 			logging.info('Comparing the menu label[%s].' % label[currRow])
 			paramStartRow = currRow + 1;
@@ -186,10 +236,108 @@ if __name__ == '__main__':
 					if (not compareLabel(label[x], all.GetElement(x-paramStartRow).CurrentName)):
 						print('!!! Failed: Param label [%s] does not exist!' % label[x])
 		#else:
-
+	
+	# Check data limits (Hi/Lo alarm hysteresis : Max=10, Min=0)
 	logging.info('')
 	logging.info('***********************************************************')
-	logging.info('****** Check data limits')
+	logging.info('****** Check data limits (Hi/Lo alarm hysteresis : Max=10, Min=0)')
 	logging.info('***********************************************************')
-	print('--- Check data limits. ---')
-  
+	print('--- Check data limits (Hi/Lo alarm hysteresis) ---')
+	txt = searchOneElement(menuTreeRoot, 'Maintenance root menu', UIAutomationClient.UIA_NamePropertyId)
+	item = seekParentElement(txt)
+	pattern = item.GetCurrentPattern(UIAutomationClient.UIA_SelectionItemPatternId)
+	ctrl = cast(pattern, POINTER(UIAutomationClient.IUIAutomationSelectionItemPattern))
+	ctrl.Select()
+	time.sleep(DELAY_FOR_DEMO)
+	txt = searchOneElement(item, 'High/Low alarm configuration', UIAutomationClient.UIA_NamePropertyId)
+	item = seekParentElement(txt)
+	pattern = item.GetCurrentPattern(UIAutomationClient.UIA_SelectionItemPatternId)
+	ctrl = cast(pattern, POINTER(UIAutomationClient.IUIAutomationSelectionItemPattern))
+	ctrl.Select()
+	time.sleep(DELAY_FOR_DEMO)
+	paneRoot = GetNextSiblingElem(menuTreeRoot)
+	RevertBtn = GetNextSiblingElem(paneRoot)
+	ApplyBtn = GetNextSiblingElem(RevertBtn)
+	pattern = ApplyBtn.GetCurrentPattern(UIAutomationClient.UIA_InvokePatternId)
+	ctrlApplyBtn = cast(pattern, POINTER(UIAutomationClient.IUIAutomationInvokePattern))
+	txt = searchOneElement(paneRoot, 'Hi/Lo alarm hysteresis', UIAutomationClient.UIA_NamePropertyId)
+	paramLine = seekParentElement(txt)
+	textbox = searchOneElement(paramLine, 'Value', UIAutomationClient.UIA_AutomationIdPropertyId)
+	pattern = textbox.GetCurrentPattern(UIAutomationClient.UIA_ValuePatternId)
+	ctrlTextbox = cast(pattern, POINTER(UIAutomationClient.IUIAutomationValuePattern))
+	# Test max value
+	target = int(max[totalRow-1])
+	logging.info('Test max.  value : %s' % str(target))
+	textbox.SetFocus()
+	ctrlTextbox.SetValue(str(target))
+	paneRoot.SetFocus()
+	ctrlApplyBtn.Invoke()
+	if isError():
+		print('!!! Failed: Input Data (%s) overflow!' % str(target))
+	time.sleep(DELAY_FOR_DEMO)
+	# Test min value
+	target = int(min[totalRow-1])
+	logging.info('Test min.  value : %s.' % str(target))
+	textbox.SetFocus()
+	ctrlTextbox.SetValue(str(target))
+	paneRoot.SetFocus()
+	ctrlApplyBtn.Invoke()
+	if isError():
+		print('!!! Failed: Input Data (%s) overflow!' % str(target))
+	time.sleep(DELAY_FOR_DEMO)
+		
+	'''
+	image = GetPreviousSiblingElem(textbox)
+	# Test legal value
+	value = searchOneElement(textbox, UIAutomationClient.UIA_TextControlTypeId, UIAutomationClient.UIA_ControlTypePropertyId)
+	temp = value.CurrentName
+	tempValue = str(int(temp) + 1)
+	pattern = textbox.GetCurrentPattern(UIAutomationClient.UIA_ValuePatternId)
+	ctrlTextbox = cast(pattern, POINTER(UIAutomationClient.IUIAutomationValuePattern))
+	#ctrlTextbox.SetValue(tempValue)
+	#paneRoot.SetFocus()
+	#time.sleep(DELAY_FOR_DEMO)
+	target = int((max[totalRow-1] + min[totalRow-1]) / 4)
+	logging.info('Test legal value : %s' % str(target))
+	ctrlTextbox.SetValue(str(target))
+	if isValidData(image):
+		paneRoot.SetFocus()
+		ctrlApplyBtn.Invoke()
+	else:
+		print('!!! Failed: Input Data (%s) overflow!' % str(target))
+	time.sleep(DELAY_FOR_DEMO)
+	# Test max value
+	target = int(max[totalRow-1])
+	logging.info('Test max.  value : %s' % str(target))
+	textbox.SetFocus()
+	ctrlTextbox.SetValue(str(target))
+	paneRoot.SetFocus()
+	if isValidData(image):
+		ctrlApplyBtn.Invoke()
+	else:
+		print('!!! Failed: Input Data (%s) overflow!' % str(target))
+	time.sleep(DELAY_FOR_DEMO)
+	# Test min value
+	target = int(min[totalRow-1])
+	logging.info('Test min.  value : %s.' % str(target))
+	textbox.SetFocus()
+	ctrlTextbox.SetValue(str(target))
+	paneRoot.SetFocus()
+	if isValidData(image):
+		ctrlApplyBtn.Invoke()
+	else:
+		print('!!! Failed: Input Data (%s) overflow!' % str(target))
+	time.sleep(DELAY_FOR_DEMO)
+	# Test max value + 1
+	target = int(max[totalRow-1])+1
+	logging.info('Test max.  value + 1 : %s.' % str(target))
+	textbox.SetFocus()
+	ctrlTextbox.SetValue(str(target))
+	paneRoot.SetFocus()
+	if isValidData(image):
+		ctrlApplyBtn.Invoke()
+	else:
+		print('!!! Failed: Input Data (%s) overflow!' % str(target))
+	time.sleep(DELAY_FOR_DEMO)
+	'''
+	
