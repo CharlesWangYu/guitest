@@ -11,29 +11,24 @@ from ctypes import *
 UIAutomationClient = GetModule('UIAutomationCore.dll')
 IUIAutomation = CreateObject('{ff48dba4-60ef-4201-aa87-54103eef594e}', interface=UIAutomationClient.IUIAutomation)
 
-def searchOneElement(startNode, key, type,
-					 flag = UIAutomationClient.PropertyConditionFlags_None,
-					 scope = UIAutomationClient.TreeScope_Descendants):
+def FindAllElem(start, key, type, flag=UIAutomationClient.PropertyConditionFlags_None, scope=UIAutomationClient.TreeScope_Descendants):
 	cnd = IUIAutomation.CreatePropertyConditionEx(type, key, flag)
-	element = startNode.FindFirst(scope, cnd)
-	logging.info('[%s]Element[%s] is searched.' % (element.CurrentProcessId, element.CurrentName))
-	return element
-
-def searchAllElement(startNode, key, type,
-					 flag = UIAutomationClient.PropertyConditionFlags_None,
-					 scope = UIAutomationClient.TreeScope_Descendants):
-	cnd = IUIAutomation.CreatePropertyConditionEx(type, key, flag)
-	all = startNode.FindAll(scope, cnd)
-	size = all.Length
-	logging.info('Parameter Array size = %d' % size)
-	for x in range(0, size):
-	  element = all.GetElement(x)
-	  logging.info('[%s]Element1[%s] is searched.' % (element.CurrentProcessId, element.CurrentName))
+	all = start.FindAll(scope, cnd)
+	logging.info('Element Array size = %d' % all.Length)
+	for x in range(0, all.Length):
+		element = all.GetElement(x)
+		logging.info('Element[%s] is searched.' % element.CurrentName)
 	return all
 
-def seekParentElement(currentElement):
+def FindOneElem(start, key, type, flag=UIAutomationClient.PropertyConditionFlags_None, scope=UIAutomationClient.TreeScope_Descendants):
+	cnd = IUIAutomation.CreatePropertyConditionEx(type, key, flag)
+	element = start.FindFirst(scope, cnd)
+	logging.info('Element[%s] is searched.' % element.CurrentName)
+	return element
+
+def GetParentElem(elem):
 	walker = IUIAutomation.ControlViewWalker
-	parent = walker.GetParentElement(currentElement)
+	parent = walker.GetParentElement(elem)
 	return parent
 
 def GetNextSiblingElem(elem):
@@ -45,43 +40,65 @@ def GetPreviousSiblingElem(elem):
 	walker = IUIAutomation.ControlViewWalker
 	element = walker.GetPreviousSiblingElement(elem)
 	return element
-	
-def compareLabel(specLabel, appLabel):
-	#logging.info('specLabel is [%s]. appLabel is [%s]' % (specLabel, appLabel))
-	return (specLabel == appLabel)
-	
-def isError():
-	root = IUIAutomation.GetRootElement()
-	rrteRoot = searchOneElement(root, 'Reference Run-time Environment', UIAutomationClient.UIA_NamePropertyId)
-	all = searchAllElement(rrteRoot, UIAutomationClient.UIA_WindowControlTypeId, UIAutomationClient.UIA_ControlTypePropertyId)
-	size = all.Length
-	logging.info('found windows count = %d' % size)
-	pdb.set_trace()
-	if win is None:
-		pass
-	else:
-		OKBtn = searchOneElement(win, 'OK', UIAutomationClient.UIA_NamePropertyId)
-		pattern = OKBtn.GetCurrentPattern(UIAutomationClient.UIA_InvokePatternId)
-		ctrl = cast(pattern, POINTER(UIAutomationClient.IUIAutomationInvokePattern))
-		ctrl.Invoke()
+
+def FindElemBySubText(start, name, flag=UIAutomationClient.PropertyConditionFlags_None, scope=UIAutomationClient.TreeScope_Descendants):
+	cnd = IUIAutomation.CreatePropertyConditionEx(UIAutomationClient.UIA_NamePropertyId, name, flag)
+	child = start.FindFirst(scope, cnd)
+	element = GetParentElem(child)
+	return element
+
+def GetTextboxCurrentVal(elem):
+	text = FindOneElem(elem, UIAutomationClient.UIA_TextControlTypeId, UIAutomationClient.UIA_ControlTypePropertyId)
+	return text.CurrentName
+
+def isFoundElem(elem):
+	try:
+		temp = elem.CurrentName
 		return 1
-	
+	except Exception as e:
+		return 0
+
+def isSetError(textbox, setVal):
+	currVal = GetTextboxCurrentVal(textbox)
+	if not currVal == setVal:
+		return 1
+	else:
+		# Push [Apply] button
+		paneRoot = GetParentElem(GetParentElem(textbox))
+		RevertBtn = GetNextSiblingElem(paneRoot)
+		ApplyBtn = GetNextSiblingElem(RevertBtn)
+		pattern = ApplyBtn.GetCurrentPattern(UIAutomationClient.UIA_InvokePatternId)
+		ctrlApplyBtn = cast(pattern, POINTER(UIAutomationClient.IUIAutomationInvokePattern))
+		ctrlApplyBtn.Invoke()
+		# Test error dialog
+		root = IUIAutomation.GetRootElement()
+		rrteRoot = FindOneElem(root, 'Reference Run-time Environment', UIAutomationClient.UIA_NamePropertyId)
+		win = FindOneElem(rrteRoot, UIAutomationClient.UIA_WindowControlTypeId, UIAutomationClient.UIA_ControlTypePropertyId)
+		#pdb.set_trace()
+		if isFoundElem(win):
+			OKBtn = FindOneElem(win, 'OK', UIAutomationClient.UIA_NamePropertyId)
+			pattern = OKBtn.GetCurrentPattern(UIAutomationClient.UIA_InvokePatternId)
+			ctrl = cast(pattern, POINTER(UIAutomationClient.IUIAutomationInvokePattern))
+			ctrl.Invoke()
+			return 1
+		else:
+			return 0
 '''
 def isValidData(img):
 	#time.sleep(DELAY_OPEN_RRET)
 	#image = GetPreviousSiblingElem(textbox)
-	#parent = seekParentElement(image)
-	#grand = seekParentElement(parent)
+	#parent = GetParentElem(image)
+	#grand = GetParentElem(parent)
 	#parent.SetFocus()
 	#grand.SetFocus()
 	#textbox.SetFocus()
 	#logging.info('textb class name = %s, help text = %s, process id = %s' % (textbox.CurrentClassName, textbox.CurrentHelpText, textbox.CurrentProcessId))
-	parent = seekParentElement(img)
-	image = searchOneElement(parent, 'Icon', UIAutomationClient.UIA_AutomationIdPropertyId)
-	parent = seekParentElement(image)
-	image = searchOneElement(parent, 'Icon', UIAutomationClient.UIA_AutomationIdPropertyId)
-	parent = seekParentElement(image)
-	image = searchOneElement(parent, 'Icon', UIAutomationClient.UIA_AutomationIdPropertyId)
+	parent = GetParentElem(img)
+	image = FindOneElem(parent, 'Icon', UIAutomationClient.UIA_AutomationIdPropertyId)
+	parent = GetParentElem(image)
+	image = FindOneElem(parent, 'Icon', UIAutomationClient.UIA_AutomationIdPropertyId)
+	parent = GetParentElem(image)
+	image = FindOneElem(parent, 'Icon', UIAutomationClient.UIA_AutomationIdPropertyId)
 	logging.info('Image class name = %s, help text = %s, automation id = %s' % (image.CurrentClassName, image.CurrentHelpText, image.CurrentAutomationId))
 	pdb.set_trace()
 	result = compareLabel(image.CurrentHelpText, '') or compareLabel(image.CurrentHelpText, 'The Value has been modified in the EditContext and is not yet in the Device.')
@@ -105,7 +122,7 @@ if __name__ == '__main__':
 	min							= [float('-inf')] * MAX_MENU_ITEM_NUM
 	
 	#pdb.set_trace()
-	logging.basicConfig(level = logging.INFO)
+	logging.basicConfig(level = logging.ERROR)
 	
 	# Load and parser config file
 	logging.info('***********************************************************')
@@ -168,7 +185,7 @@ if __name__ == '__main__':
 	#UIAutomationClient = GetModule('UIAutomationCore.dll')
 	#IUIAutomation = CreateObject('{ff48dba4-60ef-4201-aa87-54103eef594e}', interface=UIAutomationClient.IUIAutomation)
 	root = IUIAutomation.GetRootElement()
-	rrteRoot = searchOneElement(root, 'Reference Run-time Environment', UIAutomationClient.UIA_NamePropertyId)
+	rrteRoot = FindOneElem(root, 'Reference Run-time Environment', UIAutomationClient.UIA_NamePropertyId)
 	logging.info('RRTE window root: Class name = %s, Name = %s, Bounding Rectangle = %s, Process ID = %d' % (rrteRoot.CurrentClassName, rrteRoot.CurrentName, rrteRoot.CurrentBoundingRectangle, rrteRoot.CurrentProcessId))
 	
 	# Push "Online" TAB
@@ -176,8 +193,8 @@ if __name__ == '__main__':
 	logging.info('***********************************************************')
 	logging.info('****** Push [Online] TAB')
 	logging.info('***********************************************************')
-	txt = searchOneElement(root, 'Online', UIAutomationClient.UIA_NamePropertyId)
-	btnOnline = seekParentElement(txt)
+	txt = FindOneElem(root, 'Online', UIAutomationClient.UIA_NamePropertyId)
+	btnOnline = GetParentElem(txt)
 	pattern = btnOnline.GetCurrentPattern(UIAutomationClient.UIA_InvokePatternId)
 	ctrl = cast(pattern, POINTER(UIAutomationClient.IUIAutomationInvokePattern))
 	ctrl.Invoke()
@@ -188,9 +205,9 @@ if __name__ == '__main__':
 	logging.info('***********************************************************')
 	logging.info('****** Get the menu tree root node')
 	logging.info('***********************************************************')
-	txt = searchOneElement(root, 'download_to_device_root_menu', UIAutomationClient.UIA_NamePropertyId)
-	parent = seekParentElement(txt)
-	menuTreeRoot = seekParentElement(parent)
+	txt = FindOneElem(root, 'download_to_device_root_menu', UIAutomationClient.UIA_NamePropertyId)
+	parent = GetParentElem(txt)
+	menuTreeRoot = GetParentElem(parent)
 	
 	# Check menu and parameter labels
 	logging.info('')
@@ -202,12 +219,12 @@ if __name__ == '__main__':
 		if (type[currRow] == 'Menu' and type[currRow+1] == 'Menu'):
 			logging.info('Comparing the menu label[%s].' % label[currRow])
 			txt = None
-			txt = searchOneElement(menuTreeRoot, label[currRow], UIAutomationClient.UIA_NamePropertyId)
+			txt = FindOneElem(menuTreeRoot, label[currRow], UIAutomationClient.UIA_NamePropertyId)
 			if (txt is None):
 				print('!!! Failed: Menu label [%s] does not exist!' % label[currRow])
 			else:
-				parent = seekParentElement(txt)
-				toggle = searchOneElement(parent, UIAutomationClient.UIA_ButtonControlTypeId, UIAutomationClient.UIA_ControlTypePropertyId)
+				parent = GetParentElem(txt)
+				toggle = FindOneElem(parent, UIAutomationClient.UIA_ButtonControlTypeId, UIAutomationClient.UIA_ControlTypePropertyId)
 				pattern = toggle.GetCurrentPattern(UIAutomationClient.UIA_TogglePatternId)
 				ctrl = cast(pattern, POINTER(UIAutomationClient.IUIAutomationTogglePattern))
 				ctrl.Toggle()
@@ -216,24 +233,24 @@ if __name__ == '__main__':
 			logging.info('Comparing the menu label[%s].' % label[currRow])
 			paramStartRow = currRow + 1;
 			txt = None
-			txt = searchOneElement(menuTreeRoot, label[currRow], UIAutomationClient.UIA_NamePropertyId)
+			txt = FindOneElem(menuTreeRoot, label[currRow], UIAutomationClient.UIA_NamePropertyId)
 			if (txt is None):
 				print('!!! Failed: Menu label [%s] does not exist!' % label[currRow])
 			else:
-				item = seekParentElement(txt)
+				item = GetParentElem(txt)
 				pattern = item.GetCurrentPattern(UIAutomationClient.UIA_SelectionItemPatternId)
 				ctrl = cast(pattern, POINTER(UIAutomationClient.IUIAutomationSelectionItemPattern))
 				ctrl.Select()
 				time.sleep(DELAY_PUSH_BUTTON)
 				logging.info('Comparing labels under menu item[%s].' % label[currRow])
-				line = searchOneElement(rrteRoot, 'Fdi.Ui.ViewModel.Content.NumericParameterViewModel', UIAutomationClient.UIA_NamePropertyId)
-				pane = seekParentElement(line)
+				line = FindOneElem(rrteRoot, 'Fdi.Ui.ViewModel.Content.NumericParameterViewModel', UIAutomationClient.UIA_NamePropertyId)
+				pane = GetParentElem(line)
 				logging.info('paramStartRow = %d' % paramStartRow)
-				all = searchAllElement(pane, 'Label', UIAutomationClient.UIA_AutomationIdPropertyId)
+				all = FindAllElem(pane, 'Label', UIAutomationClient.UIA_AutomationIdPropertyId)
 				for x in range(paramStartRow, totalRow):
 					if (type[x] == 'Menu'):
 						break;
-					if (not compareLabel(label[x], all.GetElement(x-paramStartRow).CurrentName)):
+					if not label[x] == all.GetElement(x-paramStartRow).CurrentName:
 						print('!!! Failed: Param label [%s] does not exist!' % label[x])
 		#else:
 	
@@ -243,26 +260,23 @@ if __name__ == '__main__':
 	logging.info('****** Check data limits (Hi/Lo alarm hysteresis : Max=10, Min=0)')
 	logging.info('***********************************************************')
 	print('--- Check data limits (Hi/Lo alarm hysteresis) ---')
-	txt = searchOneElement(menuTreeRoot, 'Maintenance root menu', UIAutomationClient.UIA_NamePropertyId)
-	item = seekParentElement(txt)
+	txt = FindOneElem(menuTreeRoot, 'Maintenance root menu', UIAutomationClient.UIA_NamePropertyId)
+	item = GetParentElem(txt)
 	pattern = item.GetCurrentPattern(UIAutomationClient.UIA_SelectionItemPatternId)
 	ctrl = cast(pattern, POINTER(UIAutomationClient.IUIAutomationSelectionItemPattern))
 	ctrl.Select()
 	time.sleep(DELAY_FOR_DEMO)
-	txt = searchOneElement(item, 'High/Low alarm configuration', UIAutomationClient.UIA_NamePropertyId)
-	item = seekParentElement(txt)
+	txt = FindOneElem(item, 'High/Low alarm configuration', UIAutomationClient.UIA_NamePropertyId)
+	item = GetParentElem(txt)
 	pattern = item.GetCurrentPattern(UIAutomationClient.UIA_SelectionItemPatternId)
 	ctrl = cast(pattern, POINTER(UIAutomationClient.IUIAutomationSelectionItemPattern))
 	ctrl.Select()
 	time.sleep(DELAY_FOR_DEMO)
+	# Get editbox value
 	paneRoot = GetNextSiblingElem(menuTreeRoot)
-	RevertBtn = GetNextSiblingElem(paneRoot)
-	ApplyBtn = GetNextSiblingElem(RevertBtn)
-	pattern = ApplyBtn.GetCurrentPattern(UIAutomationClient.UIA_InvokePatternId)
-	ctrlApplyBtn = cast(pattern, POINTER(UIAutomationClient.IUIAutomationInvokePattern))
-	txt = searchOneElement(paneRoot, 'Hi/Lo alarm hysteresis', UIAutomationClient.UIA_NamePropertyId)
-	paramLine = seekParentElement(txt)
-	textbox = searchOneElement(paramLine, 'Value', UIAutomationClient.UIA_AutomationIdPropertyId)
+	txt = FindOneElem(paneRoot, 'Hi/Lo alarm hysteresis', UIAutomationClient.UIA_NamePropertyId)
+	paramLine = GetParentElem(txt)
+	textbox = FindOneElem(paramLine, 'Value', UIAutomationClient.UIA_AutomationIdPropertyId)
 	pattern = textbox.GetCurrentPattern(UIAutomationClient.UIA_ValuePatternId)
 	ctrlTextbox = cast(pattern, POINTER(UIAutomationClient.IUIAutomationValuePattern))
 	# Test max value
@@ -271,8 +285,7 @@ if __name__ == '__main__':
 	textbox.SetFocus()
 	ctrlTextbox.SetValue(str(target))
 	paneRoot.SetFocus()
-	ctrlApplyBtn.Invoke()
-	if isError():
+	if isSetError(textbox, str(target)):
 		print('!!! Failed: Input Data (%s) overflow!' % str(target))
 	time.sleep(DELAY_FOR_DEMO)
 	# Test min value
@@ -281,63 +294,7 @@ if __name__ == '__main__':
 	textbox.SetFocus()
 	ctrlTextbox.SetValue(str(target))
 	paneRoot.SetFocus()
-	ctrlApplyBtn.Invoke()
-	if isError():
+	if isSetError(textbox, str(target)):
 		print('!!! Failed: Input Data (%s) overflow!' % str(target))
 	time.sleep(DELAY_FOR_DEMO)
-		
-	'''
-	image = GetPreviousSiblingElem(textbox)
-	# Test legal value
-	value = searchOneElement(textbox, UIAutomationClient.UIA_TextControlTypeId, UIAutomationClient.UIA_ControlTypePropertyId)
-	temp = value.CurrentName
-	tempValue = str(int(temp) + 1)
-	pattern = textbox.GetCurrentPattern(UIAutomationClient.UIA_ValuePatternId)
-	ctrlTextbox = cast(pattern, POINTER(UIAutomationClient.IUIAutomationValuePattern))
-	#ctrlTextbox.SetValue(tempValue)
-	#paneRoot.SetFocus()
-	#time.sleep(DELAY_FOR_DEMO)
-	target = int((max[totalRow-1] + min[totalRow-1]) / 4)
-	logging.info('Test legal value : %s' % str(target))
-	ctrlTextbox.SetValue(str(target))
-	if isValidData(image):
-		paneRoot.SetFocus()
-		ctrlApplyBtn.Invoke()
-	else:
-		print('!!! Failed: Input Data (%s) overflow!' % str(target))
-	time.sleep(DELAY_FOR_DEMO)
-	# Test max value
-	target = int(max[totalRow-1])
-	logging.info('Test max.  value : %s' % str(target))
-	textbox.SetFocus()
-	ctrlTextbox.SetValue(str(target))
-	paneRoot.SetFocus()
-	if isValidData(image):
-		ctrlApplyBtn.Invoke()
-	else:
-		print('!!! Failed: Input Data (%s) overflow!' % str(target))
-	time.sleep(DELAY_FOR_DEMO)
-	# Test min value
-	target = int(min[totalRow-1])
-	logging.info('Test min.  value : %s.' % str(target))
-	textbox.SetFocus()
-	ctrlTextbox.SetValue(str(target))
-	paneRoot.SetFocus()
-	if isValidData(image):
-		ctrlApplyBtn.Invoke()
-	else:
-		print('!!! Failed: Input Data (%s) overflow!' % str(target))
-	time.sleep(DELAY_FOR_DEMO)
-	# Test max value + 1
-	target = int(max[totalRow-1])+1
-	logging.info('Test max.  value + 1 : %s.' % str(target))
-	textbox.SetFocus()
-	ctrlTextbox.SetValue(str(target))
-	paneRoot.SetFocus()
-	if isValidData(image):
-		ctrlApplyBtn.Invoke()
-	else:
-		print('!!! Failed: Input Data (%s) overflow!' % str(target))
-	time.sleep(DELAY_FOR_DEMO)
-	'''
 	
