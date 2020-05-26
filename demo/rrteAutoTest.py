@@ -9,6 +9,17 @@ from configparser import ConfigParser
 from comtypes.client import *
 from ctypes import *
 
+DELAY_OPEN_RRTE		= 6
+DELAY_SET_TO_DEV	= 4
+DELAY_OPT_RRTE		= 3
+NAME_RRTE_APP		= 'Reference Run-time Environment'
+NAME_TOP_TAB		= 'Fdi.Client.DeviceUi.ViewModel.DeviceUiHostContainerItemViewModel'
+NAME_X_BTN			= 'X'
+NAME_TREE_ROOT		= 'DD_ExplorerView'
+NAME_APPLY_BTN		= 'Apply'
+NAME_REVERT_BTN		= 'Revert'
+NAME_ONLINE_BTN		= 'Online'
+NAME_OK_BTN			= 'OK'
 
 #pdb.set_trace()
 logging.basicConfig(level = logging.ERROR)
@@ -80,45 +91,36 @@ def isSetError(textbox, setVal):
 		pattern = applyBtn.GetCurrentPattern(UIAClient.UIA_InvokePatternId)
 		ctrlApplyBtn = cast(pattern, POINTER(UIAClient.IUIAutomationInvokePattern))
 		ctrlApplyBtn.Invoke()
-		time.sleep(4)
+		time.sleep(DELAY_SET_TO_DEV)
 		# Test error dialog
 		root = IUIA.GetRootElement()
-		rrteRoot = FindOneElem(root, 'Reference Run-time Environment', UIAClient.UIA_NamePropertyId)
+		rrteRoot = FindOneElem(root, NAME_RRTE_APP, UIAClient.UIA_NamePropertyId)
 		win = FindOneElem(rrteRoot, UIAClient.UIA_WindowControlTypeId, UIAClient.UIA_ControlTypePropertyId)
 		if isFoundElem(win):
-			OKBtn = FindOneElem(win, 'OK', UIAClient.UIA_NamePropertyId)
+			OKBtn = FindOneElem(win, NAME_OK_BTN, UIAClient.UIA_NamePropertyId)
 			pattern = OKBtn.GetCurrentPattern(UIAClient.UIA_InvokePatternId)
 			ctrl = cast(pattern, POINTER(UIAClient.IUIAutomationInvokePattern))
 			ctrl.Invoke()
-			time.sleep(4)
+			time.sleep(DELAY_SET_TO_DEV)
 			return 1
 		else:
 			return 0
 
 if __name__ == '__main__':
 	# Define const and parameter
-	DELAY_OPEN_RRET				= 6
-	DELAY_PUSH_BUTTON			= 4
-	DELAY_FOR_DEMO				= 3
-	MAX_MENU_ITEM_NUM			= 28
 	MENU_ITEM_TYPE_COLUMN		= 6
 	MENU_ITEM_RW_COLUMN			= 7
 	MENU_ITEM_DATA_TYPE_COLUMN	= 8
 	MENU_ITEM_FORMAT_COLUMN		= 9
 	MENU_ITEM_MIN_COLUMN		= 10
 	MENU_ITEM_MAX_COLUMN		= 11
+	MAX_MENU_ITEM_NUM			= 28
 	label						= [''] * MAX_MENU_ITEM_NUM
 	itemType					= [''] * MAX_MENU_ITEM_NUM
 	rw							= ['RO'] * MAX_MENU_ITEM_NUM
 	dataType					= ['INT'] * MAX_MENU_ITEM_NUM
 	max							= [float('inf')] * MAX_MENU_ITEM_NUM
 	min							= [float('-inf')] * MAX_MENU_ITEM_NUM
-	NAME_RRTE_APP				= 'Reference Run-time Environment'
-	NAME_TOP_TAB				= 'Fdi.Client.DeviceUi.ViewModel.DeviceUiHostContainerItemViewModel'
-	NAME_X_BTN					= 'X'
-	NAME_TREE_ROOT				= 'DD_ExplorerView'
-	NAME_APPLY_BTN				= 'Apply'
-	NAME_REVERT_BTN				= 'Revert'
 	
 	# Load and parser config file
 	logging.info('***********************************************************')
@@ -144,13 +146,10 @@ if __name__ == '__main__':
 	logging.info('***********************************************************')
 	logging.info('****** Startup RRTE and load target FDI package or EDD file')
 	logging.info('***********************************************************')
-	#import os
-	#execCmd = '\"\"' + hostApp + '\" -l \"' + testFile + '\" &\"'
-	#os.system(execCmd)
 	execCmd = '\"' + hostApp + '\" -l \"' + testFile + '\"'
 	logging.info('execCmd = %s' % execCmd)
 	subprocess.Popen(execCmd, shell=True, stdout=subprocess.PIPE)
-	time.sleep(DELAY_OPEN_RRET)
+	time.sleep(DELAY_OPEN_RRTE)
 	
 	# Read spec. file (Excel, unified format)
 	logging.info('')
@@ -188,12 +187,13 @@ if __name__ == '__main__':
 	logging.info('***********************************************************')
 	logging.info('****** Push [Online] TAB')
 	logging.info('***********************************************************')
-	txt = FindOneElem(root, 'Online', UIAClient.UIA_NamePropertyId)
-	btnOnline = GetParentElem(txt)
-	pattern = btnOnline.GetCurrentPattern(UIAClient.UIA_InvokePatternId)
+	#txt = FindOneElem(root, 'Online', UIAClient.UIA_NamePropertyId)
+	#btnOnline = GetParentElem(txt)
+	onlineBtn = FindElemBySubText(root, NAME_ONLINE_BTN)
+	pattern = onlineBtn.GetCurrentPattern(UIAClient.UIA_InvokePatternId)
 	ctrl = cast(pattern, POINTER(UIAClient.IUIAutomationInvokePattern))
 	ctrl.Invoke()
-	time.sleep(DELAY_PUSH_BUTTON)
+	time.sleep(DELAY_SET_TO_DEV)
 	
 	# Get the menu tree node
 	logging.info('')
@@ -230,7 +230,7 @@ if __name__ == '__main__':
 				pattern = toggle.GetCurrentPattern(UIAClient.UIA_TogglePatternId)
 				ctrl = cast(pattern, POINTER(UIAClient.IUIAutomationTogglePattern))
 				ctrl.Toggle()
-				time.sleep(DELAY_FOR_DEMO)
+				time.sleep(DELAY_OPT_RRTE)
 		elif (itemType[currRow] == 'Menu' and itemType[currRow+1] != 'Menu'):
 			logging.info('Comparing the menu label[%s].' % label[currRow])
 			paramStartRow = currRow + 1;
@@ -243,7 +243,7 @@ if __name__ == '__main__':
 				pattern = item.GetCurrentPattern(UIAClient.UIA_SelectionItemPatternId)
 				ctrl = cast(pattern, POINTER(UIAClient.IUIAutomationSelectionItemPattern))
 				ctrl.Select()
-				time.sleep(DELAY_PUSH_BUTTON)
+				time.sleep(DELAY_OPT_RRTE)
 				logging.info('Comparing labels under menu item[%s].' % label[currRow])
 				line = FindOneElem(rrteRoot, 'Fdi.Ui.ViewModel.Content.NumericParameterViewModel', UIAClient.UIA_NamePropertyId)
 				pane = GetParentElem(line)
@@ -279,18 +279,16 @@ if __name__ == '__main__':
 					pattern = toggle.GetCurrentPattern(UIAClient.UIA_TogglePatternId)
 					ctrl = cast(pattern, POINTER(UIAClient.IUIAutomationTogglePattern))
 					ctrl.Toggle()
-					time.sleep(DELAY_FOR_DEMO)
+					time.sleep(DELAY_OPT_RRTE)
 				elif state == UIAClient.ExpandCollapseState_LeafNode:
 					pattern = item.GetCurrentPattern(UIAClient.UIA_SelectionItemPatternId)
 					ctrl = cast(pattern, POINTER(UIAClient.IUIAutomationSelectionItemPattern))
 					ctrl.Select()
-					time.sleep(DELAY_FOR_DEMO)
+					time.sleep(DELAY_OPT_RRTE)
 		else: # param
 			if rw[currRow] == 'RW':
 				#pdb.set_trace()
 				paneRoot = GetNextSiblingElem(treeRoot)
-				#txt = FindOneElem(paneRoot, label[currRow], UIAClient.UIA_NamePropertyId)
-				#paramLine = GetParentElem(txt)
 				paramLine = FindElemBySubText(paneRoot, label[currRow])
 				textbox = FindOneElem(paramLine, 'Value', UIAClient.UIA_AutomationIdPropertyId)
 				pattern = textbox.GetCurrentPattern(UIAClient.UIA_ValuePatternId)
@@ -303,7 +301,7 @@ if __name__ == '__main__':
 				paneRoot.SetFocus()
 				if isSetError(textbox, str(target)):
 					print('!!! Failed: Input Data (%s) overflow!' % str(target))
-				time.sleep(DELAY_FOR_DEMO)
+				time.sleep(DELAY_OPT_RRTE)
 				# Test min value
 				target = int(min[currRow]) # In fact, the floating point type should be combined with the format string to judge its reasonable input.
 				logging.info('Test min.  value : %s.' % str(target))
@@ -312,5 +310,5 @@ if __name__ == '__main__':
 				paneRoot.SetFocus()
 				if isSetError(textbox, str(target)):
 					print('!!! Failed: Input Data (%s) overflow!' % str(target))
-				time.sleep(DELAY_FOR_DEMO)
+				time.sleep(DELAY_OPT_RRTE)
 	
