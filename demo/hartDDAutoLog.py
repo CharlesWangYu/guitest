@@ -4,13 +4,12 @@ import sys
 import time
 import subprocess
 import xlrd
+import win32api
+import win32con
 #import comtypes
 from configparser import ConfigParser
 from comtypes.client import *
 from ctypes import *
-
-#UIAutomationClient = GetModule('UIAutomationCore.dll')
-#IUIAutomation = CreateObject('{ff48dba4-60ef-4201-aa87-54103eef594e}', interface=UIAutomationClient.IUIAutomation)
 
 class TreeNode:
 	def __init__(self, elem, parent=None, left=None, right=None):
@@ -43,39 +42,248 @@ class Tree: # It's logic tree, not control view tree in ui automation
 
 class UIA:
 	Client = GetModule('UIAutomationCore.dll')
-	IUia = CreateObject('{ff48dba4-60ef-4201-aa87-54103eef594e}', interface=Client.IUIAutomation)
-	Root = IUia.GetRootElement()
+	IUIA = CreateObject('{ff48dba4-60ef-4201-aa87-54103eef594e}', interface=Client.IUIAutomation)
+	DesktopRoot = IUIA.GetRootElement()
 
 	@staticmethod
-	def FindAllElem(start, key, type, flag=Client.PropertyConditionFlags_None, scope=Client.TreeScope_Descendants):
-		cnd = UIA.IUia.CreatePropertyConditionEx(type, key, flag)
+	def findAllElem(start, key, type, flag=Client.PropertyConditionFlags_None, scope=Client.TreeScope_Descendants):
+		cnd = UIA.IUIA.CreatePropertyConditionEx(type, key, flag)
 		all = start.FindAll(scope, cnd)
 		for x in range(0, all.Length):
 			element = all.GetElement(x)
+			logging.info('Element[%s] is searched.' % element.CurrentName)
 		return all
 
 	@staticmethod
-	def FindOneElem(start, key, type, flag=Client.PropertyConditionFlags_None, scope=Client.TreeScope_Descendants):
-		cnd = UIA.IUia.CreatePropertyConditionEx(type, key, flag)
+	def findFirstElem(start, key, type, flag=Client.PropertyConditionFlags_None, scope=Client.TreeScope_Descendants):
+		cnd = UIA.IUIA.CreatePropertyConditionEx(type, key, flag)
 		element = start.FindFirst(scope, cnd)
+		#logging.info('Element[%s] is searched.' % element.CurrentName)
 		return element
 
+	def getParentElem(elem):
+		walker = UIA.IUIA.ControlViewWalker
+		parent = walker.GetParentElement(elem)
+		return parent
+
 	@staticmethod
-	def GetSiblingElem(elem):
-		walker = UIA.IUia.ControlViewWalker
+	def getNextSiblingElem(elem):
+		walker = UIA.IUIA.ControlViewWalker
 		element = walker.GetNextSiblingElement(elem)
 		return element
 
 	@staticmethod
-	def FindElemBySubText(start, name, flag=Client.PropertyConditionFlags_None, scope=Client.TreeScope_Descendants):
-		cnd = UIA.IUia.CreatePropertyConditionEx(UIA.Client.UIA_NamePropertyId, name, flag)
-		child = start.FindFirst(scope, cnd)
-		walker = UIA.IUia.ControlViewWalker
-		element = walker.GetParentElement(child)
+	def getPreviousSiblingElem(elem):
+		walker = UIA.IUIA.ControlViewWalker
+		element = walker.GetPreviousSiblingElement(elem)
 		return element
+	
+	@staticmethod
+	def findElemBySubText(start, name, flag=Client.PropertyConditionFlags_None, scope=Client.TreeScope_Descendants):
+		child = UIA.findFirstElem(start, name, UIA.Client.UIA_NamePropertyId)
+		element = UIA.getParentElem(child)
+		return element
+	
+	@staticmethod
+	def isUIAElem(elem):
+		try:
+			temp = elem.CurrentName
+			return True
+		except Exception as e:
+			return False
+	
+	@staticmethod
+	def setEditbox(elem, text):
+		pattern = elem.GetCurrentPattern(UIA.Client.UIA_ValuePatternId)
+		ctrl = cast(pattern, POINTER(UIA.Client.IUIAutomationValuePattern))
+		elem.SetFocus()
+		ctrl.SetValue(text)
 
-class RRTECtrl:
-	RRET_OPEN_DELAY				= 6
+	@staticmethod
+	def pushButton(elem):
+		pattern = elem.GetCurrentPattern(UIA.Client.UIA_InvokePatternId)
+		ctrl = cast(pattern, POINTER(UIA.Client.IUIAutomationInvokePattern))
+		ctrl.Invoke()
+
+class CTT:
+	DELAY_DPCTT_START		= 6
+	DELAY_SET_TO_DEV		= 4
+	DELAY_FOR_DEMO			= 3
+	NAME_DPCTT_APP			= 'FDI Package CTT'
+	NAME_REPORT_INFO		= 'Test Report Information'
+	NAME_REPORT_USER		= 'me'
+	NAME_REPORT_FILLIN		= 'Please fill in Name'
+	NAME_TITLE_BAR			= 'TitleBar'
+	NAME_OVERFLOW_BTN		= 'OverflowButton'
+	
+	def __init__(self):
+		self.CTTRoot		= None
+		# layer2
+		self.NewTestDialog	= None
+		self.ReportDialog	= None
+		self.TitleBar		= None
+		self.MenuBar		= None
+		self.ToolBar		= None
+		self.CampaignView	= None
+		self.PropertyView	= None
+		self.LogView		= None
+		self.StatusBar		= None
+		# layer3(Main window)
+		self.OverflowBtn	= None
+		self.Thumb			= None
+		self.ExecuteBtn		= None
+		# layer3(Test Report Infomation)
+		self.ReportUser		= None
+		# layer2(Test Report Infomation)
+		self.FillLabel		= None
+		self.GivenName		= None
+		self.GivenNameEdit	= None
+		self.LastName		= None
+		self.LastNameEdit	= None
+		self.TestLab		= None
+		self.TestLabEdit	= None
+		self.DevManu		= None
+		self.DevManuEdit	= None
+		self.DevName		= None
+		self.DevNameEdit	= None
+		self.VerRRTE		= None
+		self.VerRRTEEdit	= None
+		self.VerCTT			= None
+		self.VerCTTEdit		= None
+		self.VerFDI			= None
+		self.VerFDIEdit		= None
+		self.TestEnv		= None
+		self.TestEnvEdit	= None
+		self.CancelBtn		= None
+		self.AcceptBtn		= None
+
+	def start(self, auto=True):
+		# start DPCTT
+		config = ConfigParser()
+		config.read('test.conf', encoding='UTF-8')
+		hostApp	= config['MISC']['HOST_APP_PATH'].strip("'") + '\FDI Package CTT\FDIPackageCTT.exe'
+		testFile = config['MISC']['TEST_FILE'].strip("'")
+		campaign = config['MISC']['HOST_APP_PATH'].strip("'") + '\FDI Package CTT\Campaigns\HART Testcampaign\hart.testcampaign.xml'
+		#outPath = config['MISC']['OUTPUT_PATH'].strip("'")
+		execCmd = '\"' + hostApp + '\"'
+		if auto: pass
+			# the following command can not load correct test suit
+			#execCmd += ' --create \"' + testFile + '\" \"' + campaign + '\" --report'
+		subprocess.Popen(execCmd, shell=True, stdout=subprocess.PIPE)
+		time.sleep(CTT.DELAY_DPCTT_START)
+		logging.info('execCmd = %s' % execCmd)
+		# get part's node from screen
+		self.CTTRoot 		= UIA.findFirstElem(UIA.DesktopRoot, CTT.NAME_DPCTT_APP, UIA.Client.UIA_NamePropertyId)
+		'''
+		# popup dialog
+		self.ReportDialog 	= UIA.findFirstElem(self.CTTRoot, UIA.Client.UIA_WindowControlTypeId, UIA.Client.UIA_ControlTypePropertyId)
+		self.ReportUser		= UIA.findFirstElem(self.ReportDialog, CTT.NAME_REPORT_USER, UIA.Client.UIA_AutomationIdPropertyId)
+		self.FillLabel 		= UIA.findFirstElem(self.ReportUser, CTT.NAME_REPORT_FILLIN, UIA.Client.UIA_NamePropertyId)
+		self.GivenName		= UIA.getNextSiblingElem(self.FillLabel)
+		self.GivenNameEdit	= UIA.getNextSiblingElem(self.GivenName)
+		self.LastName		= UIA.getNextSiblingElem(self.GivenNameEdit)
+		self.LastNameEdit	= UIA.getNextSiblingElem(self.LastName)
+		self.TestLab		= UIA.getNextSiblingElem(self.LastNameEdit)
+		self.TestLabEdit	= UIA.getNextSiblingElem(self.TestLab)
+		self.DevManu		= UIA.getNextSiblingElem(self.TestLabEdit)
+		self.DevManuEdit	= UIA.getNextSiblingElem(self.DevManu)
+		self.DevName		= UIA.getNextSiblingElem(self.DevManuEdit)
+		self.DevNameEdit	= UIA.getNextSiblingElem(self.DevName)
+		self.VerRRTE		= UIA.getNextSiblingElem(self.DevNameEdit)
+		self.VerRRTEEdit	= UIA.getNextSiblingElem(self.VerRRTE)
+		self.VerCTT			= UIA.getNextSiblingElem(self.VerRRTEEdit)
+		self.VerCTTEdit		= UIA.getNextSiblingElem(self.VerCTT)
+		self.VerFDI			= UIA.getNextSiblingElem(self.VerCTTEdit)
+		self.VerFDIEdit		= UIA.getNextSiblingElem(self.VerFDI)
+		self.TestEnv		= UIA.getNextSiblingElem(self.VerFDIEdit)
+		self.TestEnvEdit	= UIA.getNextSiblingElem(self.TestEnv)
+		self.CancelBtn		= UIA.getNextSiblingElem(self.TestEnvEdit)
+		self.AcceptBtn		= UIA.getNextSiblingElem(self.CancelBtn)
+		'''
+		# main window
+		self.TitleBar		= UIA.findFirstElem(self.CTTRoot, UIA.Client.UIA_TitleBarControlTypeId, UIA.Client.UIA_ControlTypePropertyId)
+		self.MenuBar		= UIA.getNextSiblingElem(self.TitleBar)
+		self.ToolBar		= UIA.getNextSiblingElem(self.MenuBar)
+		self.CampaignView	= UIA.getNextSiblingElem(self.ToolBar)
+		self.PropertyView	= UIA.getNextSiblingElem(self.CampaignView)
+		self.LogView		= UIA.getNextSiblingElem(self.PropertyView)
+		self.OverflowBtn	= UIA.findFirstElem(self.ToolBar, CTT.NAME_OVERFLOW_BTN, UIA.Client.UIA_AutomationIdPropertyId)
+		self.Thumb			= UIA.getNextSiblingElem(self.OverflowBtn)
+		self.ExecuteBtn		= UIA.getNextSiblingElem(self.Thumb)
+		# assert
+		assert UIA.isUIAElem(self.CTTRoot)
+		'''
+		assert UIA.isUIAElem(self.ReportDialog)
+		assert UIA.isUIAElem(self.ReportUser)
+		assert UIA.isUIAElem(self.FillLabel)
+		assert UIA.isUIAElem(self.GivenName)
+		assert UIA.isUIAElem(self.GivenNameEdit)
+		assert UIA.isUIAElem(self.LastName)
+		assert UIA.isUIAElem(self.LastNameEdit)
+		assert UIA.isUIAElem(self.TestLab)
+		assert UIA.isUIAElem(self.TestLabEdit)
+		assert UIA.isUIAElem(self.DevManu)
+		assert UIA.isUIAElem(self.DevManuEdit)
+		assert UIA.isUIAElem(self.DevName)
+		assert UIA.isUIAElem(self.DevNameEdit)
+		assert UIA.isUIAElem(self.VerRRTE)
+		assert UIA.isUIAElem(self.VerRRTEEdit)
+		assert UIA.isUIAElem(self.VerCTT)
+		assert UIA.isUIAElem(self.VerCTTEdit)
+		assert UIA.isUIAElem(self.VerFDI)
+		assert UIA.isUIAElem(self.VerFDIEdit)
+		assert UIA.isUIAElem(self.TestEnv)
+		assert UIA.isUIAElem(self.TestEnvEdit)
+		assert UIA.isUIAElem(self.CancelBtn)
+		assert UIA.isUIAElem(self.AcceptBtn)
+		'''
+		assert UIA.isUIAElem(self.TitleBar)
+		assert UIA.isUIAElem(self.MenuBar)
+		assert UIA.isUIAElem(self.ToolBar)
+		assert UIA.isUIAElem(self.CampaignView)
+		assert UIA.isUIAElem(self.PropertyView)
+		assert UIA.isUIAElem(self.LogView)
+		assert UIA.isUIAElem(self.OverflowBtn)
+		assert UIA.isUIAElem(self.Thumb)
+		assert UIA.isUIAElem(self.ExecuteBtn)
+
+	def newCampaign(self):
+		hwnd = win32gui.FindWindow(NAME_DPCTT_APP, None)
+		win32api.PostMessage(hwnd, win32con.WM_KEYDOWN, win32con.VK_CTRL, 0)
+		win32api.PostMessage(hwnd, win32con.WM_KEYDOWN, win32con.VK_N, 0)
+		win32api.PostMessage(hwnd, win32con.WM_KEYUP, win32con.VK_N, 0)
+		win32api.PostMessage(hwnd, win32con.WM_KEYUP, win32con.VK_CTRL, 0)
+	
+	def assignPackage(self):
+		pass
+		
+	def setReportInfo(self):
+		# get report info
+		config = ConfigParser()
+		config.read('test.conf', encoding='UTF-8')
+		givenName	= config['MISC']['CTT_TESTER_GIVEN_NAME'].strip("'")
+		lastName	= config['MISC']['CTT_TESTER_LAST_NAME'].strip("'")
+		testLab		= config['MISC']['CTT_TEST_LAB'].strip("'")
+		testEnv		= config['MISC']['CTT_TEST_ENV'].strip("'")
+		# set report info
+		UIA.setEditbox(self.GivenNameEdit, givenName)
+		UIA.setEditbox(self.LastNameEdit, lastName)
+		UIA.setEditbox(self.TestLabEdit, testLab)
+		UIA.setEditbox(self.TestEnvEdit, testEnv)
+		time.sleep(CTT.DELAY_FOR_DEMO)
+		# push accept button
+		UIA.pushButton(self.AcceptBtn)
+		time.sleep(CTT.DELAY_SET_TO_DEV)
+	
+	def execute(self):
+		# push execute button
+		UIA.pushButton(self.ExecuteBtn)
+		time.sleep(CTT.DELAY_SET_TO_DEV)
+	
+class RRTE:
+	DELAY_RRET_START			= 8
+	DELAY_SET_TO_DEV			= 4
+	DELAY_FOR_DEMO				= 3
 	NAME_RRTE_APP				= 'Reference Run-time Environment'
 	NAME_TOP_TAB				= 'Fdi.Client.DeviceUi.ViewModel.DeviceUiHostContainerItemViewModel'
 	NAME_X_BTN					= 'X'
@@ -127,69 +335,73 @@ class RRTECtrl:
 
 	def start(self):
 		config = ConfigParser()
-		config.read('testRrte.conf', encoding='UTF-8')
+		config.read('test.conf', encoding='UTF-8')
 		#inputMode = config['MISC']['TEST_FILE_TYPE'].strip("'")
-		hostApp	= config['MISC']['HOST_APP_FILE'].strip("'")
+		hostApp	= config['MISC']['HOST_APP_PATH'].strip("'") + '\Reference Run-time Environment\Fdi.Reference.Client.exe'
 		testFile = config['MISC']['TEST_FILE'].strip("'")
 		#outPath = config['MISC']['OUTPUT_PATH'].strip("'")
 		execCmd = '\"' + hostApp + '\" -l \"' + testFile + '\"'
 		subprocess.Popen(execCmd, shell=True, stdout=subprocess.PIPE)
-		time.sleep(RRTECtrl.RRET_OPEN_DELAY)
+		time.sleep(RRTE.DELAY_RRET_START)
+		logging.info('execCmd = %s' % execCmd)
 		# find layer1 element
-		self.RRTERoot	= UIA.FindOneElem(UIA.Root, RRTECtrl.NAME_RRTE_APP, UIA.Client.UIA_NamePropertyId)
+		self.RRTERoot	= UIA.findFirstElem(UIA.DesktopRoot, RRTE.NAME_RRTE_APP, UIA.Client.UIA_NamePropertyId)
 		self.RRTECurr	= self.RRTERoot
 		# find layer2 element(work area)
-		all = UIA.FindAllElem(self.RRTERoot, UIA.Client.UIA_CustomControlTypeId, UIA.Client.UIA_ControlTypePropertyId, scope=UIA.Client.TreeScope_Children)
+		all = UIA.findAllElem(self.RRTERoot, UIA.Client.UIA_CustomControlTypeId, UIA.Client.UIA_ControlTypePropertyId, scope=UIA.Client.TreeScope_Children)
 		self.WorkRoot	= all.GetElement(all.Length-1)
 		# find layer3 element
-		self.TopTAB		= UIA.FindOneElem(self.WorkRoot, RRTECtrl.NAME_TOP_TAB, UIA.Client.UIA_NamePropertyId)
-		self.TopTABX	= UIA.FindOneElem(self.TopTAB, RRTECtrl.NAME_X_BTN, UIA.Client.UIA_NamePropertyId)
-		self.TopRoot	= UIA.GetSiblingElem(self.TopTABX)
+		self.TopTAB		= UIA.findFirstElem(self.WorkRoot, RRTE.NAME_TOP_TAB, UIA.Client.UIA_NamePropertyId)
+		self.TopTABX	= UIA.findFirstElem(self.TopTAB, RRTE.NAME_X_BTN, UIA.Client.UIA_NamePropertyId)
+		self.TopRoot	= UIA.getNextSiblingElem(self.TopTABX)
 		# find layer4 element
-		self.Offline	= UIA.FindElemBySubText(self.TopRoot, RRTECtrl.NAME_OFFLINE_TAB)
-		self.OfflineX	= UIA.FindOneElem(self.Offline, RRTECtrl.NAME_X_BTN, UIA.Client.UIA_NamePropertyId)
-		self.TABRoot	= UIA.FindOneElem(self.TopRoot, RRTECtrl.NAME_ONLINE_PARAMS, UIA.Client.UIA_AutomationIdPropertyId)
-		self.Health		= UIA.GetSiblingElem(self.TABRoot)
-		self.Explorer	= UIA.FindOneElem(self.TopRoot, RRTECtrl.NAME_TREE_ROOT, UIA.Client.UIA_AutomationIdPropertyId)
-		#self.TreeRoot	= UIA.GetSiblingElem(self.Explorer)
-		#self.PaneRoot	= UIA.GetSiblingElem(self.TreeRoot)
-		self.Apply		= UIA.FindOneElem(self.TopRoot, RRTECtrl.NAME_APPLY_BTN, UIA.Client.UIA_NamePropertyId)
-		self.Revert		= UIA.FindOneElem(self.TopRoot, RRTECtrl.NAME_REVERT_BTN, UIA.Client.UIA_NamePropertyId)
+		self.Offline	= UIA.findElemBySubText(self.TopRoot, RRTE.NAME_OFFLINE_TAB)
+		self.OfflineX	= UIA.findFirstElem(self.Offline, RRTE.NAME_X_BTN, UIA.Client.UIA_NamePropertyId)
+		self.TABRoot	= UIA.findFirstElem(self.TopRoot, RRTE.NAME_ONLINE_PARAMS, UIA.Client.UIA_AutomationIdPropertyId)
+		self.Health		= UIA.getNextSiblingElem(self.TABRoot)
+		self.Explorer	= UIA.findFirstElem(self.TopRoot, RRTE.NAME_TREE_ROOT, UIA.Client.UIA_AutomationIdPropertyId)
+		#self.TreeRoot	= UIA.getNextSiblingElem(self.Explorer)
+		#self.PaneRoot	= UIA.getNextSiblingElem(self.TreeRoot)
+		self.Apply		= UIA.findFirstElem(self.TopRoot, RRTE.NAME_APPLY_BTN, UIA.Client.UIA_NamePropertyId)
+		self.Revert		= UIA.findFirstElem(self.TopRoot, RRTE.NAME_REVERT_BTN, UIA.Client.UIA_NamePropertyId)
 		# layer5
-		self.Online		= UIA.FindElemBySubText(self.TABRoot, RRTECtrl.NAME_ONLINE_TAB)
-		self.OnlineX	= UIA.FindOneElem(self.Online, RRTECtrl.NAME_X_BTN, UIA.Client.UIA_NamePropertyId)
-		self.Device		= UIA.FindElemBySubText(self.TABRoot, RRTECtrl.NAME_DEVICE_ROOT_MENU)
-		self.DeviceX	= UIA.FindOneElem(self.Device, RRTECtrl.NAME_X_BTN, UIA.Client.UIA_NamePropertyId)
-		self.Diagnose	= UIA.FindElemBySubText(self.TABRoot, RRTECtrl.NAME_DIAGNOSTIC_ROOT_MENU)
-		self.DiagnoseX	= UIA.FindOneElem(self.Diagnose, RRTECtrl.NAME_X_BTN, UIA.Client.UIA_NamePropertyId)
-		self.Maintena	= UIA.FindElemBySubText(self.TABRoot, RRTECtrl.NAME_MAINT_ROOT_MENU)
-		self.MaintenaX	= UIA.FindOneElem(self.Maintena, RRTECtrl.NAME_X_BTN, UIA.Client.UIA_NamePropertyId)
-		self.Process	= UIA.FindElemBySubText(self.TABRoot, RRTECtrl.NAME_PROCESS_ROOT_MENU)
-		self.ProcessX	= UIA.FindOneElem(self.Process, RRTECtrl.NAME_X_BTN, UIA.Client.UIA_NamePropertyId)
+		self.Online		= UIA.findElemBySubText(self.TABRoot, RRTE.NAME_ONLINE_TAB)
+		self.OnlineX	= UIA.findFirstElem(self.Online, RRTE.NAME_X_BTN, UIA.Client.UIA_NamePropertyId)
+		self.Device		= UIA.findElemBySubText(self.TABRoot, RRTE.NAME_DEVICE_ROOT_MENU)
+		self.DeviceX	= UIA.findFirstElem(self.Device, RRTE.NAME_X_BTN, UIA.Client.UIA_NamePropertyId)
+		self.Diagnose	= UIA.findElemBySubText(self.TABRoot, RRTE.NAME_DIAGNOSTIC_ROOT_MENU)
+		self.DiagnoseX	= UIA.findFirstElem(self.Diagnose, RRTE.NAME_X_BTN, UIA.Client.UIA_NamePropertyId)
+		self.Maintena	= UIA.findElemBySubText(self.TABRoot, RRTE.NAME_MAINT_ROOT_MENU)
+		self.MaintenaX	= UIA.findFirstElem(self.Maintena, RRTE.NAME_X_BTN, UIA.Client.UIA_NamePropertyId)
+		self.Process	= UIA.findElemBySubText(self.TABRoot, RRTE.NAME_PROCESS_ROOT_MENU)
+		self.ProcessX	= UIA.findFirstElem(self.Process, RRTE.NAME_X_BTN, UIA.Client.UIA_NamePropertyId)
 		# assert
-		assert not self.RRTERoot == None
-		assert not self.WorkRoot == None
-		assert not self.TopTAB == None
-		assert not self.TopTABX == None
-		assert not self.TopRoot == None
-		assert not self.Offline == None
-		assert not self.OfflineX == None
-		assert not self.TABRoot == None
-		assert not self.Health == None
-		assert not self.Explorer == None
-		assert not self.Apply == None
-		assert not self.Revert == None
-		assert not self.Online == None
-		assert not self.OnlineX == None
-		assert not self.Device == None
-		assert not self.DeviceX == None
-		assert not self.Diagnose == None
-		assert not self.DiagnoseX == None
-		assert not self.Maintena == None
-		assert not self.MaintenaX == None
-		assert not self.Process == None
-		assert not self.ProcessX == None
+		assert UIA.isUIAElem(self.RRTERoot)
+		assert UIA.isUIAElem(self.WorkRoot)
+		assert UIA.isUIAElem(self.TopTAB)
+		assert UIA.isUIAElem(self.TopTABX)
+		assert UIA.isUIAElem(self.TopRoot)
+		assert UIA.isUIAElem(self.Offline)
+		assert UIA.isUIAElem(self.OfflineX)
+		assert UIA.isUIAElem(self.TABRoot)
+		assert UIA.isUIAElem(self.Health)
+		assert UIA.isUIAElem(self.Explorer)
+		assert UIA.isUIAElem(self.Apply)
+		assert UIA.isUIAElem(self.Revert)
+		assert UIA.isUIAElem(self.Online)
+		assert UIA.isUIAElem(self.OnlineX)
+		assert UIA.isUIAElem(self.Device)
+		assert UIA.isUIAElem(self.DeviceX)
+		assert UIA.isUIAElem(self.Diagnose)
+		assert UIA.isUIAElem(self.DiagnoseX)
+		assert UIA.isUIAElem(self.Maintena)
+		assert UIA.isUIAElem(self.MaintenaX)
+		assert UIA.isUIAElem(self.Process)
+		assert UIA.isUIAElem(self.ProcessX)
 
+	def getTreeNodeFromScreen(self, node):
+		pass
+	
 	def getDescendant(self, node):
 		pass
 
@@ -209,13 +421,12 @@ class RRTECtrl:
 		self.UIACurr = self.UIARoot
 		for item in path:
 			self.UIACurr = item.select(self.UIACurr)
-		
-		
 
 class Element: # abstract class
-	def __init__(self, label):
-		self.label = label
-		self.rectangle = None # label's rectangle
+	def __init__(self, name):
+		self.name = name
+		self.ctrlType = None
+		self.rectangle = None
 		
 # RRTE element class
 class RRTEElement(Element): # abstract class (not used in demo)
@@ -255,10 +466,24 @@ class BitEnum(Param):
 if __name__ == '__main__':
 	#pdb.set_trace()
 	logging.basicConfig(level = logging.INFO)
-	
-	rrte = RRTECtrl()
+	'''
+	rootElement = Menu('Online')
+	rootNode = TreeNode(rootElement)
+	rrte = RRTE()
 	rrte.start()
-	
+	rrte.getTreeNodeFromScreen(rootNode)
+	rrte.getLog(rootNode)
+	'''
+	dpctt = CTT()
+	dpctt.start(False)
+	dpctt.newCampaign()
+	dpctt.assignPackage()
+	#dpctt.setReportInfo()
+	#dpctt.execute()
+
+'''
+	def AddAutomationEventHandler(self, eventId, element, scope, cacheRequest, handler):
+'''
 
 ''' TODO : tree --> binary tree
 class Tree:

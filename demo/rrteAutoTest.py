@@ -9,7 +9,7 @@ from configparser import ConfigParser
 from comtypes.client import *
 from ctypes import *
 
-DELAY_OPEN_RRTE		= 6
+DELAY_OPEN_RRTE		= 8
 DELAY_SET_TO_DEV	= 4
 DELAY_OPT_RRTE		= 3
 NAME_RRTE_APP		= 'Reference Run-time Environment'
@@ -71,12 +71,12 @@ def GetTextboxCurrentVal(elem):
 	text = FindOneElem(elem, UIAClient.UIA_TextControlTypeId, UIAClient.UIA_ControlTypePropertyId)
 	return text.CurrentName
 
-def isFoundElem(elem):
+def isUIAElem(elem):
 	try:
 		temp = elem.CurrentName
-		return 1
+		return True
 	except Exception as e:
-		return 0
+		return False
 
 def isSetError(textbox, setVal):
 	currVal = GetTextboxCurrentVal(textbox)
@@ -96,7 +96,7 @@ def isSetError(textbox, setVal):
 		root = IUIA.GetRootElement()
 		rrteRoot = FindOneElem(root, NAME_RRTE_APP, UIAClient.UIA_NamePropertyId)
 		win = FindOneElem(rrteRoot, UIAClient.UIA_WindowControlTypeId, UIAClient.UIA_ControlTypePropertyId)
-		if isFoundElem(win):
+		if isUIAElem(win):
 			OKBtn = FindOneElem(win, NAME_OK_BTN, UIAClient.UIA_NamePropertyId)
 			pattern = OKBtn.GetCurrentPattern(UIAClient.UIA_InvokePatternId)
 			ctrl = cast(pattern, POINTER(UIAClient.IUIAutomationInvokePattern))
@@ -127,10 +127,9 @@ if __name__ == '__main__':
 	logging.info('****** Load and parser config file')
 	logging.info('***********************************************************')
 	config = ConfigParser()
-	config.read('testRrte.conf', encoding='UTF-8')
-	
+	config.read('test.conf', encoding='UTF-8')
 	inputMode	= config['MISC']['TEST_FILE_TYPE'].strip("'")
-	hostApp		= config['MISC']['HOST_APP_FILE'].strip("'")
+	hostApp		= config['MISC']['HOST_APP_PATH'].strip("'") + '\Reference Run-time Environment\Fdi.Reference.Client.exe'
 	specFile	= config['MISC']['INPUT_SPEC_FILE'].strip("'")
 	testFile	= config['MISC']['TEST_FILE'].strip("'")
 	outPath		= config['MISC']['OUTPUT_PATH'].strip("'")
