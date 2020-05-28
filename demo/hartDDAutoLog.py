@@ -4,6 +4,7 @@ import sys
 import time
 import subprocess
 import xlrd
+import win32gui
 import win32api
 import win32con
 #import comtypes
@@ -51,13 +52,22 @@ class UIA:
 		all = start.FindAll(scope, cnd)
 		for x in range(0, all.Length):
 			element = all.GetElement(x)
-			logging.info('Element[%s] is searched.' % element.CurrentName)
+			#logging.info('Element[%s] is searched.' % element.CurrentName)
 		return all
 
 	@staticmethod
 	def findFirstElem(start, key, type, flag=Client.PropertyConditionFlags_None, scope=Client.TreeScope_Descendants):
 		cnd = UIA.IUIA.CreatePropertyConditionEx(type, key, flag)
 		element = start.FindFirst(scope, cnd)
+		#logging.info('Element[%s] is searched.' % element.CurrentName)
+		return element
+
+	@staticmethod
+	def findFirstElem2And(start, key1, type1, key2, type2, flag=Client.PropertyConditionFlags_None, scope=Client.TreeScope_Descendants):
+		cnd1 = UIA.IUIA.CreatePropertyConditionEx(type1, key1, flag)
+		cnd2 = UIA.IUIA.CreatePropertyConditionEx(type2, key2, flag)
+		combine = UIA.IUIA.CreateAndCondition(cnd1, cnd2)
+		element = start.FindFirst(scope, combine)
 		#logging.info('Element[%s] is searched.' % element.CurrentName)
 		return element
 
@@ -94,6 +104,7 @@ class UIA:
 	
 	@staticmethod
 	def setEditbox(elem, text):
+		assert UIA.isUIAElem(elem)
 		pattern = elem.GetCurrentPattern(UIA.Client.UIA_ValuePatternId)
 		ctrl = cast(pattern, POINTER(UIA.Client.IUIAutomationValuePattern))
 		elem.SetFocus()
@@ -101,25 +112,72 @@ class UIA:
 
 	@staticmethod
 	def pushButton(elem):
+		assert UIA.isUIAElem(elem)
 		pattern = elem.GetCurrentPattern(UIA.Client.UIA_InvokePatternId)
 		ctrl = cast(pattern, POINTER(UIA.Client.IUIAutomationInvokePattern))
 		ctrl.Invoke()
+	
+	@staticmethod
+	def selectCheckbox(elem):
+		assert UIA.isUIAElem(elem)
+		pattern = elem.GetCurrentPattern(UIA.Client.UIA_TogglePatternId)
+		ctrl = cast(pattern, POINTER(UIA.Client.IUIAutomationTogglePattern))
+		if not ctrl.value.CurrentToggleState:
+			ctrl.Toggle()
+	
+	@staticmethod
+	def unselectCheckbox(elem):
+		assert UIA.isUIAElem(elem)
+		pattern = elem.GetCurrentPattern(UIA.Client.UIA_TogglePatternId)
+		ctrl = cast(pattern, POINTER(UIA.Client.IUIAutomationTogglePattern))
+		if ctrl.value.CurrentToggleState:
+			ctrl.Toggle()
+	
+	@staticmethod
+	def setDirInCommonDialog(dialog, path):
+		assert UIA.isUIAElem(dialog)
+		#logging.info('Reference file is %s.' % path)
+		edit = UIA.findFirstElem2And(dialog, UIA.Client.UIA_EditControlTypeId, UIA.Client.UIA_ControlTypePropertyId, 'Edit', UIA.Client.UIA_ClassNamePropertyId)
+		assert UIA.isUIAElem(edit)
+		okBtn = UIA.findFirstElem(dialog, '1', UIA.Client.UIA_AutomationIdPropertyId, scope=UIA.Client.TreeScope_Children)
+		assert UIA.isUIAElem(okBtn)
+		UIA.setEditbox(edit, path)
+		time.sleep(1)
+		UIA.pushButton(okBtn)
+		time.sleep(1)
 
 class CTT:
 	DELAY_DPCTT_START		= 6
 	DELAY_SET_TO_DEV		= 4
 	DELAY_FOR_DEMO			= 3
+	DELAY_WAIT_DLG			= 3
+	DELAY_LONG_TIME			= 10
+	DELAY_LONG_LONG			= 100
+	# Name or AutomationId (main window)
 	NAME_DPCTT_APP			= 'FDI Package CTT'
+	NAME_OVERFLOW_BTN		= 'OverflowButton'
+	# Name or AutomationId ("Test Report Information" dialog)
 	NAME_REPORT_INFO		= 'Test Report Information'
 	NAME_REPORT_USER		= 'me'
 	NAME_REPORT_FILLIN		= 'Please fill in Name'
-	NAME_TITLE_BAR			= 'TitleBar'
-	NAME_OVERFLOW_BTN		= 'OverflowButton'
+	# Name or AutomationId ("New Test Campaign" dialog)
+	NAME_NEW_COMPAIGN		= 'New Test Campaign'
+	NAME_COMPAIGN_PATH		= 'nameBox'
+	NAME_COMPAIGN_CHECK		= 'cb'
+	NAME_COMPAIGN_OTHER		= 'otherSelectButton'
+	NAME_COMPAIGN_CANCEL	= 'Cancel'
+	NAME_COMPAIGN_ACCEPT	= 'Accept'
+	NAME_REPLACE_BTN		= 'Replace existing campaign'
 	
 	def __init__(self):
+		self.hostApp		= None
+		self.testFile 		= None
+		self.campaignRef 	= None
+		self.outPath 		= None
+		self.campaign	 	= None
+		# layer1
 		self.CTTRoot		= None
 		# layer2
-		self.NewTestDialog	= None
 		self.ReportDialog	= None
 		self.TitleBar		= None
 		self.MenuBar		= None
@@ -132,130 +190,116 @@ class CTT:
 		self.OverflowBtn	= None
 		self.Thumb			= None
 		self.ExecuteBtn		= None
-		# layer3(Test Report Infomation)
-		self.ReportUser		= None
-		# layer2(Test Report Infomation)
-		self.FillLabel		= None
-		self.GivenName		= None
-		self.GivenNameEdit	= None
-		self.LastName		= None
-		self.LastNameEdit	= None
-		self.TestLab		= None
-		self.TestLabEdit	= None
-		self.DevManu		= None
-		self.DevManuEdit	= None
-		self.DevName		= None
-		self.DevNameEdit	= None
-		self.VerRRTE		= None
-		self.VerRRTEEdit	= None
-		self.VerCTT			= None
-		self.VerCTTEdit		= None
-		self.VerFDI			= None
-		self.VerFDIEdit		= None
-		self.TestEnv		= None
-		self.TestEnvEdit	= None
-		self.CancelBtn		= None
-		self.AcceptBtn		= None
 
 	def start(self, auto=True):
 		# start DPCTT
 		config = ConfigParser()
 		config.read('test.conf', encoding='UTF-8')
-		hostApp	= config['MISC']['HOST_APP_PATH'].strip("'") + '\FDI Package CTT\FDIPackageCTT.exe'
-		testFile = config['MISC']['TEST_FILE'].strip("'")
-		campaign = config['MISC']['HOST_APP_PATH'].strip("'") + '\FDI Package CTT\Campaigns\HART Testcampaign\hart.testcampaign.xml'
-		#outPath = config['MISC']['OUTPUT_PATH'].strip("'")
-		execCmd = '\"' + hostApp + '\"'
+		self.hostApp	= config['MISC']['HOST_APP_PATH'].strip("'") + '\FDI Package CTT\FDIPackageCTT.exe'
+		self.testFile = config['MISC']['TEST_FILE'].strip("'")
+		self.campaignRef = config['MISC']['HOST_APP_PATH'].strip("'") + '\FDI Package CTT\Campaigns\HART Testcampaign\hart.testcampaign.xml'
+		self.campaign = config['MISC']['CTT_COMPAIGN_FILE'].strip("'")
+		self.outPath = config['MISC']['OUTPUT_PATH'].strip("'") + '\dpctt'
+		execCmd = '\"' + self.hostApp + '\"'
 		if auto: pass
 			# the following command can not load correct test suit
-			#execCmd += ' --create \"' + testFile + '\" \"' + campaign + '\" --report'
+			#execCmd += ' --create \"' + self.testFile + '\" \"' + self.campaignRef + '\" --report'
 		subprocess.Popen(execCmd, shell=True, stdout=subprocess.PIPE)
 		time.sleep(CTT.DELAY_DPCTT_START)
 		logging.info('execCmd = %s' % execCmd)
 		# get part's node from screen
 		self.CTTRoot 		= UIA.findFirstElem(UIA.DesktopRoot, CTT.NAME_DPCTT_APP, UIA.Client.UIA_NamePropertyId)
-		'''
-		# popup dialog
-		self.ReportDialog 	= UIA.findFirstElem(self.CTTRoot, UIA.Client.UIA_WindowControlTypeId, UIA.Client.UIA_ControlTypePropertyId)
-		self.ReportUser		= UIA.findFirstElem(self.ReportDialog, CTT.NAME_REPORT_USER, UIA.Client.UIA_AutomationIdPropertyId)
-		self.FillLabel 		= UIA.findFirstElem(self.ReportUser, CTT.NAME_REPORT_FILLIN, UIA.Client.UIA_NamePropertyId)
-		self.GivenName		= UIA.getNextSiblingElem(self.FillLabel)
-		self.GivenNameEdit	= UIA.getNextSiblingElem(self.GivenName)
-		self.LastName		= UIA.getNextSiblingElem(self.GivenNameEdit)
-		self.LastNameEdit	= UIA.getNextSiblingElem(self.LastName)
-		self.TestLab		= UIA.getNextSiblingElem(self.LastNameEdit)
-		self.TestLabEdit	= UIA.getNextSiblingElem(self.TestLab)
-		self.DevManu		= UIA.getNextSiblingElem(self.TestLabEdit)
-		self.DevManuEdit	= UIA.getNextSiblingElem(self.DevManu)
-		self.DevName		= UIA.getNextSiblingElem(self.DevManuEdit)
-		self.DevNameEdit	= UIA.getNextSiblingElem(self.DevName)
-		self.VerRRTE		= UIA.getNextSiblingElem(self.DevNameEdit)
-		self.VerRRTEEdit	= UIA.getNextSiblingElem(self.VerRRTE)
-		self.VerCTT			= UIA.getNextSiblingElem(self.VerRRTEEdit)
-		self.VerCTTEdit		= UIA.getNextSiblingElem(self.VerCTT)
-		self.VerFDI			= UIA.getNextSiblingElem(self.VerCTTEdit)
-		self.VerFDIEdit		= UIA.getNextSiblingElem(self.VerFDI)
-		self.TestEnv		= UIA.getNextSiblingElem(self.VerFDIEdit)
-		self.TestEnvEdit	= UIA.getNextSiblingElem(self.TestEnv)
-		self.CancelBtn		= UIA.getNextSiblingElem(self.TestEnvEdit)
-		self.AcceptBtn		= UIA.getNextSiblingElem(self.CancelBtn)
-		'''
-		# main window
-		self.TitleBar		= UIA.findFirstElem(self.CTTRoot, UIA.Client.UIA_TitleBarControlTypeId, UIA.Client.UIA_ControlTypePropertyId)
-		self.MenuBar		= UIA.getNextSiblingElem(self.TitleBar)
-		self.ToolBar		= UIA.getNextSiblingElem(self.MenuBar)
-		self.CampaignView	= UIA.getNextSiblingElem(self.ToolBar)
-		self.PropertyView	= UIA.getNextSiblingElem(self.CampaignView)
-		self.LogView		= UIA.getNextSiblingElem(self.PropertyView)
-		self.OverflowBtn	= UIA.findFirstElem(self.ToolBar, CTT.NAME_OVERFLOW_BTN, UIA.Client.UIA_AutomationIdPropertyId)
-		self.Thumb			= UIA.getNextSiblingElem(self.OverflowBtn)
-		self.ExecuteBtn		= UIA.getNextSiblingElem(self.Thumb)
-		# assert
 		assert UIA.isUIAElem(self.CTTRoot)
-		'''
-		assert UIA.isUIAElem(self.ReportDialog)
-		assert UIA.isUIAElem(self.ReportUser)
-		assert UIA.isUIAElem(self.FillLabel)
-		assert UIA.isUIAElem(self.GivenName)
-		assert UIA.isUIAElem(self.GivenNameEdit)
-		assert UIA.isUIAElem(self.LastName)
-		assert UIA.isUIAElem(self.LastNameEdit)
-		assert UIA.isUIAElem(self.TestLab)
-		assert UIA.isUIAElem(self.TestLabEdit)
-		assert UIA.isUIAElem(self.DevManu)
-		assert UIA.isUIAElem(self.DevManuEdit)
-		assert UIA.isUIAElem(self.DevName)
-		assert UIA.isUIAElem(self.DevNameEdit)
-		assert UIA.isUIAElem(self.VerRRTE)
-		assert UIA.isUIAElem(self.VerRRTEEdit)
-		assert UIA.isUIAElem(self.VerCTT)
-		assert UIA.isUIAElem(self.VerCTTEdit)
-		assert UIA.isUIAElem(self.VerFDI)
-		assert UIA.isUIAElem(self.VerFDIEdit)
-		assert UIA.isUIAElem(self.TestEnv)
-		assert UIA.isUIAElem(self.TestEnvEdit)
-		assert UIA.isUIAElem(self.CancelBtn)
-		assert UIA.isUIAElem(self.AcceptBtn)
-		'''
+		self.TitleBar = UIA.findFirstElem(self.CTTRoot, UIA.Client.UIA_TitleBarControlTypeId, UIA.Client.UIA_ControlTypePropertyId)
 		assert UIA.isUIAElem(self.TitleBar)
+		self.MenuBar = UIA.getNextSiblingElem(self.TitleBar)
 		assert UIA.isUIAElem(self.MenuBar)
+		self.ToolBar = UIA.getNextSiblingElem(self.MenuBar)
 		assert UIA.isUIAElem(self.ToolBar)
+		self.CampaignView = UIA.getNextSiblingElem(self.ToolBar)
 		assert UIA.isUIAElem(self.CampaignView)
+		self.PropertyView = UIA.getNextSiblingElem(self.CampaignView)
 		assert UIA.isUIAElem(self.PropertyView)
+		self.LogView = UIA.getNextSiblingElem(self.PropertyView)
 		assert UIA.isUIAElem(self.LogView)
+		self.OverflowBtn = UIA.findFirstElem(self.ToolBar, CTT.NAME_OVERFLOW_BTN, UIA.Client.UIA_AutomationIdPropertyId)
 		assert UIA.isUIAElem(self.OverflowBtn)
+		self.Thumb = UIA.getNextSiblingElem(self.OverflowBtn)
 		assert UIA.isUIAElem(self.Thumb)
+		self.ExecuteBtn = UIA.getNextSiblingElem(self.Thumb)
 		assert UIA.isUIAElem(self.ExecuteBtn)
 
-	def newCampaign(self):
-		hwnd = win32gui.FindWindow(NAME_DPCTT_APP, None)
-		win32api.PostMessage(hwnd, win32con.WM_KEYDOWN, win32con.VK_CTRL, 0)
-		win32api.PostMessage(hwnd, win32con.WM_KEYDOWN, win32con.VK_N, 0)
-		win32api.PostMessage(hwnd, win32con.WM_KEYUP, win32con.VK_N, 0)
-		win32api.PostMessage(hwnd, win32con.WM_KEYUP, win32con.VK_CTRL, 0)
-	
-	def assignPackage(self):
-		pass
+	def newCampaign(self, campaign=None, ref=None):
+		# open "New Test Campaign" dialog
+		hwnd = win32gui.FindWindow(None, CTT.NAME_DPCTT_APP)
+		win32gui.SetForegroundWindow(hwnd)
+		win32api.keybd_event(win32con.VK_CONTROL, 0, 0, 0)
+		win32api.keybd_event(78, 0, 0, 0) # key code(N) : 78
+		win32api.keybd_event(78, 0, win32con.KEYEVENTF_KEYUP, 0)
+		win32api.keybd_event(win32con.VK_CONTROL, 0, win32con.KEYEVENTF_KEYUP, 0)
+		time.sleep(CTT.DELAY_FOR_DEMO)
+		# get part's node from dialog
+		dialog = UIA.findFirstElem(self.CTTRoot, CTT.NAME_NEW_COMPAIGN, UIA.Client.UIA_NamePropertyId)
+		assert UIA.isUIAElem(dialog)
+		pathEdit = UIA.findFirstElem(dialog, CTT.NAME_COMPAIGN_PATH, UIA.Client.UIA_AutomationIdPropertyId)
+		assert UIA.isUIAElem(pathEdit)
+		checkbox = UIA.findFirstElem(dialog, CTT.NAME_COMPAIGN_CHECK, UIA.Client.UIA_AutomationIdPropertyId)
+		assert UIA.isUIAElem(checkbox)
+		refBtn = UIA.findFirstElem(dialog, CTT.NAME_COMPAIGN_OTHER, UIA.Client.UIA_AutomationIdPropertyId)
+		assert UIA.isUIAElem(refBtn)
+		cancelBtn = UIA.findFirstElem(dialog, CTT.NAME_COMPAIGN_CANCEL, UIA.Client.UIA_NamePropertyId)
+		assert UIA.isUIAElem(cancelBtn)
+		acceptBtn = UIA.getNextSiblingElem(cancelBtn)
+		assert UIA.isUIAElem(acceptBtn)
+		# set campaign information and accept
+		UIA.selectCheckbox(checkbox)
+		time.sleep(CTT.DELAY_FOR_DEMO)
+		#UIA.setEditbox(CompaignCombo, 'Official HART Test Campaign') # Readonly
+		UIA.pushButton(refBtn) # It will call common dialog
+		time.sleep(CTT.DELAY_FOR_DEMO)
+		commonDialog = UIA.findFirstElem(dialog, UIA.Client.UIA_WindowControlTypeId, UIA.Client.UIA_ControlTypePropertyId)
+		assert UIA.isUIAElem(commonDialog)
+		if not ref:
+			ref = self.campaignRef
+		UIA.setDirInCommonDialog(commonDialog, ref)
+		time.sleep(CTT.DELAY_FOR_DEMO)
+		if not campaign:
+			campaign = self.outPath + '\\' + self.campaign + '.xml'
+		#logging.info('Output file is %s.' % campaign)
+		UIA.setEditbox(pathEdit, campaign)
+		time.sleep(CTT.DELAY_FOR_DEMO)
+		UIA.pushButton(acceptBtn)
+		time.sleep(CTT.DELAY_FOR_DEMO)
+		# get part's node from dialog
+		dialog = UIA.findFirstElem(self.CTTRoot, CTT.NAME_NEW_COMPAIGN, UIA.Client.UIA_NamePropertyId)
+		assert UIA.isUIAElem(dialog)
+		replaceBtn = UIA.findFirstElem(dialog, CTT.NAME_REPLACE_BTN, UIA.Client.UIA_NamePropertyId)
+		assert UIA.isUIAElem(replaceBtn)
+		UIA.pushButton(replaceBtn)
+		time.sleep(CTT.DELAY_FOR_DEMO)
+		dialog = UIA.findFirstElem(self.CTTRoot, CTT.NAME_NEW_COMPAIGN, UIA.Client.UIA_NamePropertyId)
+		assert UIA.isUIAElem(dialog)
+		yesBtn = UIA.findFirstElem(dialog, UIA.Client.UIA_ButtonControlTypeId, UIA.Client.UIA_ControlTypePropertyId)
+		assert UIA.isUIAElem(yesBtn)
+		UIA.pushButton(yesBtn)
+		time.sleep(CTT.DELAY_SET_TO_DEV)
+		
+	def assignPackage(self, assignFile=None):
+		# open common dialog (Assign Package) and set FDI package file
+		appName = CTT.NAME_DPCTT_APP + ' - ' + self.campaign
+		hwnd = win32gui.FindWindow(None, appName)
+		win32gui.SetForegroundWindow(hwnd)
+		win32api.keybd_event(win32con.VK_CONTROL, 0, 0, 0)
+		win32api.keybd_event(80, 0, 0, 0) # key code(P) : 80
+		win32api.keybd_event(80, 0, win32con.KEYEVENTF_KEYUP, 0)
+		win32api.keybd_event(win32con.VK_CONTROL, 0, win32con.KEYEVENTF_KEYUP, 0)
+		time.sleep(CTT.DELAY_FOR_DEMO)
+		commonDialog = UIA.findFirstElem(self.CTTRoot, UIA.Client.UIA_WindowControlTypeId, UIA.Client.UIA_ControlTypePropertyId)
+		assert UIA.isUIAElem(commonDialog)
+		if not assignFile:
+			assignFile = self.testFile
+		UIA.setDirInCommonDialog(commonDialog, assignFile)
+		time.sleep(CTT.DELAY_FOR_DEMO)
 		
 	def setReportInfo(self):
 		# get report info
@@ -275,10 +319,61 @@ class CTT:
 		UIA.pushButton(self.AcceptBtn)
 		time.sleep(CTT.DELAY_SET_TO_DEV)
 	
+	def wait(self, dlgFindType=UIA.Client.UIA_ControlTypePropertyId, dlgFindKey=UIA.Client.UIA_WindowControlTypeId):
+		dialog = UIA.findFirstElem(self.CTTRoot, dlgFindKey, dlgFindType)
+		while not UIA.isUIAElem(dialog):
+			time.sleep(CTT.DELAY_WAIT_DLG)
+			dialog = UIA.findFirstElem(self.CTTRoot, dlgFindKey, dlgFindType)
+		return dialog
+	
 	def execute(self):
 		# push execute button
 		UIA.pushButton(self.ExecuteBtn)
-		time.sleep(CTT.DELAY_SET_TO_DEV)
+		time.sleep(CTT.DELAY_FOR_DEMO)
+		# verify dialog1
+		dialog = self.wait()
+		assert UIA.isUIAElem(dialog)
+		yesBtn = UIA.findFirstElem(dialog, '6', UIA.Client.UIA_AutomationIdPropertyId)
+		assert UIA.isUIAElem(yesBtn)
+		UIA.pushButton(yesBtn)
+		time.sleep(CTT.DELAY_FOR_DEMO)
+		# verify dialog2
+		dialog = self.wait()
+		assert UIA.isUIAElem(dialog)
+		yesBtn = UIA.findFirstElem(dialog, '6', UIA.Client.UIA_AutomationIdPropertyId)
+		assert UIA.isUIAElem(yesBtn)
+		UIA.pushButton(yesBtn)
+		time.sleep(CTT.DELAY_LONG_TIME) # test script in process
+		# reprot info dialog
+		dialog = self.wait()
+		assert UIA.isUIAElem(dialog)
+		reportUser = UIA.findFirstElem(dialog, CTT.NAME_REPORT_USER, UIA.Client.UIA_AutomationIdPropertyId)
+		assert UIA.isUIAElem(reportUser)
+		all = UIA.findAllElem(reportUser, UIA.Client.UIA_ButtonControlTypeId, UIA.Client.UIA_ControlTypePropertyId)
+		acceptBtn = all.GetElement(all.Length-1)
+		assert UIA.isUIAElem(acceptBtn)
+		UIA.pushButton(acceptBtn)
+		time.sleep(CTT.DELAY_LONG_LONG) # fake death
+		time.sleep(CTT.DELAY_LONG_LONG)
+		# reprot preview dialog
+		dialog = self.wait()
+		assert UIA.isUIAElem(dialog)
+		saveBtn = UIA.findFirstElem(dialog, 'Save', UIA.Client.UIA_NamePropertyId)
+		assert UIA.isUIAElem(saveBtn)
+		UIA.pushButton(saveBtn)
+		time.sleep(CTT.DELAY_LONG_LONG) #  display process bar
+		time.sleep(CTT.DELAY_LONG_LONG)
+		time.sleep(CTT.DELAY_LONG_LONG)
+		# reprot created dialog
+		#dlgName = CTT.NAME_DPCTT_APP + ' - ' + self.campaign
+		#dialog = UIA.findFirstElem(self.CTTRoot, dlgName, UIA.Client.UIA_NamePropertyId)
+		dialog = self.wait()
+		assert UIA.isUIAElem(dialog)
+		confirmBtn = UIA.findFirstElem(dialog, '2', UIA.Client.UIA_AutomationIdPropertyId)
+		assert UIA.isUIAElem(confirmBtn)
+		UIA.pushButton(confirmBtn)
+		time.sleep(CTT.DELAY_FOR_DEMO)
+		pdb.set_trace()
 	
 class RRTE:
 	DELAY_RRET_START			= 8
@@ -478,8 +573,8 @@ if __name__ == '__main__':
 	dpctt.start(False)
 	dpctt.newCampaign()
 	dpctt.assignPackage()
+	dpctt.execute()
 	#dpctt.setReportInfo()
-	#dpctt.execute()
 
 '''
 	def AddAutomationEventHandler(self, eventId, element, scope, cacheRequest, handler):
