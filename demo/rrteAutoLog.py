@@ -389,7 +389,7 @@ class RRTE:
 					if isinstance(currNode.elem, SelectableElement):
 						self.createNodeTree(currNode)
 					currNode = currNode.right
-		time.sleep(1)
+		time.sleep(2)
 	
 	def loadPackage(self):
 		browser = UIA.findFirstElem(self.RRTERoot, RRTE.NAME_BROWSER_MODEL, UIA.Client.UIA_NamePropertyId)
@@ -716,4 +716,4 @@ if __name__ == '__main__':
 	#rrte.close()
 	rrte.clearRegistLog()
 	rrte.traversal(rrte.tree.root.left)
-	rrte.close()
+	#rrte.close()
