@@ -17,13 +17,13 @@ from ctypes import *
 
 def logTreeItem(node):
 	logging.info('----------------------------------------------------------')
-	logging.info('Parent\t: %s (%s)' % (node.elem.name, node.elem.ctrlType))
+	logging.info('Parent\t: %s (%s)' % (node.elem.label, node.elem.ctrlType))
 	if node.left:
-		logging.info('Child[0]\t: %s (%s)' % (node.left.elem.name, node.left.elem.ctrlType))
+		logging.info('Child[0]\t: %s (%s)' % (node.left.elem.label, node.left.elem.ctrlType))
 	curr = node.left.right
 	cnt = 1
 	while not curr is None:
-		logging.info('Child[%d]\t: %s (%s)' % (cnt, curr.elem.name, curr.elem.ctrlType))
+		logging.info('Child[%d]\t: %s (%s)' % (cnt, curr.elem.label, curr.elem.ctrlType))
 		cnt += 1
 		curr = curr.right
 
@@ -47,11 +47,11 @@ class Host:
 		
 	def createTree(self, root):
 		assert not root == None
-		#assert not root.elem.name == 'Online'
+		#assert not root.elem.label == 'Online'
 		assert not root.isLeafNode()
 		path = root.getPath()
 		#for item in path:
-		#	logging.info(item.elem.name)
+		#	logging.info(item.elem.label)
 		# push button sequence to getting into current tree node
 		uiaElem = self.host
 		for item in path:
@@ -65,7 +65,7 @@ class Host:
 				while not currNode == None:
 					if not currNode.isLeafNode(): self.createTree(currNode)
 					currNode = currNode.right
-		time.sleep(2)
+		time.sleep(0.5)
 	
 	def traversal(self, root):
 		pass
@@ -101,7 +101,7 @@ class TreeNode:
 		node1 = self
 		node2 = ref
 		while not (node1 == None and node2 == None):
-			if node1.elem.name == node2.elem.name:
+			if node1.elem.label == node2.elem.label:
 				node1 = node1.parent
 				node2 = node2.parent
 			else:
@@ -141,10 +141,10 @@ class Tree: # It's logic tree, not control view tree in ui automation
 '''
 
 class Element: # abstract class
-	def __init__(self, name):
-		self.name = name
-		self.ctrlType = None
-		self.rectangle = None
+	def __init__(self, label):
+		self.label		= label
+		self.ctrlType	= None
+		self.rectangle	= None
 	
 	def select(self, uiaElem): # extend a node, for example, group, its processing may be inconsistent on different hosts
 		pass
@@ -153,49 +153,119 @@ class Element: # abstract class
 		pass
 
 class RElement(Element):
+	def waitPane(self, elem):
+		text = findFirstElemByControlType(elem, UIAClient.UIA_TextControlTypeId, SCOPE_CHILDREN)
+		return text.CurrentName
+		
+	def getElemSubName(self, elem):
+		text = findFirstElemByControlType(elem, UIAClient.UIA_TextControlTypeId, SCOPE_CHILDREN)
+		return text.CurrentName
+	
+	def isString(self, uiaElem):
+		return 'Fdi.Ui.ViewModel.Content.StringParameterViewModel' == uiaElem.CurrentName
+	
+	def isDateTime(self, uiaElem):
+		return 'Fdi.Ui.ViewModel.Content.DateTimeParameterViewModel' == uiaElem.CurrentName
+	
+	def isNumeric(self, uiaElem):
+		return 'Fdi.Ui.ViewModel.Content.NumericParameterViewModel' == uiaElem.CurrentName
+	
+	def isEnum(self, uiaElem):
+		return 'Fdi.Ui.ViewModel.Content.EnumerationViewModel' == uiaElem.CurrentName
+	
+	def isBitEnum(self, uiaElem):
+		return 'Fdi.Ui.ViewModel.Content.BitEnumerationViewModel' == uiaElem.CurrentName
+	
+	def createString(self, uiaElem):
+		assert self.isString(uiaElem)
+		label = self.getElemSubName(uiaElem)
+		return RString(label)
+	
+	def createDateTime(self, uiaElem):
+		assert self.isDateTime(uiaElem)
+		label = self.getElemSubName(uiaElem)
+		return RDateTime(label)
+	
+	def createNumeric(self, uiaElem):
+		assert self.isNumeric(uiaElem)
+		label = self.getElemSubName(uiaElem)
+		return RNumeric(label)
+	
+	def createEnum(self, uiaElem):
+		assert self.isEnum(uiaElem)
+		label = self.getElemSubName(uiaElem)
+		return REnum(label)
+	
+	def createBitEnum(self, uiaElem):
+		assert self.isBitEnum(uiaElem)
+		group = findFirstElemByControlType(uiaElem, UIAClient.UIA_GroupControlTypeId)
+		label = self.getElemSubName(group)
+		return RBitEnum(label)
+		
 	def createParam(self, uiaElem):
-		editbox = uia2.findFirstElem(uiaElem, 'Value', uia2.Client.UIA_AutomationIdPropertyId, scope=uia2.Client.TreeScope_Children)
-		if not uia2.isUIAElem(editbox):
-			group = uia2.findFirstElem(uiaElem, uia2.Client.UIA_GroupControlTypeId, uia2.Client.UIA_ControlTypePropertyId, scope=uia2.Client.TreeScope_Children)
-			return BitEnum(uia2.getElemSubText(group))
-		elif editbox.CurrentControlType == uia2.Client.UIA_EditControlTypeId:
-			return Data(uia2.getElemSubText(uiaElem))
-		elif editbox.CurrentControlType == uia2.Client.UIA_ComboBoxControlTypeId:
-			return Enum(uia2.getElemSubText(uiaElem))
+		assert isCustom(uiaElem)
+		if self.isEnum(uiaElem):
+			return self.createEnum(uiaElem)
+		elif self.isString(uiaElem):
+			return self.createString(uiaElem)
+		elif self.isNumeric(uiaElem):
+			return self.createNumeric(uiaElem)
+		elif self.isBitEnum(uiaElem):
+			return self.createBitEnum(uiaElem)
+		elif self.isDateTime(uiaElem):
+			return self.createDateTime(uiaElem)
+			
+	def createPage(self, uiaElem):
+		assert isTab(uiaElem)
+		all = findAllElemByControlType(uiaElem, UIAClient.UIA_TabItemControlTypeId, SCOPE_CHILDREN)
+		set = []
+		for x in range(0, all.Length):
+			item = all.GetElement(x)
+			name = self.getElemSubName(item)
+			elem = RPage(name)
+			elem.ctrlType = 'TabItem'
+			elem.rectangle = item.CurrentBoundingRectangle
+			set.append(elem)
+		return set
 	
 	def children(self, uiaElem):
-		assert isTree(uiaElem) or isPane(uiaElem)
-		if isTree(uiaElem):
-			all = findAllElemByControlType(uiaElem, UIAClient.UIA_TreeItemControlTypeId, SCOPE_CHILDREN)
-			set = []
-			for x in range(0, all.Length):
-				item = all.GetElement(x)
-				name = getElemSubName(item)
-				if isLeaf(item):
-					elem = Window(name)
-				else:
-					elem = Menu(name)
-				elem.ctrlType = 'TreeItem'
-				elem.rectangle = item.CurrentBoundingRectangle
-				set.append(elem)
-			return set
-		else:
+		#pdb.set_trace()
+		if isPane(uiaElem) or isTabItem(uiaElem):
 			all = findAllElem4ORCond(uiaElem, UIAClient.UIA_CustomControlTypeId, UIAClient.UIA_ButtonControlTypeId, UIAClient.UIA_GroupControlTypeId, UIAClient.UIA_TabControlTypeId, UIAClient.UIA_ControlTypePropertyId, SCOPE_CHILDREN)
+			time.sleep(1)
 			set = []
 			for x in range(0, all.Length):
 				item = all.GetElement(x)
 				if isCustom(item): # variable(ASCII, Enum, BitEnum)
 					elem = self.createParam(item)
 					elem.ctrlType = 'Custom'
+					elem.rectangle = item.CurrentBoundingRectangle
+					set.append(elem)
 				elif isButton(item): # method
-					elem = Method(uia2.getElemSubText(item))
+					elem = RMethod(self.getElemSubName(item))
 					elem.ctrlType = 'Button'
+					elem.rectangle = item.CurrentBoundingRectangle
+					set.append(elem)
 				elif isGroup(item): # group or bit-enum
-					elem = Group(uia2.getElemSubText(item))
+					elem = RGroup(self.getElemSubName(item))
 					elem.ctrlType = 'Group'
+					elem.rectangle = item.CurrentBoundingRectangle
+					set.append(elem)
 				elif isTab(item): # page
-					elem = Page('')
-					elem.ctrlType = 'Tab'
+					tabs = self.createPage(item)
+					set.extend(tabs)
+			return set
+		else:
+			all = findAllElemByControlType(uiaElem, UIAClient.UIA_TreeItemControlTypeId, SCOPE_CHILDREN)
+			set = []
+			for x in range(0, all.Length):
+				item = all.GetElement(x)
+				name = self.getElemSubName(item)
+				if isTreeLeaf(item):
+					elem = RWindow(name)
+				else:
+					elem = RMenu(name)
+				elem.ctrlType = 'TreeItem'
 				elem.rectangle = item.CurrentBoundingRectangle
 				set.append(elem)
 			return set
@@ -230,7 +300,7 @@ class RRoot(RElement):
 		all = findAllElemByControlType(pane, UIAClient.UIA_ButtonControlTypeId, SCOPE_CHILDREN)
 		for x in range(0, all.Length):
 			item = all.GetElement(x)
-			name = getElemSubName(item)
+			name = self.getElemSubName(item)
 			elem = RRootMenu(name)
 			elem.ctrlType = 'Button'
 			elem.rectangle = item.CurrentBoundingRectangle
@@ -240,14 +310,14 @@ class RRoot(RElement):
 class RRootMenu(RElement):
 	def select(self, uiaElem):
 		# search root menu button
-		if not self.name == 'Offline root menu':
+		if not self.label == 'Offline root menu':
 			onlineRoot = findFirstElemByAutomationId(uiaElem, 'OnlineParameters')
 			assert isUIAElem(onlineRoot)
 			pane = findFirstElemByControlType(onlineRoot, UIAClient.UIA_PaneControlTypeId)
 			assert isUIAElem(pane)
-			btn = findFirstElemBySubText(pane, self.name)
+			btn = findFirstElemBySubText(pane, self.label)
 		else:
-			btn = findFirstElemBySubText(uiaElem, self.name)
+			btn = findFirstElemBySubText(uiaElem, self.label)
 		# push root menu button
 		assert isUIAElem(btn)
 		pushButton(btn)
@@ -260,30 +330,53 @@ class RRootMenu(RElement):
 	
 class RMenu(RElement):
 	def select(self, uiaElem):
-		tree = findFirstElemBySubText(uiaElem, self.name)
+		tree = findFirstElemBySubText(uiaElem, self.label)
 		assert isUIAElem(tree)
 		expandTree(tree)
 		time.sleep(2)
-		#explorer = findFirstElemByAutomationId(uiaElem, 'DD_ExplorerView')
-		#assert isUIAElem(explorer)
-		#tree = findNextSiblingElem(explorer)
 		return tree
 
 class RWindow(RElement):
 	def select(self, uiaElem):
-		leaf = findFirstElemByAutomationId(uiaElem, self.name)
+		leaf = findFirstElemBySubText(uiaElem, self.label)
 		assert isUIAElem(leaf)
 		pushLeaf(leaf)
 		time.sleep(2)
-		explorer = findFirstElemByAutomationId(uiaElem, 'DD_ExplorerView')
-		assert isUIAElem(explorer)
-		tree = findNextSiblingElem(explorer)
-		assert isTree(explorer)
-		pane = findNextSiblingElem(tree)
-		assert isPane(explorer)
+		pane = findNextSiblingElem(uiaElem)
 		return pane
 
+class RPage(RElement):
+	def select(self, uiaElem):
+		#pdb.set_trace()
+		tabs = findFirstElemByControlType(uiaElem, UIAClient.UIA_TabControlTypeId, SCOPE_CHILDREN)
+		tab = findFirstElemByName(tabs, self.label)
+		assert isUIAElem(tab)
+		selectTab(tab)
+		time.sleep(0.5)
+		return tab
+
+class RGroup(RElement):
+	pass
+
 class RVariable(RElement):
+	pass
+
+class RMethod(RVariable):
+	pass
+
+class RString(RVariable):
+	pass
+
+class RDateTime(RVariable):
+	pass
+
+class RNumeric(RVariable):
+	pass
+
+class REnum(RVariable):
+	pass
+
+class RBitEnum(RVariable):
 	pass
 
 if __name__ == '__main__':

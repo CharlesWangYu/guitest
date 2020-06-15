@@ -1,4 +1,4 @@
-#import pdb
+import pdb
 #import logging
 #import time
 from comtypes.client import *
@@ -51,6 +51,10 @@ def isGroup(elem):
 def isTab(elem):
 	assert isUIAElem(elem)
 	return elem.CurrentControlType == UIAClient.UIA_TabControlTypeId
+	
+def isTabItem(elem):
+	assert isUIAElem(elem)
+	return elem.CurrentControlType == UIAClient.UIA_TabItemControlTypeId
 
 # This is a group of functions for finding UIA objects.
 def findAllElem(root, key, type, scope=SCOPE_DESCENDANTS):
@@ -146,11 +150,6 @@ def findPreviousSiblingElem(elem):
 	assert isUIAElem(next)
 	return element
 
-# This is a group of functions used to obtain UIA object attributes.
-def getElemSubName(elem):
-	text = findFirstElem(elem, UIAClient.UIA_TextControlTypeId, UIAClient.UIA_ControlTypePropertyId, scope=SCOPE_CHILDREN)
-	return text.CurrentName
-
 # This is a group of functions for manipulating UIA objects.
 def setEditbox(elem, text):
 	assert isUIAElem(elem)
@@ -209,4 +208,5 @@ def unselectCheckbox(elem):
 if __name__ == '__main__':
 	#test = findFirstElemByName(DesktopRoot, 'XXXXXXXXX')
 	test = findFirstElemByControlType(DesktopRoot, UIAClient.UIA_WindowControlTypeId)
+	#pdb.set_trace()
 	assert isUIAElem(test)
