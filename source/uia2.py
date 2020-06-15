@@ -28,6 +28,30 @@ def isTreeLeaf(elem):
 	ctrl = cast(pattern, POINTER(UIAClient.IUIAutomationExpandCollapsePattern))
 	return ctrl.value.CurrentExpandCollapseState == UIAClient.ExpandCollapseState_LeafNode
 
+def isTree(elem):
+	assert isUIAElem(elem)
+	return elem.CurrentControlType == UIAClient.UIA_TreeControlTypeId
+
+def isPane(elem):
+	assert isUIAElem(elem)
+	return elem.CurrentControlType == UIAClient.UIA_PaneControlTypeId
+
+def isCustom(elem):
+	assert isUIAElem(elem)
+	return elem.CurrentControlType == UIAClient.UIA_CustomControlTypeId
+
+def isButton(elem):
+	assert isUIAElem(elem)
+	return elem.CurrentControlType == UIAClient.UIA_ButtonControlTypeId
+
+def isGroup(elem):
+	assert isUIAElem(elem)
+	return elem.CurrentControlType == UIAClient.UIA_GroupControlTypeId
+
+def isTab(elem):
+	assert isUIAElem(elem)
+	return elem.CurrentControlType == UIAClient.UIA_TabControlTypeId
+
 # This is a group of functions for finding UIA objects.
 def findAllElem(root, key, type, scope=SCOPE_DESCENDANTS):
 	cnd = IUIA.CreatePropertyConditionEx(type, key, UIAClient.PropertyConditionFlags_None)
@@ -37,8 +61,8 @@ def findAllElem(root, key, type, scope=SCOPE_DESCENDANTS):
 	#	logging.debug('The name of element[%d] is \'%s\'.' % (x, all.GetElement(x).CurrentName))
 	return all
 
-def findAllElemByControlType(root, name, scope=SCOPE_DESCENDANTS):
-	return findAllElem(root, name, UIAClient.UIA_ControlTypePropertyId, scope)
+def findAllElemByControlType(root, type, scope=SCOPE_DESCENDANTS):
+	return findAllElem(root, type, UIAClient.UIA_ControlTypePropertyId, scope)
 
 def findAllElem2ORCond(root, key1, type1, key2, type2, scope=SCOPE_DESCENDANTS):
 	cnd1 = IUIA.CreatePropertyConditionEx(type1, key1, UIAClient.PropertyConditionFlags_None)
@@ -87,9 +111,9 @@ def findFirstElemByControlType(root, type, scope=SCOPE_DESCENDANTS):
 def findFirstElemByAutomationId(root, Id, scope=SCOPE_DESCENDANTS):
 	return findFirstElem(root, Id, UIAClient.UIA_AutomationIdPropertyId, scope)
 
-def findFirstElemBySubText(root, name, flag=UIAClient.PropertyConditionFlags_None, scope=UIAClient.TreeScope_Descendants):
-	child = findFirstElemByName(start, name, SCOPE_CHILDREN)
-	element = getParentElem(child)
+def findFirstElemBySubText(root, name):
+	child = findFirstElemByName(root, name)
+	element = findParentElem(child)
 	return element
 
 def findParentElem(child):
