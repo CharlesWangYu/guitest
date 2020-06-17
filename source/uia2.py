@@ -1,6 +1,6 @@
 import pdb
-#import logging
-#import time
+import logging
+import time
 import gc
 from comtypes.client import *
 from ctypes import *
@@ -95,16 +95,26 @@ def findAllElem2ORCond(root, key1, type1, key2, type2, scope=SCOPE_DESCENDANTS):
 	return all
 
 def findAllElem4ORCond(root, key1, key2, key3, key4, type, scope=SCOPE_DESCENDANTS):
-	cnd1 = IUIA.CreatePropertyConditionEx(type, key1, UIAClient.PropertyConditionFlags_None)
-	cnd2 = IUIA.CreatePropertyConditionEx(type, key2, UIAClient.PropertyConditionFlags_None)
-	cnd3 = IUIA.CreatePropertyConditionEx(type, key3, UIAClient.PropertyConditionFlags_None)
-	cnd4 = IUIA.CreatePropertyConditionEx(type, key4, UIAClient.PropertyConditionFlags_None)
-	condArray = [cnd1, cnd2, cnd3, cnd4]
-	combine = IUIA.CreateOrConditionFromArray(condArray)
-	all = root.FindAll(scope, combine)
-	#del cnd1, cnd2, cnd3, cnd4, combine
-	#gc.collect()
-	return all
+	try:
+		cnd1 = IUIA.CreatePropertyConditionEx(type, key1, UIAClient.PropertyConditionFlags_None)
+		cnd2 = IUIA.CreatePropertyConditionEx(type, key2, UIAClient.PropertyConditionFlags_None)
+		cnd3 = IUIA.CreatePropertyConditionEx(type, key3, UIAClient.PropertyConditionFlags_None)
+		cnd4 = IUIA.CreatePropertyConditionEx(type, key4, UIAClient.PropertyConditionFlags_None)
+		logging.info('--------- 777 ---------')
+		#condArray = [cnd1, cnd2, cnd3, cnd4]
+		#combine = IUIA.CreateOrConditionFromArray(condArray)
+		combine = IUIA.CreateOrConditionFromArray([cnd1, cnd2, cnd3, cnd4])
+		time.sleep(0.2)
+		logging.info('--------- 778 ---------')
+		all = root.FindAll(scope, combine)
+		time.sleep(0.2)
+		logging.info('--------- 779 ---------')
+		#del cnd1, cnd2, cnd3, cnd4, combine
+		#gc.collect()
+		return all
+	except e:
+		print ('Catch abnormal [%s]' % e)
+		#continue
 
 def findFirstElem(root, key, type, scope=SCOPE_DESCENDANTS):
 	cnd = IUIA.CreatePropertyConditionEx(type, key, UIAClient.PropertyConditionFlags_None)
