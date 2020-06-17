@@ -105,7 +105,7 @@ class RRTE(Host):
 		assert isUIAElem(rrte)
 		process = findFirstElemByControlType(rrte, UIAClient.UIA_WindowControlTypeId, SCOPE_CHILDREN)
 		while isUIAElem(process):
-			time.sleep(1.5)
+			time.sleep(2.5)
 			process = findFirstElemByControlType(rrte, UIAClient.UIA_WindowControlTypeId, SCOPE_CHILDREN)
 		time.sleep(5)
 
@@ -145,10 +145,15 @@ class TreeNode:
 		return self.elem.select(uiaElem)
 	
 	def appendChildren(self, uiaElem):
+		assert isUIAElem(uiaElem)
 		elems = self.elem.children(uiaElem)
-		#logging.info('Children count is %d' % len(elems))
+		elemNum = len(elems)
+		#logging.info('%d child nodes will insert tree under the [%s].' % (elemNum, self.elem.label))
+		if elemNum == 0: return
 		curr = None
-		for elem in elems:
+		for x in range(0, elemNum):
+			logging.info('Add the child[%d] under the node [%s].' % (x+1, self.elem.label))
+			elem = elems[x]
 			node = TreeNode(elem, self)
 			if elem == elems[0]:
 				self.left = node
@@ -156,28 +161,6 @@ class TreeNode:
 			else:
 				curr.right = node
 				curr = curr.right
-		'''
-		if len(elems) > 0:
-			size = len(elems)
-			curr = None
-			for x in range(0, size):
-				node = TreeNode(elems[x])
-				node.parent = self
-				if x == 0:
-					self.left = node
-					curr = self.left
-				else :
-					curr.right = node
-					curr = curr.right
-		'''
-		'''
-		self.left = TreeNode(elems[0], self)
-		currNode = self.left
-		for x in range(1, len(elems)):
-			node = TreeNode(elems[x], self)
-			currNode.right = node
-			currNode = currNode.right
-		'''
 
 class Element: # abstract class
 	def __init__(self, label):
@@ -295,8 +278,8 @@ class RElement(Element):
 					tabs = self.createPage(item)
 					set.extend(tabs)
 				else:
-					pass
 					#logging.info('Ignore one element')
+					pass
 			return set
 		else:
 			all = findAllElemByControlType(uiaElem, UIAClient.UIA_TreeItemControlTypeId, SCOPE_CHILDREN)
@@ -360,6 +343,10 @@ class RRoot(RElement):
 			item = all.GetElement(x)
 			label = RRTE.getElemSubName(item)
 			if label == 'Online': continue # TODO
+			#if label == 'Device root menu': continue # TODO
+			#if label == 'Diagnostic root menu': continue # TODO
+			#if label == 'Maintenance root menu': continue # TODO
+			#if label == 'Process variables root menu': continue # TODO
 			elem = RRootMenu(label)
 			elem.ctrlType = 'Button'
 			elem.rectangle = item.CurrentBoundingRectangle
