@@ -1,7 +1,6 @@
 import pdb
-import logging
+#import logging
 import time
-import gc
 from comtypes.client import *
 from ctypes import *
 
@@ -100,28 +99,16 @@ def findAllElem4ORCond(root, key1, key2, key3, key4, type, scope=SCOPE_DESCENDAN
 		cnd2 = IUIA.CreatePropertyConditionEx(type, key2, UIAClient.PropertyConditionFlags_None)
 		cnd3 = IUIA.CreatePropertyConditionEx(type, key3, UIAClient.PropertyConditionFlags_None)
 		cnd4 = IUIA.CreatePropertyConditionEx(type, key4, UIAClient.PropertyConditionFlags_None)
-		logging.info('--------- 777 ---------')
-		#condArray = [cnd1, cnd2, cnd3, cnd4]
-		#combine = IUIA.CreateOrConditionFromArray(condArray)
-		combine = IUIA.CreateOrConditionFromArray([cnd1, cnd2, cnd3, cnd4])
-		time.sleep(0.2)
-		logging.info('--------- 778 ---------')
+		condArray = [cnd1, cnd2, cnd3, cnd4]
+		combine = IUIA.CreateOrConditionFromArray(condArray)
 		all = root.FindAll(scope, combine)
-		time.sleep(0.2)
-		logging.info('--------- 779 ---------')
-		#del cnd1, cnd2, cnd3, cnd4, combine
-		#gc.collect()
 		return all
 	except e:
 		print ('Catch abnormal [%s]' % e)
-		#continue
 
 def findFirstElem(root, key, type, scope=SCOPE_DESCENDANTS):
 	cnd = IUIA.CreatePropertyConditionEx(type, key, UIAClient.PropertyConditionFlags_None)
 	element = root.FindFirst(scope, cnd)
-	#logging.debug('Found the 1st element, and it\'s name is \'%s\'' % element.CurrentName)
-	#del cnd
-	#gc.collect()
 	return element
 
 def findFirstElem2ANDCond(root, key1, type1, key2, type2, scope=SCOPE_DESCENDANTS):
@@ -129,9 +116,6 @@ def findFirstElem2ANDCond(root, key1, type1, key2, type2, scope=SCOPE_DESCENDANT
 	cnd2 = IUIA.CreatePropertyConditionEx(type2, key2, UIAClient.PropertyConditionFlags_None)
 	combine = IUIA.CreateAndCondition(cnd1, cnd2)
 	element = root.FindFirst(scope, combine)
-	#logging.debug('Found the 1st element, and it\'s name is \'%s\'' % element.CurrentName)
-	#del cnd1, cnd2, combine
-	#gc.collect()
 	return element
 
 def findFirstElemByName(root, name, scope=SCOPE_DESCENDANTS):
@@ -146,16 +130,12 @@ def findFirstElemByAutomationId(root, Id, scope=SCOPE_DESCENDANTS):
 def findFirstElemBySubText(root, name):
 	child = findFirstElemByName(root, name)
 	element = findParentElem(child)
-	#del child
-	#gc.collect()
 	return element
 
 def findParentElem(child):
 	walker = IUIA.ControlViewWalker
 	parent = walker.GetParentElement(child)
 	assert isUIAElem(parent)
-	#del walker
-	#gc.collect()
 	return parent
 
 def findFirstChildElem(elem):
@@ -170,24 +150,18 @@ def findLastChildElem(elem):
 	walker = IUIA.ControlViewWalker
 	last = walker.GetLastChildElement(elem)
 	assert isUIAElem(last)
-	#del walker
-	#gc.collect()
 	return last
 
 def findNextSiblingElem(elem):
 	walker = IUIA.ControlViewWalker
 	next = walker.GetNextSiblingElement(elem)
 	assert isUIAElem(next)
-	#del walker
-	#gc.collect()
 	return next
 
 def findPreviousSiblingElem(elem):
 	walker = IUIA.ControlViewWalker
 	element = walker.GetPreviousSiblingElement(elem)
 	assert isUIAElem(next)
-	#del walker
-	#gc.collect()
 	return element
 
 # This is a group of functions for manipulating UIA objects.
@@ -197,8 +171,6 @@ def setEditbox(elem, text):
 	ctrl = cast(pattern, POINTER(UIAClient.IUIAutomationValuePattern))
 	elem.SetFocus()
 	ctrl.SetValue(text)
-	#del pattern, ctrl
-	#gc.collect()
 
 def expandTree(elem):
 	assert isUIAElem(elem)
@@ -208,8 +180,6 @@ def expandTree(elem):
 	ctrl = cast(pattern, POINTER(UIAClient.IUIAutomationTogglePattern))
 	if not ctrl.value.CurrentToggleState:
 		ctrl.Toggle()
-	#del btn, pattern, ctrl
-	#gc.collect()
 
 def collapseTree(elem):
 	assert isUIAElem(elem)
@@ -219,24 +189,18 @@ def collapseTree(elem):
 	ctrl = cast(pattern, POINTER(UIAClient.IUIAutomationTogglePattern))
 	if ctrl.value.CurrentToggleState:
 		ctrl.Toggle()
-	#del btn, pattern, ctrl
-	#gc.collect()
 
 def pushLeaf(elem):
 	assert isTreeLeaf(elem)
 	pattern = elem.GetCurrentPattern(UIAClient.UIA_SelectionItemPatternId)
 	ctrl = cast(pattern, POINTER(UIAClient.IUIAutomationSelectionItemPattern))
 	ctrl.Select()
-	#del pattern, ctrl
-	#gc.collect()
 
 def pushButton(elem):
 	assert isUIAElem(elem)
 	pattern = elem.GetCurrentPattern(UIAClient.UIA_InvokePatternId)
 	ctrl = cast(pattern, POINTER(UIAClient.IUIAutomationInvokePattern))
 	ctrl.Invoke()
-	#del pattern, ctrl
-	#gc.collect()
 	
 def selectTab(elem):
 	assert isUIAElem(elem)
@@ -244,8 +208,6 @@ def selectTab(elem):
 	ctrl = cast(pattern, POINTER(UIAClient.IUIAutomationSelectionItemPattern))
 	if not ctrl.value.CurrentIsSelected:
 		ctrl.Select()
-	#del pattern, ctrl
-	#gc.collect()
 
 def selectCheckbox(elem):
 	assert isUIAElem(elem)
@@ -253,8 +215,6 @@ def selectCheckbox(elem):
 	ctrl = cast(pattern, POINTER(UIAClient.IUIAutomationTogglePattern))
 	if not ctrl.value.CurrentToggleState:
 		ctrl.Toggle()
-	#del pattern, ctrl
-	#gc.collect()
 
 def unselectCheckbox(elem):
 	assert isUIAElem(elem)
@@ -262,11 +222,8 @@ def unselectCheckbox(elem):
 	ctrl = cast(pattern, POINTER(UIAClient.IUIAutomationTogglePattern))
 	if ctrl.value.CurrentToggleState:
 		ctrl.Toggle()
-	#del pattern, ctrl
-	#gc.collect()
 
 if __name__ == '__main__':
 	#test = findFirstElemByName(DesktopRoot, 'XXXXXXXXX')
 	test = findFirstElemByControlType(DesktopRoot, UIAClient.UIA_WindowControlTypeId)
-	#pdb.set_trace()
 	assert isUIAElem(test)
