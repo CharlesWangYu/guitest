@@ -145,14 +145,14 @@ class TreeNode:
 		return self.elem.select(uiaElem)
 	
 	def appendChildren(self, uiaElem):
-		assert isUIAElem(uiaElem)
+		#assert isUIAElem(uiaElem)
 		elems = self.elem.children(uiaElem)
 		elemNum = len(elems)
 		#logging.info('%d child nodes will insert tree under the [%s].' % (elemNum, self.elem.label))
 		if elemNum == 0: return
 		curr = None
 		for x in range(0, elemNum):
-			logging.info('Add the child[%d] under the node [%s].' % (x+1, self.elem.label))
+			#logging.info('Add the child[%d] under the node [%s].' % (x+1, self.elem.label))
 			elem = elems[x]
 			node = TreeNode(elem, self)
 			if elem == elems[0]:
@@ -249,6 +249,7 @@ class RElement(Element):
 			page = RPage(item.CurrentName)
 			page.ctrlType = 'TabItem'
 			pages.append(page)
+			#logging.info('Found a page element.')
 		return pages
 	
 	def children(self, uiaElem):
@@ -265,22 +266,26 @@ class RElement(Element):
 					elem.ctrlType = 'Custom'
 					elem.rectangle = item.CurrentBoundingRectangle
 					set.append(elem)
+					#logging.info('Found a variable element.')
 				elif isButton(item): # method
 					elem = RMethod(RRTE.getElemSubName(item))
 					elem.ctrlType = 'Button'
 					elem.rectangle = item.CurrentBoundingRectangle
 					set.append(elem)
+					#logging.info('Found a method element.')
 				elif isGroup(item): # group
 					elem = RGroup(item.CurrentName)
 					elem.ctrlType = 'Group'
 					elem.rectangle = item.CurrentBoundingRectangle
 					set.append(elem)
+					#logging.info('Found a group element.')
 				elif isTab(item): # page
 					tabs = self.createPage(item)
 					set.extend(tabs)
 				else:
 					#logging.info('Ignore one element')
 					pass
+			#del all
 			return set
 		else:
 			all = findAllElemByControlType(uiaElem, UIAClient.UIA_TreeItemControlTypeId, SCOPE_CHILDREN)
@@ -290,8 +295,10 @@ class RElement(Element):
 				name = RRTE.getElemSubName(item)
 				if isTreeLeaf(item):
 					elem = RWindow(name)
+					#logging.info('Found a window element.')
 				else:
 					elem = RMenu(name)
+					#logging.info('Found a menu element.')
 				elem.ctrlType = 'TreeItem'
 				elem.rectangle = item.CurrentBoundingRectangle
 				set.append(elem)

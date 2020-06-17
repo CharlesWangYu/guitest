@@ -274,7 +274,7 @@ class RElement(Element):
 		uias = findAllElemByControlType(uiaElem, UIAClient.UIA_TabItemControlTypeId, SCOPE_CHILDREN)
 		logging.info('--------- 212 ---------')
 		pages = []
-		#logging.info('Page count is %d' % uias.Length)
+		logging.info('Page count is %d' % uias.Length)
 		for x in range(0, uias.Length):
 			logging.info('--------- 213 ---------')
 			item = uias.GetElement(x)
@@ -333,7 +333,7 @@ class RElement(Element):
 					logging.info('--------- 236 ---------')
 					#pass
 					logging.info('Ignore one element')
-			del all
+			#del all
 			return set
 		else:
 			logging.info('--------- 240 ---------')
@@ -501,13 +501,13 @@ class RWindow(RElement):
 		time.sleep(2)
 		curr = leaf
 		while not isTree(curr):
-			logging.info('--------- 343 ---------')
-			curr = findParentElem(curr)
 			logging.info('--------- 344 ---------')
+			curr = findParentElem(curr)
+			logging.info('--------- 345 ---------')
 			assert isUIAElem(curr)
-		logging.info('--------- 345 ---------')
-		pane = findNextSiblingElem(curr)
 		logging.info('--------- 346 ---------')
+		pane = findNextSiblingElem(curr)
+		logging.info('--------- 347 ---------')
 		assert isUIAElem(pane)
 		return pane
 
@@ -562,7 +562,7 @@ class RBitEnum(RVariable):
 
 if __name__ == '__main__':
 	#pdb.set_trace()
-	logging.basicConfig(level = logging.INFO)
+	logging.basicConfig(level = logging.DEBUG)
 	top = RRoot('root')
 	top.ctrlType = ''
 	top.rectangle = None
