@@ -256,6 +256,7 @@ class RElement(Element):
 		if isPane(uiaElem) or isTabItem(uiaElem) or isGroup(uiaElem):
 			#all = findAllElem4ORCond(uiaElem, UIAClient.UIA_CustomControlTypeId, UIAClient.UIA_ButtonControlTypeId, UIAClient.UIA_GroupControlTypeId, UIAClient.UIA_TabControlTypeId, UIAClient.UIA_ControlTypePropertyId, SCOPE_CHILDREN) # Please attention here!! It will make release IUnKnown object.
 			all = findAllElem(uiaElem, True, UIAClient.UIA_IsEnabledPropertyId, SCOPE_CHILDREN)
+			#all = findAllChildren(uiaElem)
 			set = []
 			for x in range(0, all.Length):
 				item = all.GetElement(x)

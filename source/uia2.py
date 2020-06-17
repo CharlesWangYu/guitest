@@ -69,11 +69,10 @@ def isTabItem(elem):
 	return elem.CurrentControlType == UIAClient.UIA_TabItemControlTypeId
 
 # This is a group of functions for finding UIA objects.
-'''
 def findAllChildren(root):
-	all = root.FindAll(SCOPE_CHILDREN, IUIA.Condition.TrueCondition)
+	cnd = IUIA.CreateTrueCondition()
+	all = root.FindAll(SCOPE_CHILDREN, cnd)
 	return all
-'''
 
 def findAllElem(root, key, type, scope=SCOPE_DESCENDANTS):
 	cnd = IUIA.CreatePropertyConditionEx(type, key, UIAClient.PropertyConditionFlags_None)
@@ -224,6 +223,11 @@ def unselectCheckbox(elem):
 		ctrl.Toggle()
 
 if __name__ == '__main__':
+	all = findAllChildren(DesktopRoot)
+	for x in range(0, all.Length):
+		item = all.GetElement(x)
+		print (item.CurrentClassName)
+	pdb.set_trace()
 	#test = findFirstElemByName(DesktopRoot, 'XXXXXXXXX')
 	test = findFirstElemByControlType(DesktopRoot, UIAClient.UIA_WindowControlTypeId)
 	assert isUIAElem(test)
