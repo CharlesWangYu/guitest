@@ -9,7 +9,6 @@ from configparser import ConfigParser
 from comtypes.client import *
 from ctypes import *
 
-
 def logTreeItem(node):
 	logging.info('----------------------------------------------------------')
 	logging.info('Parent\t: %s (%s)' % (node.elem.label, node.elem.ctrlType))
@@ -40,7 +39,7 @@ class Host:
 	
 	def unload(self):
 		pass
-		
+	
 	def createTree(self, root):
 		assert not root == None
 		assert not root.isLeafNode()
@@ -52,33 +51,33 @@ class Host:
 			logging.debug('--------- 303 ---------')
 			uiaElem = node.select(uiaElem)
 			logging.debug('--------- 304 ---------')
-			if node.isEqual(root):
-				logging.debug('--------- 305 ---------')
-				node.appendChildren(uiaElem)
-				logging.debug('--------- 306 ---------')
-				logTreeItem(node)
-				logging.debug('--------- 307 ---------')
-				currNode = node.left
-				logging.debug('--------- 308 ---------')
-				if currNode is None:
-					continue
-				logging.debug('--------- 309 ---------')
+			if not node.isEqual(root): continue
+			logging.debug('--------- 305 ---------')
+			node.appendChildren(uiaElem)
+			logging.debug('--------- 306 ---------')
+			logTreeItem(node)
+			logging.debug('--------- 307 ---------')
+			currNode = node.left
+			logging.debug('--------- 308 ---------')
+			if currNode is None:
+				continue
+			logging.debug('--------- 309 ---------')
+			if not currNode.isLeafNode():
+				self.createTree(currNode)
+			logging.debug('--------- 310 ---------')
+			currNode = currNode.right
+			while not currNode == None:
+				logging.debug('--------- 311 ---------')
 				if not currNode.isLeafNode():
 					self.createTree(currNode)
-				logging.debug('--------- 310 ---------')
+				logging.debug('--------- 312 ---------')
 				currNode = currNode.right
-				while not currNode == None:
-					logging.debug('--------- 311 ---------')
-					if not currNode.isLeafNode():
-						self.createTree(currNode)
-					logging.debug('--------- 312 ---------')
-					currNode = currNode.right
-					logging.debug('--------- 313 ---------')
-				logging.debug('--------- 314 ---------')
+				logging.debug('--------- 313 ---------')
+			logging.debug('--------- 314 ---------')
 		logging.debug('--------- 315 ---------')
 		time.sleep(0.5)
 	
-	def traversal(self, root):
+	def traverse(self, root, func):
 		pass
 
 class RRTE(Host):
@@ -108,6 +107,13 @@ class RRTE(Host):
 	def getElemSubName(elem):
 		textbox = findFirstElemByControlType(elem, UIAClient.UIA_TextControlTypeId, SCOPE_CHILDREN)
 		text = textbox.CurrentName
+		return text
+	
+	@staticmethod
+	def getMenuMethodName(elem):
+		btns = findAllElemByControlType(elem, UIAClient.UIA_ButtonControlTypeId, SCOPE_CHILDREN)
+		btn = btns.GetElement(btns.Length-1)
+		text = btn.CurrentName
 		return text
 	
 	@staticmethod
@@ -211,36 +217,71 @@ class RElement(Element):
 	def isBitEnum(self, uiaElem):
 		return 'Fdi.Ui.ViewModel.Content.BitEnumerationViewModel' == uiaElem.CurrentName
 	
+	def isMethod(self, uiaElem): # in menu tree
+		return 'Fdi.Ui.ViewModel.Layout.ActionMenuItemViewModel' == uiaElem.CurrentName
+	
+	def isMenu(self, uiaElem): # in menu tree, include menu and window
+		return 'Fdi.Ui.ViewModel.Layout.RootMenuViewModel' == uiaElem.CurrentName
+	
+	def isTextEnabled(self, uiaElem):
+		assert isUIAElem(uiaElem)
+		edit = findFirstElemByControlType(uiaElem, UIAClient.UIA_EditControlTypeId)
+		assert isUIAElem(edit)
+		return edit.CurrentIsEnabled
+	
+	def isEnumEnabled(self, uiaElem):
+		assert isUIAElem(uiaElem)
+		combo = findFirstElemByControlType(uiaElem, UIAClient.UIA_ComboBoxControlTypeId)
+		assert isUIAElem(combo)
+		return combo.CurrentIsEnabled
+	
+	def isBitEnumEnabled(self, uiaElem):
+		return True
+	
 	def createString(self, uiaElem):
 		assert self.isString(uiaElem)
 		label = RRTE.getElemSubName(uiaElem)
-		return RString(label)
+		readonly = not self.isTextEnabled(uiaElem)
+		elem = RString(label, readonly)
+		return elem
 	
 	def createDate(self, uiaElem):
 		assert self.isDate(uiaElem)
 		label = RRTE.getElemSubName(uiaElem)
-		return RDate(label)
+		readonly = not self.isTextEnabled(uiaElem)
+		elem = RDate(label, readonly)
+		return elem
 	
 	def createTime(self, uiaElem):
 		assert self.isTime(uiaElem)
 		label = RRTE.getElemSubName(uiaElem)
-		return RTime(label)
+		readonly = not self.isTextEnabled(uiaElem)
+		elem = RTime(label, readonly)
+		return elem
 	
 	def createNumeric(self, uiaElem):
 		assert self.isNumeric(uiaElem)
 		label = RRTE.getElemSubName(uiaElem)
-		return RNumeric(label)
+		readonly = not self.isTextEnabled(uiaElem)
+		elem = RTime(label, readonly)
+		return elem
 	
 	def createEnum(self, uiaElem):
 		assert self.isEnum(uiaElem)
 		label = RRTE.getElemSubName(uiaElem)
-		return REnum(label)
+		readonly = not self.isEnumEnabled(uiaElem)
+		elem = REnum(label, readonly)
+		#elem.option(uiaElem)
+		return elem
 	
 	def createBitEnum(self, uiaElem):
 		assert self.isBitEnum(uiaElem)
 		group = findFirstElemByControlType(uiaElem, UIAClient.UIA_GroupControlTypeId)
 		label = RRTE.getElemSubName(group)
-		return RBitEnum(label)
+		readonly = not self.isBitEnumEnabled(uiaElem)
+		elem = RBitEnum(label, readonly)
+		#elem.option(uiaElem)
+		return elem
 		
 	def createParam(self, uiaElem):
 		assert isCustom(uiaElem)
@@ -292,7 +333,9 @@ class RElement(Element):
 		logging.debug('--------- 011 ---------')
 		if isPane(uiaElem) or isTabItem(uiaElem) or isGroup(uiaElem):
 			logging.debug('--------- 012 ---------')
+			# Please attention here!! It will make release IUnKnown object.
 			#all = findAllElem4ORCond(uiaElem, UIAClient.UIA_CustomControlTypeId, UIAClient.UIA_ButtonControlTypeId, UIAClient.UIA_GroupControlTypeId, UIAClient.UIA_TabControlTypeId, UIAClient.UIA_ControlTypePropertyId, SCOPE_CHILDREN)
+			#all = findAllChildren(uiaElem)
 			all = findAllElem(uiaElem, True, UIAClient.UIA_IsEnabledPropertyId, SCOPE_CHILDREN)
 			logging.debug('--------- 013 ---------')
 			set = []
@@ -349,20 +392,28 @@ class RElement(Element):
 				logging.debug('--------- 044 ---------')
 				item = all.GetElement(x)
 				logging.debug('--------- 045 ---------')
-				name = RRTE.getElemSubName(item)
-				logging.debug('--------- 046 ---------')
-				if isTreeLeaf(item):
+				if self.isMethod(item):
+					logging.debug('--------- 046 ---------')
+					name = RRTE.getMenuMethodName(item)
+					elem = RMethod(name)
 					logging.debug('--------- 047 ---------')
-					elem = RWindow(name)
-				else:
+					elem.ctrlType = 'Button'
+					#elem.rectangle = item.CurrentBoundingRectangle
+					set.append(elem)
+				elif self.isMenu(item):
 					logging.debug('--------- 048 ---------')
-					elem = RMenu(name)
-				logging.debug('--------- 049 ---------')
-				elem.ctrlType = 'TreeItem'
-				#elem.rectangle = item.CurrentBoundingRectangle
-				logging.debug('--------- 050 ---------')
-				set.append(elem)
-			logging.debug('--------- 051 ---------')
+					name = RRTE.getElemSubName(item)
+					if isTreeLeaf(item):
+						logging.debug('--------- 049 ---------')
+						elem = RWindow(name)
+					else:
+						logging.debug('--------- 050 ---------')
+						elem = RMenu(name)
+					logging.debug('--------- 051 ---------')
+					elem.ctrlType = 'TreeItem'
+					#elem.rectangle = item.CurrentBoundingRectangle
+					set.append(elem)
+			logging.debug('--------- 052 ---------')
 			return set
 
 class RRoot(RElement):
@@ -474,6 +525,8 @@ class RRootMenu(RElement):
 			self.current = self.label
 			#RRTE.waitDialogClose()
 			time.sleep(8)
+		else:
+			time.sleep(2)
 		logging.debug('--------- 140 ---------')
 		explorer = findFirstElemByAutomationId(uiaElem, 'DD_ExplorerView')
 		logging.debug('--------- 141 ---------')
@@ -544,7 +597,9 @@ class RGroup(RElement):
 		return group
 
 class RVariable(RElement):
-	pass
+	def __init__(self, label, readonly=False):
+		super(RVariable, self).__init__(label)
+		self.readonly = readonly
 
 class RMethod(RVariable):
 	pass
@@ -562,10 +617,48 @@ class RNumeric(RVariable):
 	pass
 
 class REnum(RVariable):
-	pass
+	def __init__(self, label, readonly):
+		super(REnum, self).__init__(label, readonly)
+		self.options = []
+	
+	def option(self, uiaElem):
+		assert isUIAElem(uiaElem)
+		if self.readonly: return
+		variableLabel = self.label
+		parent = findParentElem(uiaElem) # pane, page, group
+		combo = findFirstElemByControlType(uiaElem, UIAClient.UIA_ComboBoxControlTypeId)
+		assert isUIAElem(combo)
+		expandCombo(combo) # variable refreshed after
+		time.sleep(0.4)
+		variable = findFirstElemBySubText(parent, variableLabel)
+		assert isUIAElem(variable)
+		newCombo = findFirstElemByControlType(variable, UIAClient.UIA_ComboBoxControlTypeId)
+		assert isUIAElem(newCombo)
+		all = findAllElemByControlType(newCombo, UIAClient.UIA_ListItemControlTypeId)
+		set = []
+		for x in range(0, all.Length):
+			item = all.GetElement(x)
+			enum = findFirstElemByControlType(item, UIAClient.UIA_TextControlTypeId)
+			set.append(enum.CurrentName)
+		self.options.extend(set)
 
 class RBitEnum(RVariable):
-	pass
+	def __init__(self, label, readonly):
+		super(RBitEnum, self).__init__(label, readonly)
+		self.options = []
+	
+	def option(self, uiaElem):
+		assert isUIAElem(uiaElem)
+		group = findFirstElemByControlType(uiaElem, UIAClient.UIA_GroupControlTypeId)
+		assert isUIAElem(group)
+		custom = findFirstElemByControlType(group, UIAClient.UIA_CustomControlTypeId)
+		assert isUIAElem(custom)
+		all = findAllElemByControlType(custom, UIAClient.UIA_CheckBoxControlTypeId)
+		set = []
+		for x in range(0, all.Length):
+			item = all.GetElement(x)
+			set.append(item.CurrentName)
+		self.options.extend(set)
 
 if __name__ == '__main__':
 	#pdb.set_trace()
@@ -577,3 +670,6 @@ if __name__ == '__main__':
 	rrte = RRTE(root)
 	rrte.startUp()
 	rrte.createTree(rrte.root)
+	rrte.traceTreeNodes(rrte.root)
+	rrte.createOption(rrte.root)
+	rrte.traceOptions(rrte.root)
