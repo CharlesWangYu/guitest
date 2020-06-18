@@ -71,7 +71,8 @@ def isTabItem(elem):
 # This is a group of functions for finding UIA objects.
 '''
 def findAllChildren(root):
-	all = root.FindAll(SCOPE_CHILDREN, IUIA.Condition.TrueCondition)
+	cnd = IUIA.CreateTrueCondition()
+	all = root.FindAll(SCOPE_CHILDREN, cnd)
 	return all
 '''
 
