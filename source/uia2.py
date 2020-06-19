@@ -69,17 +69,18 @@ def isTabItem(elem):
 	return elem.CurrentControlType == UIAClient.UIA_TabItemControlTypeId
 
 # This is a group of functions for finding UIA objects.
-'''
 def findAllChildren(root):
 	cnd = IUIA.CreateTrueCondition()
 	all = root.FindAll(SCOPE_CHILDREN, cnd)
 	return all
-'''
 
 def findAllElem(root, key, type, scope=SCOPE_DESCENDANTS):
 	cnd = IUIA.CreatePropertyConditionEx(type, key, UIAClient.PropertyConditionFlags_None)
 	all = root.FindAll(scope, cnd)
 	return all
+
+def findAllElemByName(root, type, scope=SCOPE_DESCENDANTS):
+	return findAllElem(root, type, UIAClient.UIA_NamePropertyId, scope)
 
 def findAllElemByControlType(root, type, scope=SCOPE_DESCENDANTS):
 	return findAllElem(root, type, UIAClient.UIA_ControlTypePropertyId, scope)
@@ -183,7 +184,7 @@ def expandCombo(elem):
 def collapseCombo(elem):
 	pattern = elem.GetCurrentPattern(UIAClient.UIA_ExpandCollapsePatternId)
 	ctrl = cast(pattern, POINTER(UIAClient.IUIAutomationExpandCollapsePattern))
-	if ctrl.value.CurrentExpandCollapseState == UIAClient.ExpandCollapseState_Expended:
+	if ctrl.value.CurrentExpandCollapseState == UIAClient.ExpandCollapseState_Expanded:
 		ctrl.Collapse()
 
 def expandTree(elem):
