@@ -295,7 +295,8 @@ class TreeNode:
 			curr = None
 			for x in range(0, size):
 				logging.debug(LOG_STR % sys._getframe().f_lineno)
-				node = TreeNode(elems[x])
+				item = elems[x]
+				node = TreeNode(item)
 				node.parent = self
 				if x == 0:
 					logging.debug(LOG_STR % sys._getframe().f_lineno)

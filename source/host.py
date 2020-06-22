@@ -202,7 +202,7 @@ class RRTE(Host):
 		assert isUIAElem(rrte)
 		process = findFirstElemByControlType(rrte, UIAClient.UIA_WindowControlTypeId, SCOPE_CHILDREN)
 		while isUIAElem(process):
-			time.sleep(2.5)
+			time.sleep(1.5)
 			process = findFirstElemByControlType(rrte, UIAClient.UIA_WindowControlTypeId, SCOPE_CHILDREN)
 		time.sleep(1)
 
@@ -274,31 +274,15 @@ class TreeNode:
 		return self.elem.select(uiaElem)
 	
 	def appendChildren(self, uiaElem):
-		#assert isUIAElem(uiaElem)
 		elems = self.elem.children(uiaElem)
-<<<<<<< HEAD
-		elemNum = len(elems)
-		#logging.info('%d child nodes will insert tree under the [%s].' % (elemNum, self.elem.label))
-		if elemNum == 0: return
-		curr = None
-		for x in range(0, elemNum):
-			#logging.info('Add the child[%d] under the node [%s].' % (x+1, self.elem.label))
-			elem = elems[x]
-			node = TreeNode(elem, self)
-			if elem == elems[0]:
-				self.left = node
-				curr = self.left
-			else:
-				curr.right = node
-				curr = curr.right
-=======
 		logging.info('Children count is %d' % len(elems))
 		if len(elems) > 0:
 			size = len(elems)
 			logging.info('%d elements will be appended to [%s]' % (size, self.elem.label))
 			curr = None
 			for x in range(0, size):
-				node = TreeNode(elems[x])
+				item = elems[x]
+				node = TreeNode(item)
 				node.parent = self
 				if x == 0:
 					self.left = node
@@ -306,7 +290,6 @@ class TreeNode:
 				else :
 					curr.right = node
 					curr = curr.right
->>>>>>> dev1
 
 class Element: # abstract class
 	def __init__(self, label):
@@ -431,58 +414,14 @@ class RElement(Element):
 			page.ctrlType = 'TabItem'
 			#page.rectangle = item.CurrentBoundingRectangle
 			pages.append(page)
-			#logging.info('Found a page element.')
 		return pages
 	
-<<<<<<< HEAD
-	def children(self, uiaElem):
-		assert isUIAElem(uiaElem)
-		if isPane(uiaElem) or isTabItem(uiaElem) or isGroup(uiaElem):
-			#all = findAllElem4ORCond(uiaElem, UIAClient.UIA_CustomControlTypeId, UIAClient.UIA_ButtonControlTypeId, UIAClient.UIA_GroupControlTypeId, UIAClient.UIA_TabControlTypeId, UIAClient.UIA_ControlTypePropertyId, SCOPE_CHILDREN) # Please attention here!! It will make release IUnKnown object.
-			all = findAllElem(uiaElem, True, UIAClient.UIA_IsEnabledPropertyId, SCOPE_CHILDREN)
-			#all = findAllChildren(uiaElem)
-			set = []
-			for x in range(0, all.Length):
-				item = all.GetElement(x)
-				if isCustom(item): # variable(others, Enum, BitEnum)
-					elem = self.createParam(item)
-					elem.ctrlType = 'Custom'
-					elem.rectangle = item.CurrentBoundingRectangle
-					set.append(elem)
-					#logging.info('Found a variable element.')
-				elif isButton(item): # method
-					elem = RMethod(RRTE.getElemSubName(item))
-					elem.ctrlType = 'Button'
-					elem.rectangle = item.CurrentBoundingRectangle
-					set.append(elem)
-					#logging.info('Found a method element.')
-				elif isGroup(item): # group
-					elem = RGroup(item.CurrentName)
-					elem.ctrlType = 'Group'
-					elem.rectangle = item.CurrentBoundingRectangle
-					set.append(elem)
-					#logging.info('Found a group element.')
-				elif isTab(item): # page
-					tabs = self.createPage(item)
-					set.extend(tabs)
-				else:
-					#logging.info('Ignore one element')
-					pass
-			#del all
-			return set
-		else:
-			all = findAllElemByControlType(uiaElem, UIAClient.UIA_TreeItemControlTypeId, SCOPE_CHILDREN)
-			set = []
-			for x in range(0, all.Length):
-				item = all.GetElement(x)
-=======
 	def __createContentElement(self, uiaElem):
 		# Please attention here!! It will make release IUnKnown object.
 		#all = findAllElem4ORCond(uiaElem, UIAClient.UIA_CustomControlTypeId, UIAClient.UIA_ButtonControlTypeId, UIAClient.UIA_GroupControlTypeId, UIAClient.UIA_TabControlTypeId, UIAClient.UIA_ControlTypePropertyId, SCOPE_CHILDREN)
 		#all = findAllChildren(uiaElem)
 		all = findAllElem(uiaElem, True, UIAClient.UIA_IsEnabledPropertyId, SCOPE_CHILDREN)
 		set = []
-		#for item in uias:
 		for x in range(0, all.Length):
 			item = all.GetElement(x)
 			if isCustom(item): # variable(others, Enum, BitEnum)
@@ -519,21 +458,17 @@ class RElement(Element):
 				#elem.rectangle = item.CurrentBoundingRectangle
 				set.append(elem)
 			elif self.isMenu(item):
->>>>>>> dev1
 				name = RRTE.getElemSubName(item)
 				if isTreeLeaf(item):
 					elem = RWindow(name)
-					#logging.info('Found a window element.')
 				else:
 					elem = RMenu(name)
-					#logging.info('Found a menu element.')
 				elem.ctrlType = 'TreeItem'
 				#elem.rectangle = item.CurrentBoundingRectangle
 				set.append(elem)
 		return set
 	
 	def children(self, uiaElem):
-		#pdb.set_trace()
 		if isPane(uiaElem) or isTabItem(uiaElem) or isGroup(uiaElem):
 			return self.__createContentElement(uiaElem)
 		else:
@@ -573,7 +508,7 @@ class RRoot(RElement):
 		menu = RRootMenu('Offline root menu')
 		menu.ctrlType = 'Button'
 		#menu.rectangle = offline.CurrentBoundingRectangle
-		#set.append(menu)
+		set.append(menu)
 		# get online root menu items
 		onlineRoot = findFirstElemByAutomationId(uiaElem, 'OnlineParameters')
 		assert isUIAElem(onlineRoot)
