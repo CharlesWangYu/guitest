@@ -522,7 +522,6 @@ class RElement(Element):
 		return set
 	
 	def children(self, uiaElem):
-		#pdb.set_trace()
 		logging.debug(LOG_STR % sys._getframe().f_lineno)
 		if isPane(uiaElem) or isTabItem(uiaElem) or isGroup(uiaElem):
 			logging.debug(LOG_STR % sys._getframe().f_lineno)
