@@ -79,6 +79,9 @@ def findAllElem(root, key, type, scope=SCOPE_DESCENDANTS):
 	all = root.FindAll(scope, cnd)
 	return all
 
+def findAllElemByName(root, type, scope=SCOPE_DESCENDANTS):
+	return findAllElem(root, type, UIAClient.UIA_NamePropertyId, scope)
+
 def findAllElemByControlType(root, type, scope=SCOPE_DESCENDANTS):
 	return findAllElem(root, type, UIAClient.UIA_ControlTypePropertyId, scope)
 
@@ -128,7 +131,9 @@ def findFirstElemByAutomationId(root, Id, scope=SCOPE_DESCENDANTS):
 
 def findFirstElemBySubText(root, name):
 	child = findFirstElemByName(root, name)
+	assert isUIAElem(child)
 	element = findParentElem(child)
+	assert isUIAElem(element)
 	return element
 
 def findParentElem(child):
@@ -141,8 +146,6 @@ def findFirstChildElem(elem):
 	walker = IUIA.ControlViewWalker
 	first = walker.GetFirstChildElement(elem)
 	assert isUIAElem(first)
-	#del walker
-	#gc.collect()
 	return first
 
 def findLastChildElem(elem):
@@ -170,6 +173,19 @@ def setEditbox(elem, text):
 	ctrl = cast(pattern, POINTER(UIAClient.IUIAutomationValuePattern))
 	elem.SetFocus()
 	ctrl.SetValue(text)
+
+def expandCombo(elem):
+	assert isUIAElem(elem)
+	pattern = elem.GetCurrentPattern(UIAClient.UIA_ExpandCollapsePatternId)
+	ctrl = cast(pattern, POINTER(UIAClient.IUIAutomationExpandCollapsePattern))
+	if ctrl.value.CurrentExpandCollapseState == UIAClient.ExpandCollapseState_Collapsed:
+		ctrl.Expand()
+
+def collapseCombo(elem):
+	pattern = elem.GetCurrentPattern(UIAClient.UIA_ExpandCollapsePatternId)
+	ctrl = cast(pattern, POINTER(UIAClient.IUIAutomationExpandCollapsePattern))
+	if ctrl.value.CurrentExpandCollapseState == UIAClient.ExpandCollapseState_Expanded:
+		ctrl.Collapse()
 
 def expandTree(elem):
 	assert isUIAElem(elem)

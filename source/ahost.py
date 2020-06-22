@@ -1,15 +1,17 @@
 import pdb
 import logging
-#import os
-#import sys
+import os
+import sys
 import time
 import subprocess
-#import comtypes
+import csv
 from uia2 import *
 from configparser import ConfigParser
 from comtypes.client import *
 from ctypes import *
 
+LOG_STR = '--- host.py : %d ---'
+	
 def logTreeItem(node):
 	logging.info('----------------------------------------------------------')
 	logging.info('Parent\t: %s (%s)' % (node.elem.label, node.elem.ctrlType))
@@ -28,6 +30,9 @@ class Host:
 		self.root = root
 		self.host = None
 		self.curr = None
+		self.__csvFile = None
+		self.__treeDeepth = 0
+		self.__csvColumn = 10
 	
 	def startUp(self):
 		pass
@@ -40,45 +45,129 @@ class Host:
 	
 	def unload(self):
 		pass
-		
+	
 	def createTree(self, root):
-		#pdb.set_trace()
 		assert not root == None
 		assert not root.isVariableNode()
-		logging.info('--------- 001 ---------')
+		logging.debug(LOG_STR % sys._getframe().f_lineno)
 		path = root.getPath()
-		logging.info('--------- 002 ---------')
 		uiaElem = self.host
 		for node in path:
-			logging.info('--------- 003 ---------')
+			logging.debug(LOG_STR % sys._getframe().f_lineno)
 			uiaElem = node.select(uiaElem)
-			logging.info('--------- 004 ---------')
-			if node.isEqual(root):
-				logging.info('--------- 005 ---------')
-				node.appendChildren(uiaElem)
-				logging.info('--------- 006 ---------')
-				logTreeItem(node)
-				logging.info('--------- 007 ---------')
-				currNode = node.left
-				if currNode is None:
-					continue
+			logging.debug(LOG_STR % sys._getframe().f_lineno)
+			if not node.isEqual(root): continue
+			node.appendChildren(uiaElem)
+			logging.debug(LOG_STR % sys._getframe().f_lineno)
+			logTreeItem(node)
+			currNode = node.left
+			if currNode is None:
+				continue
+			logging.debug(LOG_STR % sys._getframe().f_lineno)
+			if not currNode.isVariableNode():
+				logging.debug(LOG_STR % sys._getframe().f_lineno)
+				self.createTree(currNode)
+			logging.debug(LOG_STR % sys._getframe().f_lineno)
+			currNode = currNode.right
+			while not currNode == None:
+				logging.debug(LOG_STR % sys._getframe().f_lineno)
 				if not currNode.isVariableNode():
-					logging.info('--------- 008 ---------')
+					logging.debug(LOG_STR % sys._getframe().f_lineno)
 					self.createTree(currNode)
 				currNode = currNode.right
-				logging.info('--------- 009 ---------')
-				while not currNode == None:
-					logging.info('--------- 010 ---------')
-					if not currNode.isVariableNode():
-						logging.info('--------- 011 ---------')
-						self.createTree(currNode)
-						logging.info('--------- 012 ---------')
-					currNode = currNode.right
-				logging.info('--------- 013 ---------')
-		logging.info('--------- 014 ---------')
+				logging.debug(LOG_STR % sys._getframe().f_lineno)
+			logging.debug(LOG_STR % sys._getframe().f_lineno)
+		logging.debug(LOG_STR % sys._getframe().f_lineno)
 		time.sleep(0.5)
 	
-	def traversal(self, root):
+	def __preTraverseLabel(self, node):
+		rowElement = []
+		if node == None or node.elem == None:
+			return
+		for x in range(0, self.__csvColumn):
+			if(x != self.__treeDeepth):
+				rowElement.append('')
+			else:
+				rowElement.append(node.elem.label)
+		rowElement.append(node.elem.label)
+		rowElement.append(node.getStyle())
+		self.__csvFile.writerow(rowElement)
+		self.__treeDeepth += 1
+		self.__preTraverseLabel(node.left)
+		self.__treeDeepth -= 1
+		self.__preTraverseLabel(node.right)
+	
+	def __preTraverseEnumOpts(self, node):
+		rowElement = []
+		if node == None or node.elem == None:
+			return
+		if node.isEnumNode():
+			if not node.elem.readonly:
+				rowElement.append(node.elem.label)
+				self.__csvFile.writerow(rowElement)
+				rowElement.clear()
+				for item in node.elem.options:
+					rowElement.append('')
+					rowElement.append(item)
+					self.__csvFile.writerow(rowElement)
+					rowElement.clear()
+			else:
+				rowElement.append(node.elem.label + ' (Not Read)')
+				self.__csvFile.writerow(rowElement)
+				rowElement.clear()
+		self.__preTraverseEnumOpts(node.left)
+		self.__preTraverseEnumOpts(node.right)
+	
+	def __preTraverseBitEnumOpts(self, node):
+		rowElement = []
+		if node == None or node.elem == None:
+			return
+		if(node.isBitEnumNode()):
+			rowElement.append(node.elem.label)
+			self.__csvFile.writerow(rowElement)
+			rowElement.clear()
+			for item in node.elem.options:
+				rowElement.append('')
+				rowElement.append(item)
+				self.__csvFile.writerow(rowElement)
+				rowElement.clear()
+		self.__preTraverseBitEnumOpts(node.left)
+		self.__preTraverseBitEnumOpts(node.right)
+			
+	def dumpMenuLabel2Csv(self, root):
+		headers = ['ITEM0', 'ITEM1', 'ITEM2', 'ITEM3', 'ITEM4', 'ITEM5', 'ITEM6', 'ITEM7', 'ITEM8', 'ITEM9', 'LABEL', 'STYLE']
+		outputPath = os.getcwd() + '\\output\\'
+		outputFile = outputPath + 'outputTree.csv'
+		if not os.path.exists(outputPath):
+			os.makedirs(outputPath)
+		with open(outputFile, 'w', newline='', encoding='UTF-8') as self.__csvFile:
+			self.__csvFile = csv.writer(self.__csvFile)
+			self.__csvFile.writerow(headers)
+			self.__preTraverseLabel(root)
+	
+	def dumpEnumOpt2Csv(self, root):
+		headers = ['ENUM', 'OPTION']
+		outputPath = os.getcwd() + '\\output\\'
+		outputFile = outputPath + 'outputEnumOpts.csv'
+		if not os.path.exists(outputPath):
+			os.makedirs(outputPath)
+		with open(outputFile, 'w', newline='', encoding='UTF-8') as self.__csvFile:
+			self.__csvFile = csv.writer(self.__csvFile)
+			self.__csvFile.writerow(headers)
+			self.__preTraverseEnumOpts(root)
+	
+	def dumpBitEnumOpt2Csv(self, root):
+		headers = ['BITENUM', 'OPTION']
+		outputPath = os.getcwd() + '\\output\\'
+		outputFile = outputPath + 'outputBitEnumOpts.csv'
+		if not os.path.exists(outputPath):
+			os.makedirs(outputPath)
+		with open(outputFile, 'w', newline='', encoding='UTF-8') as self.__csvFile:
+			self.__csvFile = csv.writer(self.__csvFile)
+			self.__csvFile.writerow(headers)
+			self.__preTraverseBitEnumOpts(root)
+	
+	def traverse(self, root, func):
 		pass
 
 class RRTE(Host):
@@ -111,17 +200,23 @@ class RRTE(Host):
 		return text
 	
 	@staticmethod
+	def getMenuMethodName(elem):
+		btns = findAllElemByControlType(elem, UIAClient.UIA_ButtonControlTypeId, SCOPE_CHILDREN)
+		btn = btns.GetElement(btns.Length-1)
+		text = btn.CurrentName
+		return text
+	
+	@staticmethod
 	def waitDialogClose():
-		time.sleep(1)
 		desktop = IUIA.GetRootElement()
 		assert isUIAElem(desktop)
 		rrte = findFirstElemByName(desktop, 'Reference Run-time Environment', SCOPE_CHILDREN)
 		assert isUIAElem(rrte)
 		process = findFirstElemByControlType(rrte, UIAClient.UIA_WindowControlTypeId, SCOPE_CHILDREN)
 		while isUIAElem(process):
-			time.sleep(2.5)
+			time.sleep(1.5)
 			process = findFirstElemByControlType(rrte, UIAClient.UIA_WindowControlTypeId, SCOPE_CHILDREN)
-		time.sleep(5)
+		time.sleep(1)
 
 # It's logic tree, not control view tree in ui automation.
 class TreeNode:
@@ -142,9 +237,41 @@ class TreeNode:
 				return False
 		return True
 	
+	def isMenuNode(self):
+		return isinstance(self.elem, RMenu)
+	
+	def isWindowNode(self):
+		return isinstance(self.elem, RWindow)
+	
+	def isPageNode(self):
+		return isinstance(self.elem, RPage)
+	
+	def isGroupNode(self):
+		return isinstance(self.elem, RGroup)
+	
 	def isVariableNode(self):
 		return isinstance(self.elem, RVariable)
-
+	
+	def isEnumNode(self):
+		return isinstance(self.elem, REnum)
+	
+	def isBitEnumNode(self):
+		return isinstance(self.elem, RBitEnum)
+	
+	def getStyle(self):
+		style = ''
+		if self.isMenuNode():
+			style = 'MENU'
+		elif self.isWindowNode():
+			style = 'WINDOW'
+		elif self.isPageNode():
+			style = 'PAGE'
+		elif self.isGroupNode():
+			style = 'GROUP'
+		else:
+			pass
+		return style
+	
 	def getPath(self):
 		path = []
 		path.append(self)
@@ -156,40 +283,34 @@ class TreeNode:
 		return path
 	
 	def select(self, uiaElem):
-		logging.info('--------- 051 ---------')
+		logging.debug(LOG_STR % sys._getframe().f_lineno)
 		return self.elem.select(uiaElem)
-		logging.info('--------- 052 ---------')
 	
 	def appendChildren(self, uiaElem):
-		assert isUIAElem(uiaElem)
-		logging.info('--------- 101 ---------')
 		elems = self.elem.children(uiaElem)
-		logging.info('--------- 102 ---------')
-		elemNum = len(elems)
-		logging.info('Children count is %d' % elemNum)
-		if elemNum == 0: return
-		curr = None
-		for x in range(0, elemNum):
-			logging.info('--------- 103 ---------')
-			elem = elems[x]
-			node = TreeNode(elem, self)
-			logging.info('--------- 104 ---------')
-			if x == 0:
-				logging.info('--------- 105 ---------')
-				self.left = node
-				curr = self.left
-			else:
-				logging.info('--------- 106 ---------')
-				curr.right = node
-				curr = curr.right
-			logging.info('--------- 107 ---------')
-		logging.info('--------- 108 ---------')
+		logging.info('Children count is %d' % len(elems))
+		if len(elems) > 0:
+			size = len(elems)
+			logging.info('%d elements will be appended to [%s]' % (size, self.elem.label))
+			curr = None
+			for x in range(0, size):
+				logging.debug(LOG_STR % sys._getframe().f_lineno)
+				node = TreeNode(elems[x])
+				node.parent = self
+				if x == 0:
+					logging.debug(LOG_STR % sys._getframe().f_lineno)
+					self.left = node
+					curr = self.left
+				else :
+					logging.debug(LOG_STR % sys._getframe().f_lineno)
+					curr.right = node
+					curr = curr.right
 
 class Element: # abstract class
 	def __init__(self, label):
 		self.label		= label
 		self.ctrlType	= ''
-		self.rectangle	= None
+		#self.rectangle	= None
 	
 	def select(self, uiaElem): # extend a node, for example, group, its processing may be inconsistent on different hosts
 		pass
@@ -216,222 +337,275 @@ class RElement(Element):
 	def isBitEnum(self, uiaElem):
 		return 'Fdi.Ui.ViewModel.Content.BitEnumerationViewModel' == uiaElem.CurrentName
 	
-	def createString(self, uiaElem):
+	def isMethod(self, uiaElem): # in menu tree
+		return 'Fdi.Ui.ViewModel.Layout.ActionMenuItemViewModel' == uiaElem.CurrentName
+	
+	def isMenu(self, uiaElem): # in menu tree, include menu and window
+		return 'Fdi.Ui.ViewModel.Layout.RootMenuViewModel' == uiaElem.CurrentName
+	
+	def isTextEnabled(self, uiaElem):
+		assert isUIAElem(uiaElem)
+		edit = findFirstElemByControlType(uiaElem, UIAClient.UIA_EditControlTypeId)
+		assert isUIAElem(edit)
+		return edit.CurrentIsEnabled
+	
+	def isEnumEnabled(self, uiaElem):
+		assert isUIAElem(uiaElem)
+		combo = findFirstElemByControlType(uiaElem, UIAClient.UIA_ComboBoxControlTypeId)
+		assert isUIAElem(combo)
+		return combo.CurrentIsEnabled
+	
+	def isBitEnumEnabled(self, uiaElem):
+		return True
+	
+	def __createString(self, uiaElem):
 		assert self.isString(uiaElem)
 		label = RRTE.getElemSubName(uiaElem)
-		return RString(label)
+		readonly = not self.isTextEnabled(uiaElem)
+		elem = RString(label, readonly)
+		return elem
 	
-	def createDate(self, uiaElem):
+	def __createDate(self, uiaElem):
 		assert self.isDate(uiaElem)
 		label = RRTE.getElemSubName(uiaElem)
-		return RDate(label)
+		readonly = not self.isTextEnabled(uiaElem)
+		elem = RDate(label, readonly)
+		return elem
 	
-	def createTime(self, uiaElem):
+	def __createTime(self, uiaElem):
 		assert self.isTime(uiaElem)
 		label = RRTE.getElemSubName(uiaElem)
-		return RTime(label)
+		readonly = not self.isTextEnabled(uiaElem)
+		elem = RTime(label, readonly)
+		return elem
 	
-	def createNumeric(self, uiaElem):
+	def __createNumeric(self, uiaElem):
 		assert self.isNumeric(uiaElem)
 		label = RRTE.getElemSubName(uiaElem)
-		return RNumeric(label)
+		readonly = not self.isTextEnabled(uiaElem)
+		elem = RTime(label, readonly)
+		return elem
 	
-	def createEnum(self, uiaElem):
+	def __createEnum(self, uiaElem):
 		assert self.isEnum(uiaElem)
 		label = RRTE.getElemSubName(uiaElem)
-		return REnum(label)
+		readonly = not self.isEnumEnabled(uiaElem)
+		elem = REnum(label, readonly)
+		elem.option(uiaElem)
+		return elem
 	
-	def createBitEnum(self, uiaElem):
+	def __createBitEnum(self, uiaElem):
 		assert self.isBitEnum(uiaElem)
 		group = findFirstElemByControlType(uiaElem, UIAClient.UIA_GroupControlTypeId)
 		label = RRTE.getElemSubName(group)
-		return RBitEnum(label)
+		readonly = not self.isBitEnumEnabled(uiaElem)
+		elem = RBitEnum(label, readonly)
+		elem.option(uiaElem)
+		return elem
 		
-	def createParam(self, uiaElem):
+	def __createParam(self, uiaElem):
 		assert isCustom(uiaElem)
 		if self.isEnum(uiaElem):
-			logging.info('--------- 201 ---------')
-			return self.createEnum(uiaElem)
+			logging.debug(LOG_STR % sys._getframe().f_lineno)
+			return self.__createEnum(uiaElem)
 		elif self.isString(uiaElem):
-			logging.info('--------- 202 ---------')
-			return self.createString(uiaElem)
+			logging.debug(LOG_STR % sys._getframe().f_lineno)
+			return self.__createString(uiaElem)
 		elif self.isNumeric(uiaElem):
-			logging.info('--------- 203 ---------')
-			return self.createNumeric(uiaElem)
+			logging.debug(LOG_STR % sys._getframe().f_lineno)
+			return self.__createNumeric(uiaElem)
 		elif self.isBitEnum(uiaElem):
-			logging.info('--------- 204 ---------')
-			return self.createBitEnum(uiaElem)
+			logging.debug(LOG_STR % sys._getframe().f_lineno)
+			return self.__createBitEnum(uiaElem)
 		elif self.isDate(uiaElem):
-			logging.info('--------- 205 ---------')
-			return self.createDate(uiaElem)
+			logging.debug(LOG_STR % sys._getframe().f_lineno)
+			return self.__createDate(uiaElem)
 		elif self.isTime(uiaElem):
-			logging.info('--------- 206 ---------')
-			return self.createTime(uiaElem)
+			logging.debug(LOG_STR % sys._getframe().f_lineno)
+			return self.__createTime(uiaElem)
 			
-	def createPage(self, uiaElem):
+	def __createPage(self, uiaElem):
 		assert isTab(uiaElem)
-		logging.info('--------- 211 ---------')
+		logging.debug(LOG_STR % sys._getframe().f_lineno)
 		uias = findAllElemByControlType(uiaElem, UIAClient.UIA_TabItemControlTypeId, SCOPE_CHILDREN)
-		logging.info('--------- 212 ---------')
+		logging.debug(LOG_STR % sys._getframe().f_lineno)
 		pages = []
-		logging.info('Page count is %d' % uias.Length)
+		#logging.info('Page count is %d' % uias.Length)
 		for x in range(0, uias.Length):
-			logging.info('--------- 213 ---------')
+			logging.debug(LOG_STR % sys._getframe().f_lineno)
 			item = uias.GetElement(x)
-			logging.info('--------- 214 ---------')
+			logging.debug(LOG_STR % sys._getframe().f_lineno)
 			page = RPage(item.CurrentName)
-			logging.info('--------- 215 ---------')
+			logging.debug(LOG_STR % sys._getframe().f_lineno)
 			page.ctrlType = 'TabItem'
+			#page.rectangle = item.CurrentBoundingRectangle
 			pages.append(page)
-			logging.info('--------- 216 ---------')
-		logging.info('--------- 217 ---------')
+			logging.debug(LOG_STR % sys._getframe().f_lineno)
+		logging.debug(LOG_STR % sys._getframe().f_lineno)
 		return pages
 	
-	def children(self, uiaElem):
-		assert isUIAElem(uiaElem)
-		logging.info('--------- 220 ---------')
-		if isPane(uiaElem) or isTabItem(uiaElem) or isGroup(uiaElem):
-			logging.info('--------- 221 ---------')
-			#all = findAllElem4ORCond(uiaElem, UIAClient.UIA_CustomControlTypeId, UIAClient.UIA_ButtonControlTypeId, UIAClient.UIA_GroupControlTypeId, UIAClient.UIA_TabControlTypeId, UIAClient.UIA_ControlTypePropertyId, SCOPE_CHILDREN) # Please attention here!! It will make release IUnKnown object.
-			all = findAllElem(uiaElem, True, UIAClient.UIA_IsEnabledPropertyId, SCOPE_CHILDREN)
-			logging.info('--------- 222 ---------')
-			set = []
-			for x in range(0, all.Length):
-				logging.info('--------- 223 ---------')
-				item = all.GetElement(x)
-				if isCustom(item): # variable(others, Enum, BitEnum)
-					logging.info('--------- 224 ---------')
-					elem = self.createParam(item)
-					logging.info('--------- 225 ---------')
-					elem.ctrlType = 'Custom'
-					elem.rectangle = item.CurrentBoundingRectangle
-					set.append(elem)
-					logging.info('--------- 226 ---------')
-				elif isButton(item): # method
-					logging.info('--------- 227 ---------')
-					elem = RMethod(RRTE.getElemSubName(item))
-					logging.info('--------- 228 ---------')
-					elem.ctrlType = 'Button'
-					elem.rectangle = item.CurrentBoundingRectangle
-					set.append(elem)
-					logging.info('--------- 229 ---------')
-				elif isGroup(item): # group
-					logging.info('--------- 230 ---------')
-					elem = RGroup(item.CurrentName)
-					logging.info('--------- 231 ---------')
-					elem.ctrlType = 'Group'
-					elem.rectangle = item.CurrentBoundingRectangle
-					set.append(elem)
-					logging.info('--------- 232 ---------')
-				elif isTab(item): # page
-					logging.info('--------- 233 ---------')
-					tabs = self.createPage(item)
-					logging.info('--------- 234 ---------')
-					set.extend(tabs)
-					logging.info('--------- 235 ---------')
-				else:
-					logging.info('--------- 236 ---------')
-					#pass
-					logging.info('Ignore one element')
-			#del all
-			return set
-		else:
-			logging.info('--------- 240 ---------')
-			all = findAllElemByControlType(uiaElem, UIAClient.UIA_TreeItemControlTypeId, SCOPE_CHILDREN)
-			logging.info('--------- 241 ---------')
-			set = []
-			for x in range(0, all.Length):
-				logging.info('--------- 242 ---------')
-				item = all.GetElement(x)
-				logging.info('--------- 243 ---------')
+	def __createContentElement(self, uiaElem):
+		logging.debug(LOG_STR % sys._getframe().f_lineno)
+		# Please attention here!! It will make release IUnKnown object.
+		#all = findAllElem4ORCond(uiaElem, UIAClient.UIA_CustomControlTypeId, UIAClient.UIA_ButtonControlTypeId, UIAClient.UIA_GroupControlTypeId, UIAClient.UIA_TabControlTypeId, UIAClient.UIA_ControlTypePropertyId, SCOPE_CHILDREN)
+		#all = findAllChildren(uiaElem)
+		all = findAllElem(uiaElem, True, UIAClient.UIA_IsEnabledPropertyId, SCOPE_CHILDREN)
+		logging.debug(LOG_STR % sys._getframe().f_lineno)
+		set = []
+		logging.debug(LOG_STR % sys._getframe().f_lineno)
+		for x in range(0, all.Length):
+			logging.debug(LOG_STR % sys._getframe().f_lineno)
+			item = all.GetElement(x)
+			if isCustom(item): # variable(others, Enum, BitEnum)
+				logging.debug(LOG_STR % sys._getframe().f_lineno)
+				elem = self.__createParam(item)
+				elem.ctrlType = 'Custom'
+				#elem.rectangle = item.CurrentBoundingRectangle
+				set.append(elem)
+				logging.debug(LOG_STR % sys._getframe().f_lineno)
+			elif isButton(item): # method
+				logging.debug(LOG_STR % sys._getframe().f_lineno)
+				elem = RMethod(RRTE.getElemSubName(item))
+				elem.ctrlType = 'Button'
+				#elem.rectangle = item.CurrentBoundingRectangle
+				set.append(elem)
+				logging.debug(LOG_STR % sys._getframe().f_lineno)
+			elif isGroup(item): # group
+				logging.debug(LOG_STR % sys._getframe().f_lineno)
+				elem = RGroup(item.CurrentName)
+				elem.ctrlType = 'Group'
+				#elem.rectangle = item.CurrentBoundingRectangle
+				set.append(elem)
+				logging.debug(LOG_STR % sys._getframe().f_lineno)
+			elif isTab(item): # page
+				logging.debug(LOG_STR % sys._getframe().f_lineno)
+				tabs = self.__createPage(item)
+				set.extend(tabs)
+				logging.debug(LOG_STR % sys._getframe().f_lineno)
+			else:
+				logging.info('Ignore one element')
+		logging.debug(LOG_STR % sys._getframe().f_lineno)
+		return set
+	
+	def __createLayoutElement(self, uiaElem):
+		logging.debug(LOG_STR % sys._getframe().f_lineno)
+		all = findAllElemByControlType(uiaElem, UIAClient.UIA_TreeItemControlTypeId, SCOPE_CHILDREN)
+		logging.debug(LOG_STR % sys._getframe().f_lineno)
+		set = []
+		logging.debug(LOG_STR % sys._getframe().f_lineno)
+		for x in range(0, all.Length):
+			logging.debug(LOG_STR % sys._getframe().f_lineno)
+			item = all.GetElement(x)
+			logging.debug(LOG_STR % sys._getframe().f_lineno)
+			if self.isMethod(item):
+				logging.debug(LOG_STR % sys._getframe().f_lineno)
+				name = RRTE.getMenuMethodName(item)
+				elem = RMethod(name)
+				logging.debug(LOG_STR % sys._getframe().f_lineno)
+				elem.ctrlType = 'Button'
+				#elem.rectangle = item.CurrentBoundingRectangle
+				set.append(elem)
+			elif self.isMenu(item):
+				logging.debug(LOG_STR % sys._getframe().f_lineno)
 				name = RRTE.getElemSubName(item)
-				logging.info('--------- 244 ---------')
 				if isTreeLeaf(item):
-					logging.info('--------- 245 ---------')
+					logging.debug(LOG_STR % sys._getframe().f_lineno)
 					elem = RWindow(name)
 				else:
-					logging.info('--------- 246 ---------')
+					logging.debug(LOG_STR % sys._getframe().f_lineno)
 					elem = RMenu(name)
-				logging.info('--------- 247 ---------')
+				logging.debug(LOG_STR % sys._getframe().f_lineno)
 				elem.ctrlType = 'TreeItem'
-				elem.rectangle = item.CurrentBoundingRectangle
+				#elem.rectangle = item.CurrentBoundingRectangle
 				set.append(elem)
-				logging.info('--------- 248 ---------')
-			logging.info('--------- 249 ---------')
-			return set
+		logging.debug(LOG_STR % sys._getframe().f_lineno)
+		return set
+	
+	def children(self, uiaElem):
+		#pdb.set_trace()
+		logging.debug(LOG_STR % sys._getframe().f_lineno)
+		if isPane(uiaElem) or isTabItem(uiaElem) or isGroup(uiaElem):
+			logging.debug(LOG_STR % sys._getframe().f_lineno)
+			return self.__createContentElement(uiaElem)
+		else:
+			logging.debug(LOG_STR % sys._getframe().f_lineno)
+			return self.__createLayoutElement(uiaElem)
 
 class RRoot(RElement):
 	def select(self, uiaElem):
-		logging.info('--------- 301 ---------')
-		assert isUIAElem(uiaElem)
 		'''
+		logging.debug(LOG_STR % sys._getframe().f_lineno)
 		assert isUIAElem(uiaElem)
 		# wait dialog close
 		desktop = IUIA.GetRootElement()
+		logging.debug(LOG_STR % sys._getframe().f_lineno)
 		assert isUIAElem(desktop)
 		internal = findFirstElemByAutomationId(desktop, 'DD_ExplorerView')
+		logging.debug(LOG_STR % sys._getframe().f_lineno)
 		while not isUIAElem(internal):
 			time.sleep(1.5)
 			internal = findFirstElemByAutomationId(DesktopRoot, 'DD_ExplorerView')
 		'''
 		time.sleep(1)
 		# get main uia element
+		logging.debug(LOG_STR % sys._getframe().f_lineno)
 		all = findAllElemByControlType(uiaElem, UIAClient.UIA_CustomControlTypeId, SCOPE_CHILDREN)
-		logging.info('--------- 302 ---------')
+		logging.debug(LOG_STR % sys._getframe().f_lineno)
 		workRoot = all.GetElement(all.Length-1)
-		logging.info('--------- 303 ---------')
+		logging.debug(LOG_STR % sys._getframe().f_lineno)
 		assert isUIAElem(workRoot)
 		topTAB = findFirstElemByName(workRoot, 'Fdi.Client.DeviceUi.ViewModel.DeviceUiHostContainerItemViewModel')
-		logging.info('--------- 304 ---------')
+		logging.debug(LOG_STR % sys._getframe().f_lineno)
 		assert isUIAElem(topTAB)
 		topTABX = findFirstElemByName(topTAB, 'X')
-		logging.info('--------- 305 ---------')
+		logging.debug(LOG_STR % sys._getframe().f_lineno)
 		assert isUIAElem(topTABX)
 		topRoot = findNextSiblingElem(topTABX)
-		logging.info('--------- 306 ---------')
+		logging.debug(LOG_STR % sys._getframe().f_lineno)
 		assert isUIAElem(topRoot)
 		# return top root(right side)
 		return topRoot
 	
 	def children(self, uiaElem):
-		logging.info('--------- 251 ---------')
-		assert isUIAElem(uiaElem)
 		set = []
+		logging.debug(LOG_STR % sys._getframe().f_lineno)
 		# get offline root menu item
 		offline = findFirstElemBySubText(uiaElem, 'Offline root menu')
-		logging.info('--------- 253 ---------')
+		logging.debug(LOG_STR % sys._getframe().f_lineno)
 		assert isUIAElem(offline)
 		menu = RRootMenu('Offline root menu')
-		logging.info('--------- 254 ---------')
+		logging.debug(LOG_STR % sys._getframe().f_lineno)
 		menu.ctrlType = 'Button'
-		menu.rectangle = offline.CurrentBoundingRectangle
-		set.append(menu) # for debug
-		logging.info('--------- 255 ---------')
+		#menu.rectangle = offline.CurrentBoundingRectangle
+		#set.append(menu)
 		# get online root menu items
 		onlineRoot = findFirstElemByAutomationId(uiaElem, 'OnlineParameters')
-		logging.info('--------- 256 ---------')
+		logging.debug(LOG_STR % sys._getframe().f_lineno)
 		assert isUIAElem(onlineRoot)
 		pane = findFirstElemByControlType(onlineRoot, UIAClient.UIA_PaneControlTypeId)
-		logging.info('--------- 257 ---------')
+		logging.debug(LOG_STR % sys._getframe().f_lineno)
 		assert isUIAElem(pane)
 		all = findAllElemByControlType(pane, UIAClient.UIA_ButtonControlTypeId, SCOPE_CHILDREN)
-		logging.info('--------- 258 ---------')
+		logging.debug(LOG_STR % sys._getframe().f_lineno)
 		for x in range(0, all.Length):
-			logging.info('--------- 259 ---------')
+			logging.debug(LOG_STR % sys._getframe().f_lineno)
 			item = all.GetElement(x)
+			logging.debug(LOG_STR % sys._getframe().f_lineno)
 			label = RRTE.getElemSubName(item)
-			logging.info('--------- 260 ---------')
+			logging.debug(LOG_STR % sys._getframe().f_lineno)
 			if label == 'Online': continue # TODO
 			#if label == 'Device root menu': continue # TODO
 			#if label == 'Diagnostic root menu': continue # TODO
 			#if label == 'Maintenance root menu': continue # TODO
 			#if label == 'Process variables root menu': continue # TODO
+			logging.debug(LOG_STR % sys._getframe().f_lineno)
 			elem = RRootMenu(label)
-			logging.info('--------- 261 ---------')
+			logging.debug(LOG_STR % sys._getframe().f_lineno)
 			elem.ctrlType = 'Button'
-			elem.rectangle = item.CurrentBoundingRectangle
+			#elem.rectangle = item.CurrentBoundingRectangle
 			set.append(elem)
-			logging.info('--------- 262 ---------')
+			logging.debug(LOG_STR % sys._getframe().f_lineno)
+		logging.debug(LOG_STR % sys._getframe().f_lineno)
 		return set
 
 class RRootMenu(RElement):
@@ -440,104 +614,107 @@ class RRootMenu(RElement):
 		self.current = None
 		
 	def select(self, uiaElem):
-		logging.info('--------- 311 ---------')
+		logging.debug(LOG_STR % sys._getframe().f_lineno)
 		assert isUIAElem(uiaElem)
 		# search root menu button
 		if not self.label == 'Offline root menu':
-			logging.info('--------- 312 ---------')
+			logging.debug(LOG_STR % sys._getframe().f_lineno)
 			onlineRoot = findFirstElemByAutomationId(uiaElem, 'OnlineParameters')
-			logging.info('--------- 313 ---------')
+			logging.debug(LOG_STR % sys._getframe().f_lineno)
 			assert isUIAElem(onlineRoot)
 			pane = findFirstElemByControlType(onlineRoot, UIAClient.UIA_PaneControlTypeId)
-			logging.info('--------- 314 ---------')
+			logging.debug(LOG_STR % sys._getframe().f_lineno)
 			assert isUIAElem(pane)
 			btn = findFirstElemBySubText(pane, self.label)
-			logging.info('--------- 315 ---------')
+			logging.debug(LOG_STR % sys._getframe().f_lineno)
 		else:
-			logging.info('--------- 316 ---------')
 			btn = findFirstElemBySubText(uiaElem, self.label)
-			logging.info('--------- 317 ---------')
+			logging.debug(LOG_STR % sys._getframe().f_lineno)
 		# push root menu button
 		assert isUIAElem(btn)
-		logging.info('--------- 318 ---------')
+		logging.debug(LOG_STR % sys._getframe().f_lineno)
 		if not self.label == self.current:
-			logging.info('--------- 319 ---------')
+			logging.debug(LOG_STR % sys._getframe().f_lineno)
 			pushButton(btn)
-			logging.info('--------- 320 ---------')
+			logging.debug(LOG_STR % sys._getframe().f_lineno)
 			self.current = self.label
-			RRTE.waitDialogClose()
-			logging.info('--------- 321 ---------')
-			#time.sleep(4)
-		logging.info('--------- 322 ---------')
+			#RRTE.waitDialogClose()
+			time.sleep(8)
+		else:
+			time.sleep(2)
+		logging.debug(LOG_STR % sys._getframe().f_lineno)
 		explorer = findFirstElemByAutomationId(uiaElem, 'DD_ExplorerView')
+		logging.debug(LOG_STR % sys._getframe().f_lineno)
 		assert isUIAElem(explorer)
-		logging.info('--------- 323 ---------')
 		elem = findNextSiblingElem(explorer)
-		logging.info('--------- 324 ---------')
+		logging.debug(LOG_STR % sys._getframe().f_lineno)
 		assert isUIAElem(elem)
+		logging.debug(LOG_STR % sys._getframe().f_lineno)
 		return elem
 	
 class RMenu(RElement):
 	def select(self, uiaElem):
-		logging.info('--------- 331 ---------')
+		logging.debug(LOG_STR % sys._getframe().f_lineno)
 		assert isUIAElem(uiaElem)
 		tree = findFirstElemBySubText(uiaElem, self.label)
-		logging.info('--------- 332 ---------')
+		logging.debug(LOG_STR % sys._getframe().f_lineno)
 		assert isUIAElem(tree)
 		expandTree(tree)
-		logging.info('--------- 333 ---------')
-		time.sleep(2)
+		logging.debug(LOG_STR % sys._getframe().f_lineno)
+		time.sleep(1)
 		return tree
 
 class RWindow(RElement):
 	def select(self, uiaElem):
-		logging.info('--------- 341 ---------')
+		logging.debug(LOG_STR % sys._getframe().f_lineno)
 		assert isUIAElem(uiaElem)
 		leaf = findFirstElemBySubText(uiaElem, self.label)
-		logging.info('--------- 342 ---------')
+		logging.debug(LOG_STR % sys._getframe().f_lineno)
 		assert isUIAElem(leaf)
 		pushLeaf(leaf)
-		logging.info('--------- 343 ---------')
+		logging.debug(LOG_STR % sys._getframe().f_lineno)
 		time.sleep(2)
 		curr = leaf
 		while not isTree(curr):
-			logging.info('--------- 344 ---------')
+			logging.debug(LOG_STR % sys._getframe().f_lineno)
 			curr = findParentElem(curr)
-			logging.info('--------- 345 ---------')
 			assert isUIAElem(curr)
-		logging.info('--------- 346 ---------')
 		pane = findNextSiblingElem(curr)
-		logging.info('--------- 347 ---------')
+		logging.debug(LOG_STR % sys._getframe().f_lineno)
 		assert isUIAElem(pane)
+		logging.debug(LOG_STR % sys._getframe().f_lineno)
 		return pane
 
 class RPage(RElement):
 	def select(self, uiaElem):
-		logging.info('--------- 351 ---------')
+		logging.debug(LOG_STR % sys._getframe().f_lineno)
 		assert isUIAElem(uiaElem)
-		#pdb.set_trace()
 		tabs = findFirstElemByControlType(uiaElem, UIAClient.UIA_TabControlTypeId, SCOPE_CHILDREN)
-		logging.info('--------- 352 ---------')
+		logging.debug(LOG_STR % sys._getframe().f_lineno)
 		tab = findFirstElemByName(tabs, self.label)
-		logging.info('--------- 353 ---------')
+		logging.debug(LOG_STR % sys._getframe().f_lineno)
 		assert isUIAElem(tab)
 		selectTab(tab)
-		logging.info('--------- 354 ---------')
-		time.sleep(2)
+		logging.debug(LOG_STR % sys._getframe().f_lineno)
+		time.sleep(1)
+		logging.debug(LOG_STR % sys._getframe().f_lineno)
 		return tab
 
 class RGroup(RElement):
 	def select(self, uiaElem):
-		logging.info('--------- 361 ---------')
+		logging.debug(LOG_STR % sys._getframe().f_lineno)
 		assert isUIAElem(uiaElem)
 		group = findFirstElemByName(uiaElem, self.label, SCOPE_CHILDREN)
-		logging.info('--------- 362 ---------')
+		logging.debug(LOG_STR % sys._getframe().f_lineno)
 		time.sleep(1)
 		assert isUIAElem(group)
+		logging.debug(LOG_STR % sys._getframe().f_lineno)
 		return group
 
 class RVariable(RElement):
-	pass
+	def __init__(self, label, readonly=False):
+		super(RVariable, self).__init__(label)
+		self.readonly = readonly
 
 class RMethod(RVariable):
 	pass
@@ -555,18 +732,78 @@ class RNumeric(RVariable):
 	pass
 
 class REnum(RVariable):
-	pass
+	def __init__(self, label, readonly):
+		super(REnum, self).__init__(label, readonly)
+		self.__ne107 = ['No Effect', 'Maintenance Required', 'Failure', 'Out of Specification', 'Function Check']
+		self.options = []
+	
+	def __isNE107Label(self):
+		for item in self.__ne107:
+			if self.label == item:
+				return True
+		return False
+	
+	def __tryLabelGetting(self, uiaElem):
+		variableLabel = self.label
+		parent = findParentElem(uiaElem) # pane, page, group
+		variable = findFirstElemBySubText(parent, variableLabel)
+		newCombo = findFirstElemByControlType(variable, UIAClient.UIA_ComboBoxControlTypeId)
+		while not isUIAElem(newCombo):
+			time.sleep(0.4)
+			parent = findParentElem(uiaElem) # pane, page, group
+			variable = findFirstElemBySubText(parent, variableLabel)
+			newCombo = findFirstElemByControlType(variable, UIAClient.UIA_ComboBoxControlTypeId)
+		return newCombo
+	
+	def option(self, uiaElem):
+		assert isUIAElem(uiaElem)
+		if self.readonly: return
+		if not self.__isNE107Label():
+			parent = findParentElem(uiaElem) # pane, page, group
+			combo = findFirstElemByControlType(uiaElem, UIAClient.UIA_ComboBoxControlTypeId)
+			assert isUIAElem(combo)
+			expandCombo(combo)
+			collapseCombo(combo) # variable refreshed after
+			newCombo = self.__tryLabelGetting(uiaElem)
+			assert isUIAElem(newCombo)
+			all = findAllElemByControlType(newCombo, UIAClient.UIA_ListItemControlTypeId)
+			set = []
+			for x in range(0, all.Length):
+				item = all.GetElement(x)
+				enum = findFirstElemByControlType(item, UIAClient.UIA_TextControlTypeId)
+				set.append(enum.CurrentName)
+			self.options.extend(set)
+		else:
+			self.options.extend(self.__ne107)
 
 class RBitEnum(RVariable):
-	pass
+	def __init__(self, label, readonly):
+		super(RBitEnum, self).__init__(label, readonly)
+		self.options = []
+	
+	def option(self, uiaElem):
+		assert isUIAElem(uiaElem)
+		group = findFirstElemByControlType(uiaElem, UIAClient.UIA_GroupControlTypeId)
+		assert isUIAElem(group)
+		custom = findFirstElemByControlType(group, UIAClient.UIA_CustomControlTypeId)
+		assert isUIAElem(custom)
+		all = findAllElemByControlType(custom, UIAClient.UIA_CheckBoxControlTypeId)
+		set = []
+		for x in range(0, all.Length):
+			item = all.GetElement(x)
+			set.append(item.CurrentName)
+		self.options.extend(set)
 
 if __name__ == '__main__':
 	#pdb.set_trace()
 	logging.basicConfig(level = logging.DEBUG)
 	top = RRoot('root')
 	top.ctrlType = ''
-	top.rectangle = None
+	#top.rectangle = None
 	root = TreeNode(top)
 	rrte = RRTE(root)
 	rrte.startUp()
 	rrte.createTree(rrte.root)
+	rrte.dumpMenuLabel2Csv(rrte.root)
+	rrte.dumpEnumOpt2Csv(rrte.root)
+	rrte.dumpBitEnumOpt2Csv(rrte.root)
