@@ -687,7 +687,7 @@ class RBitEnum(RVariable):
 
 if __name__ == '__main__':
 	#pdb.set_trace()
-	logging.basicConfig(level = logging.DEBUG)
+	logging.basicConfig(level = logging.INFO)
 	top = RRoot('root')
 	top.ctrlType = ''
 	#top.rectangle = None
