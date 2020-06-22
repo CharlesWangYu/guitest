@@ -435,8 +435,6 @@ class RElement(Element):
 			logging.debug(LOG_STR % sys._getframe().f_lineno)
 			item = uias.GetElement(x)
 			logging.debug(LOG_STR % sys._getframe().f_lineno)
-			#if item.CurrentName == 'Condensed status map':
-			#	continue
 			page = RPage(item.CurrentName)
 			logging.debug(LOG_STR % sys._getframe().f_lineno)
 			page.ctrlType = 'TabItem'
@@ -478,7 +476,6 @@ class RElement(Element):
 				elem = RGroup(item.CurrentName)
 				elem.ctrlType = 'Group'
 				#elem.rectangle = item.CurrentBoundingRectangle
-				if elem.label == 'Condensed status map': continue
 				set.append(elem)
 				logging.debug(LOG_STR % sys._getframe().f_lineno)
 			elif isTab(item): # page
@@ -738,7 +735,14 @@ class RNumeric(RVariable):
 class REnum(RVariable):
 	def __init__(self, label, readonly):
 		super(REnum, self).__init__(label, readonly)
+		self.__ne107 = ['No Effect', 'Maintenance Required', 'Failure', 'Out of Specification', 'Function Check']
 		self.options = []
+	
+	def __isNE107Label(self):
+		for item in self.__ne107:
+			if self.label == item:
+				return True
+		return False
 	
 	def __tryLabelGetting(self, uiaElem):
 		variableLabel = self.label
@@ -747,51 +751,31 @@ class REnum(RVariable):
 		newCombo = findFirstElemByControlType(variable, UIAClient.UIA_ComboBoxControlTypeId)
 		while not isUIAElem(newCombo):
 			time.sleep(0.4)
-			'''
-			path = root.getPath()
-			desktop = IUIA.GetRootElement()
-			assert isUIAElem(desktop)
-			rrte = findFirstElemByName(desktop, 'Reference Run-time Environment', SCOPE_CHILDREN)
-			assert isUIAElem(rrte)
-			pane = findFirstElemByControlType(rrte, UIAClient.UIA_PaneControlTypeId)
-			assert isUIAElem(pane)
-			parent = findFirstElemBySubText(pane, variableLabel)
-			variable = findFirstElemBySubText(pane, variableLabel)
-			if isUIAElem(variable):
-				logging.debug('Variable element Name is %s.' % variable.CurrentName)
-				logging.debug('Variable element ClassName is %s.' % variable.CurrentClassName)
-				logging.debug('Variable element ControlType is %s.' % variable.CurrentControlType)
-				logging.debug('Variable element AutomationId is %s.' % variable.CurrentAutomationId)
-				newCombo = findFirstElemByControlType(variable, UIAClient.UIA_ComboBoxControlTypeId)
-				if isUIAElem(newCombo):
-					logging.debug('ComboBox element Name is %s.' % newCombo.CurrentName)
-					logging.debug('ComboBox element ClassName is %s.' % newCombo.CurrentClassName)
-					logging.debug('ComboBox element ControlType is %s.' % newCombo.CurrentControlType)
-					logging.debug('ComboBox element AutomationId is %s.' % newCombo.CurrentAutomationId)
-			'''
 			parent = findParentElem(uiaElem) # pane, page, group
 			variable = findFirstElemBySubText(parent, variableLabel)
 			newCombo = findFirstElemByControlType(variable, UIAClient.UIA_ComboBoxControlTypeId)
-			#pdb.set_trace()
 		return newCombo
 	
 	def option(self, uiaElem):
 		assert isUIAElem(uiaElem)
 		if self.readonly: return
-		parent = findParentElem(uiaElem) # pane, page, group
-		combo = findFirstElemByControlType(uiaElem, UIAClient.UIA_ComboBoxControlTypeId)
-		assert isUIAElem(combo)
-		expandCombo(combo)
-		collapseCombo(combo) # variable refreshed after
-		newCombo = self.__tryLabelGetting(uiaElem)
-		assert isUIAElem(newCombo)
-		all = findAllElemByControlType(newCombo, UIAClient.UIA_ListItemControlTypeId)
-		set = []
-		for x in range(0, all.Length):
-			item = all.GetElement(x)
-			enum = findFirstElemByControlType(item, UIAClient.UIA_TextControlTypeId)
-			set.append(enum.CurrentName)
-		self.options.extend(set)
+		if not self.__isNE107Label():
+			parent = findParentElem(uiaElem) # pane, page, group
+			combo = findFirstElemByControlType(uiaElem, UIAClient.UIA_ComboBoxControlTypeId)
+			assert isUIAElem(combo)
+			expandCombo(combo)
+			collapseCombo(combo) # variable refreshed after
+			newCombo = self.__tryLabelGetting(uiaElem)
+			assert isUIAElem(newCombo)
+			all = findAllElemByControlType(newCombo, UIAClient.UIA_ListItemControlTypeId)
+			set = []
+			for x in range(0, all.Length):
+				item = all.GetElement(x)
+				enum = findFirstElemByControlType(item, UIAClient.UIA_TextControlTypeId)
+				set.append(enum.CurrentName)
+			self.options.extend(set)
+		else:
+			self.options.extend(self.__ne107)
 
 class RBitEnum(RVariable):
 	def __init__(self, label, readonly):
