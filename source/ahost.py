@@ -2,6 +2,7 @@ import pdb
 import logging
 import os
 import sys
+import datetime
 import time
 import subprocess
 import csv
@@ -23,6 +24,10 @@ def logTreeItem(node):
 			logging.info('Child[%d]\t: %s (%s)' % (cnt, curr.elem.label, curr.elem.ctrlType))
 			cnt = cnt + 1
 			curr = curr.right
+
+def logCurrentTime(timeTag):
+	timeStamp = datetime.datetime.now()
+	logging.info('[' + timeTag + '] : ' + timeStamp.strftime('%Y.%m.%d-%H:%M:%S'))
 
 # It's EDD's host application's abstract class.
 class Host:
@@ -311,7 +316,7 @@ class Element: # abstract class
 	def __init__(self, label):
 		self.label		= label
 		self.ctrlType	= ''
-		#self.rectangle	= None
+		self.rectangle	= None
 	
 	def select(self, uiaElem): # extend a node, for example, group, its processing may be inconsistent on different hosts
 		pass
@@ -431,7 +436,6 @@ class RElement(Element):
 		uias = findAllElemByControlType(uiaElem, UIAClient.UIA_TabItemControlTypeId, SCOPE_CHILDREN)
 		logging.debug(LOG_STR % sys._getframe().f_lineno)
 		pages = []
-		#logging.info('Page count is %d' % uias.Length)
 		for x in range(0, uias.Length):
 			logging.debug(LOG_STR % sys._getframe().f_lineno)
 			item = uias.GetElement(x)
@@ -439,7 +443,7 @@ class RElement(Element):
 			page = RPage(item.CurrentName)
 			logging.debug(LOG_STR % sys._getframe().f_lineno)
 			page.ctrlType = 'TabItem'
-			#page.rectangle = item.CurrentBoundingRectangle
+			page.rectangle = item.CurrentBoundingRectangle
 			pages.append(page)
 			logging.debug(LOG_STR % sys._getframe().f_lineno)
 		logging.debug(LOG_STR % sys._getframe().f_lineno)
@@ -461,21 +465,21 @@ class RElement(Element):
 				logging.debug(LOG_STR % sys._getframe().f_lineno)
 				elem = self.__createParam(item)
 				elem.ctrlType = 'Custom'
-				#elem.rectangle = item.CurrentBoundingRectangle
+				elem.rectangle = item.CurrentBoundingRectangle
 				set.append(elem)
 				logging.debug(LOG_STR % sys._getframe().f_lineno)
 			elif isButton(item): # method
 				logging.debug(LOG_STR % sys._getframe().f_lineno)
 				elem = RMethod(RRTE.getElemSubName(item))
 				elem.ctrlType = 'Button'
-				#elem.rectangle = item.CurrentBoundingRectangle
+				elem.rectangle = item.CurrentBoundingRectangle
 				set.append(elem)
 				logging.debug(LOG_STR % sys._getframe().f_lineno)
 			elif isGroup(item): # group
 				logging.debug(LOG_STR % sys._getframe().f_lineno)
 				elem = RGroup(item.CurrentName)
 				elem.ctrlType = 'Group'
-				#elem.rectangle = item.CurrentBoundingRectangle
+				elem.rectangle = item.CurrentBoundingRectangle
 				set.append(elem)
 				logging.debug(LOG_STR % sys._getframe().f_lineno)
 			elif isTab(item): # page
@@ -504,7 +508,7 @@ class RElement(Element):
 				elem = RMethod(name)
 				logging.debug(LOG_STR % sys._getframe().f_lineno)
 				elem.ctrlType = 'Button'
-				#elem.rectangle = item.CurrentBoundingRectangle
+				elem.rectangle = item.CurrentBoundingRectangle
 				set.append(elem)
 			elif self.isMenu(item):
 				logging.debug(LOG_STR % sys._getframe().f_lineno)
@@ -517,7 +521,7 @@ class RElement(Element):
 					elem = RMenu(name)
 				logging.debug(LOG_STR % sys._getframe().f_lineno)
 				elem.ctrlType = 'TreeItem'
-				#elem.rectangle = item.CurrentBoundingRectangle
+				elem.rectangle = item.CurrentBoundingRectangle
 				set.append(elem)
 		logging.debug(LOG_STR % sys._getframe().f_lineno)
 		return set
@@ -576,8 +580,8 @@ class RRoot(RElement):
 		menu = RRootMenu('Offline root menu')
 		logging.debug(LOG_STR % sys._getframe().f_lineno)
 		menu.ctrlType = 'Button'
-		#menu.rectangle = offline.CurrentBoundingRectangle
-		#set.append(menu)
+		menu.rectangle = offline.CurrentBoundingRectangle
+		set.append(menu)
 		# get online root menu items
 		onlineRoot = findFirstElemByAutomationId(uiaElem, 'OnlineParameters')
 		logging.debug(LOG_STR % sys._getframe().f_lineno)
@@ -602,7 +606,7 @@ class RRoot(RElement):
 			elem = RRootMenu(label)
 			logging.debug(LOG_STR % sys._getframe().f_lineno)
 			elem.ctrlType = 'Button'
-			#elem.rectangle = item.CurrentBoundingRectangle
+			elem.rectangle = item.CurrentBoundingRectangle
 			set.append(elem)
 			logging.debug(LOG_STR % sys._getframe().f_lineno)
 		logging.debug(LOG_STR % sys._getframe().f_lineno)
@@ -797,13 +801,17 @@ class RBitEnum(RVariable):
 if __name__ == '__main__':
 	#pdb.set_trace()
 	logging.basicConfig(level = logging.DEBUG)
+	logCurrentTime('Start RRTE')
 	top = RRoot('root')
 	top.ctrlType = ''
-	#top.rectangle = None
+	top.rectangle = None
 	root = TreeNode(top)
 	rrte = RRTE(root)
 	rrte.startUp()
 	rrte.createTree(rrte.root)
+	logCurrentTime('Finished tree generation')
 	rrte.dumpMenuLabel2Csv(rrte.root)
 	rrte.dumpEnumOpt2Csv(rrte.root)
 	rrte.dumpBitEnumOpt2Csv(rrte.root)
+	t = datetime.datetime.now()
+	logCurrentTime('Finished label collection')

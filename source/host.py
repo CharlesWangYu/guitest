@@ -2,6 +2,7 @@ import pdb
 import logging
 import os
 import sys
+import datetime
 import time
 import subprocess
 import csv
@@ -23,6 +24,10 @@ def logTreeItem(node):
 			logging.info('Child[%d]\t: %s (%s)' % (cnt, curr.elem.label, curr.elem.ctrlType))
 			cnt = cnt + 1
 			curr = curr.right
+
+def logCurrentTime(timeTag):
+	timeStamp = datetime.datetime.now()
+	logging.info('[' + timeTag + '] : ' + timeStamp.strftime('%Y.%m.%d-%H:%M:%S'))
 
 # It's EDD's host application's abstract class.
 class Host:
@@ -295,7 +300,7 @@ class Element: # abstract class
 	def __init__(self, label):
 		self.label		= label
 		self.ctrlType	= ''
-		#self.rectangle	= None
+		self.rectangle	= None
 	
 	def select(self, uiaElem): # extend a node, for example, group, its processing may be inconsistent on different hosts
 		pass
@@ -407,12 +412,11 @@ class RElement(Element):
 		assert isTab(uiaElem)
 		uias = findAllElemByControlType(uiaElem, UIAClient.UIA_TabItemControlTypeId, SCOPE_CHILDREN)
 		pages = []
-		#logging.info('Page count is %d' % uias.Length)
 		for x in range(0, uias.Length):
 			item = uias.GetElement(x)
 			page = RPage(item.CurrentName)
 			page.ctrlType = 'TabItem'
-			#page.rectangle = item.CurrentBoundingRectangle
+			page.rectangle = item.CurrentBoundingRectangle
 			pages.append(page)
 		return pages
 	
@@ -427,17 +431,17 @@ class RElement(Element):
 			if isCustom(item): # variable(others, Enum, BitEnum)
 				elem = self.__createParam(item)
 				elem.ctrlType = 'Custom'
-				#elem.rectangle = item.CurrentBoundingRectangle
+				elem.rectangle = item.CurrentBoundingRectangle
 				set.append(elem)
 			elif isButton(item): # method
 				elem = RMethod(RRTE.getElemSubName(item))
 				elem.ctrlType = 'Button'
-				#elem.rectangle = item.CurrentBoundingRectangle
+				elem.rectangle = item.CurrentBoundingRectangle
 				set.append(elem)
 			elif isGroup(item): # group
 				elem = RGroup(item.CurrentName)
 				elem.ctrlType = 'Group'
-				#elem.rectangle = item.CurrentBoundingRectangle
+				elem.rectangle = item.CurrentBoundingRectangle
 				set.append(elem)
 			elif isTab(item): # page
 				tabs = self.__createPage(item)
@@ -455,7 +459,7 @@ class RElement(Element):
 				name = RRTE.getMenuMethodName(item)
 				elem = RMethod(name)
 				elem.ctrlType = 'Button'
-				#elem.rectangle = item.CurrentBoundingRectangle
+				elem.rectangle = item.CurrentBoundingRectangle
 				set.append(elem)
 			elif self.isMenu(item):
 				name = RRTE.getElemSubName(item)
@@ -464,7 +468,7 @@ class RElement(Element):
 				else:
 					elem = RMenu(name)
 				elem.ctrlType = 'TreeItem'
-				#elem.rectangle = item.CurrentBoundingRectangle
+				elem.rectangle = item.CurrentBoundingRectangle
 				set.append(elem)
 		return set
 	
@@ -507,7 +511,7 @@ class RRoot(RElement):
 		assert isUIAElem(offline)
 		menu = RRootMenu('Offline root menu')
 		menu.ctrlType = 'Button'
-		#menu.rectangle = offline.CurrentBoundingRectangle
+		menu.rectangle = offline.CurrentBoundingRectangle
 		set.append(menu)
 		# get online root menu items
 		onlineRoot = findFirstElemByAutomationId(uiaElem, 'OnlineParameters')
@@ -525,7 +529,7 @@ class RRoot(RElement):
 			#if label == 'Process variables root menu': continue # TODO
 			elem = RRootMenu(label)
 			elem.ctrlType = 'Button'
-			#elem.rectangle = item.CurrentBoundingRectangle
+			elem.rectangle = item.CurrentBoundingRectangle
 			set.append(elem)
 		return set
 
@@ -688,13 +692,17 @@ class RBitEnum(RVariable):
 if __name__ == '__main__':
 	#pdb.set_trace()
 	logging.basicConfig(level = logging.INFO)
+	logCurrentTime('Start RRTE')
 	top = RRoot('root')
 	top.ctrlType = ''
-	#top.rectangle = None
+	top.rectangle = None
 	root = TreeNode(top)
 	rrte = RRTE(root)
 	rrte.startUp()
 	rrte.createTree(rrte.root)
+	logCurrentTime('Finished tree generation')
 	rrte.dumpMenuLabel2Csv(rrte.root)
 	rrte.dumpEnumOpt2Csv(rrte.root)
 	rrte.dumpBitEnumOpt2Csv(rrte.root)
+	t = datetime.datetime.now()
+	logCurrentTime('Finished label collection')
