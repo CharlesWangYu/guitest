@@ -280,14 +280,11 @@ class TreeNode:
 	
 	def appendChildren(self, uiaElem):
 		elems = self.elem.children(uiaElem)
-		logging.info('Children count is %d' % len(elems))
+		#logging.info('Children count is %d' % len(elems))
 		if len(elems) > 0:
-			size = len(elems)
-			logging.info('%d elements will be appended to [%s]' % (size, self.elem.label))
 			curr = None
-			for x in range(0, size):
-				item = elems[x]
-				node = TreeNode(item)
+			for x in range(0, len(elems)):
+				node = TreeNode(elems[x])
 				node.parent = self
 				if x == 0:
 					self.left = node
@@ -447,7 +444,7 @@ class RElement(Element):
 				tabs = self.__createPage(item)
 				set.extend(tabs)
 			else:
-				logging.info('Ignore one element')
+				pass
 		return set
 	
 	def __createLayoutElement(self, uiaElem):
