@@ -332,17 +332,28 @@ class RElement(Element):
 	
 	def isTextEnabled(self, uiaElem):
 		assert isUIAElem(uiaElem)
+		count = 0
 		edit = findFirstElemByControlType(uiaElem, UIAClient.UIA_EditControlTypeId)
+		while (not isUIAElem(edit)) and (count < 3):
+			edit = findFirstElemByControlType(uiaElem, UIAClient.UIA_EditControlTypeId)
+			count += 1
+			time.sleep(0.1)
 		assert isUIAElem(edit)
 		return edit.CurrentIsEnabled
 	
 	def isEnumEnabled(self, uiaElem):
 		assert isUIAElem(uiaElem)
+		count = 0
 		combo = findFirstElemByControlType(uiaElem, UIAClient.UIA_ComboBoxControlTypeId)
+		while (not isUIAElem(combo)) and (count < 3):
+			combo = findFirstElemByControlType(uiaElem, UIAClient.UIA_ComboBoxControlTypeId)
+			count += 1
+			time.sleep(0.1)
 		assert isUIAElem(combo)
 		return combo.CurrentIsEnabled
 	
 	def isBitEnumEnabled(self, uiaElem):
+		# TODO :
 		return True
 	
 	def __createString(self, uiaElem):
@@ -384,7 +395,10 @@ class RElement(Element):
 	def __createBitEnum(self, uiaElem):
 		assert self.isBitEnum(uiaElem)
 		group = findFirstElemByControlType(uiaElem, UIAClient.UIA_GroupControlTypeId)
-		label = RRTE.getElemSubName(group)
+		if isUIAElem(group):
+			label = RRTE.getElemSubName(group)
+		else: # FF & ProfiNet FDI package
+			label = RRTE.getElemSubName(uiaElem)
 		readonly = not self.isBitEnumEnabled(uiaElem)
 		elem = RBitEnum(label, readonly)
 		elem.option(uiaElem)
@@ -418,10 +432,8 @@ class RElement(Element):
 		return pages
 	
 	def __createContentElement(self, uiaElem):
-		# Please attention here!! It will make release IUnKnown object.
-		#all = findAllElem4ORCond(uiaElem, UIAClient.UIA_CustomControlTypeId, UIAClient.UIA_ButtonControlTypeId, UIAClient.UIA_GroupControlTypeId, UIAClient.UIA_TabControlTypeId, UIAClient.UIA_ControlTypePropertyId, SCOPE_CHILDREN)
-		#all = findAllChildren(uiaElem)
-		all = findAllElem(uiaElem, True, UIAClient.UIA_IsEnabledPropertyId, SCOPE_CHILDREN)
+		#all = findAllElem(uiaElem, True, UIAClient.UIA_IsEnabledPropertyId, SCOPE_CHILDREN)
+		all = findAllChildren(uiaElem)
 		set = []
 		for x in range(0, all.Length):
 			item = all.GetElement(x)
@@ -504,9 +516,13 @@ class RRoot(RElement):
 	def children(self, uiaElem):
 		set = []
 		# get offline root menu item
-		offline = findFirstElemBySubText(uiaElem, 'Offline root menu')
-		assert isUIAElem(offline)
-		menu = RRootMenu('Offline root menu')
+		offline = findFirstElemBySubText(uiaElem, 'Offline')
+		if not isUIAElem(offline):
+			offline = findFirstElemBySubText(uiaElem, 'Offline root menu')
+			assert isUIAElem(offline)
+			menu = RRootMenu('Offline root menu')
+		else:
+			menu = RRootMenu('Offline')
 		menu.ctrlType = 'Button'
 		menu.rectangle = offline.CurrentBoundingRectangle
 		set.append(menu)
@@ -538,7 +554,7 @@ class RRootMenu(RElement):
 	def select(self, uiaElem):
 		assert isUIAElem(uiaElem)
 		# search root menu button
-		if not self.label == 'Offline root menu':
+		if not (self.label == 'Offline' or self.label == 'Offline root menu'):
 			onlineRoot = findFirstElemByAutomationId(uiaElem, 'OnlineParameters')
 			assert isUIAElem(onlineRoot)
 			pane = findFirstElemByControlType(onlineRoot, UIAClient.UIA_PaneControlTypeId)
@@ -592,14 +608,14 @@ class RPage(RElement):
 		tab = findFirstElemByName(tabs, self.label)
 		assert isUIAElem(tab)
 		selectTab(tab)
-		time.sleep(1)
+		time.sleep(1.2)
 		return tab
 
 class RGroup(RElement):
 	def select(self, uiaElem):
 		assert isUIAElem(uiaElem)
 		group = findFirstElemByName(uiaElem, self.label, SCOPE_CHILDREN)
-		time.sleep(1)
+		time.sleep(0.2)
 		assert isUIAElem(group)
 		return group
 
@@ -655,7 +671,7 @@ class REnum(RVariable):
 			combo = findFirstElemByControlType(uiaElem, UIAClient.UIA_ComboBoxControlTypeId)
 			assert isUIAElem(combo)
 			expandCombo(combo)
-			collapseCombo(combo) # variable refreshed after
+			#collapseCombo(combo) # variable refreshed after
 			newCombo = self.__tryLabelGetting(uiaElem)
 			assert isUIAElem(newCombo)
 			all = findAllElemByControlType(newCombo, UIAClient.UIA_ListItemControlTypeId)
@@ -675,9 +691,11 @@ class RBitEnum(RVariable):
 	
 	def option(self, uiaElem):
 		assert isUIAElem(uiaElem)
+		parent = uiaElem # FF & ProfiNet FDI package
 		group = findFirstElemByControlType(uiaElem, UIAClient.UIA_GroupControlTypeId)
-		assert isUIAElem(group)
-		custom = findFirstElemByControlType(group, UIAClient.UIA_CustomControlTypeId)
+		if isUIAElem(group):
+			parent = group
+		custom = findFirstElemByControlType(parent, UIAClient.UIA_CustomControlTypeId)
 		assert isUIAElem(custom)
 		all = findAllElemByControlType(custom, UIAClient.UIA_CheckBoxControlTypeId)
 		set = []

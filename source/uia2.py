@@ -131,9 +131,10 @@ def findFirstElemByAutomationId(root, Id, scope=SCOPE_DESCENDANTS):
 
 def findFirstElemBySubText(root, name):
 	child = findFirstElemByName(root, name)
-	assert isUIAElem(child)
+	if not isUIAElem(child):
+		return cast(0, POINTER(UIAClient.IUIAutomationElement))
 	element = findParentElem(child)
-	assert isUIAElem(element)
+	#assert isUIAElem(element)
 	return element
 
 def findParentElem(child):
