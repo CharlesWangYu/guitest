@@ -1,3 +1,11 @@
+'''
+@File		: uia2.py
+@Date		: 2020/05/30
+@Author		: Wang.Yu
+@Version	: 1.0
+@Contact	: yu.wang@cn.yokogawa.com
+@License	: (C)Copyright 2020 Yokogawa China Co., Ltd.
+'''
 import pdb
 #import logging
 import time

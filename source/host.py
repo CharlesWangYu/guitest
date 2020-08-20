@@ -1,3 +1,11 @@
+'''
+@File		: host.py
+@Date		: 2020/05/30
+@Author		: Wang.Yu
+@Version	: 1.0
+@Contact	: yu.wang@cn.yokogawa.com
+@License	: (C)Copyright 2020 Yokogawa China Co., Ltd.
+'''
 import pdb
 import logging
 import os
@@ -11,30 +19,12 @@ from configparser import ConfigParser
 from comtypes.client import *
 from ctypes import *
 
-LOG_STR = '--- host.py : %d ---'
-	
-def logTreeItem(node):
-	logging.info('----------------------------------------------------------')
-	logging.info('Parent\t: %s (%s)' % (node.elem.label, node.elem.ctrlType))
-	if not node.left is None:
-		logging.info('Child[0]\t: %s (%s)' % (node.left.elem.label, node.left.elem.ctrlType))
-		curr = node.left.right
-		cnt = 1
-		while not curr is None:
-			logging.info('Child[%d]\t: %s (%s)' % (cnt, curr.elem.label, curr.elem.ctrlType))
-			cnt = cnt + 1
-			curr = curr.right
-
-def logCurrentTime(timeTag):
-	timeStamp = datetime.datetime.now()
-	logging.info('[' + timeTag + '] : ' + timeStamp.strftime('%Y.%m.%d-%H:%M:%S'))
-
 # It's EDD's host application's abstract class.
 class Host:
 	def __init__(self, root=None):
 		self.root = root
 		self.host = None
-		self.curr = None
+		self.__currUia = None
 		self.__csvFile = None
 		self.__treeDeepth = 0
 		self.__csvColumn = 10
@@ -51,16 +41,23 @@ class Host:
 	def unload(self):
 		pass
 	
+	def getCurrUiaElem(self):
+		assert isUIAElem(self.__currUia)
+		return self.__currUia
+	
+	def setCurrUiaElem(self, uiaElem):
+		assert isUIAElem(uiaElem)
+		self.__currUia = uiaElem
+		
 	def createTree(self, root):
 		assert not root == None
 		assert not root.isVariableNode()
 		path = root.getPath()
-		uiaElem = self.host
 		for node in path:
-			uiaElem = node.select(uiaElem)
+			node.select(self)
 			if not node.isEqual(root): continue
-			node.appendChildren(uiaElem)
-			logTreeItem(node)
+			self.appendChildren(node)
+			self.logTreeItem(node)
 			currNode = node.left
 			if currNode is None:
 				continue
@@ -72,7 +69,34 @@ class Host:
 					self.createTree(currNode)
 				currNode = currNode.right
 		time.sleep(0.5)
-	
+		
+	def appendChildren(self, target):
+		elems = target.elem.children(self.getCurrUiaElem())
+		#logging.info('Children count is %d' % len(elems))
+		if len(elems) > 0:
+			curr = None
+			for x in range(0, len(elems)):
+				node = TreeNode(elems[x])
+				node.parent = target
+				if x == 0:
+					target.left = node
+					curr = target.left
+				else :
+					curr.right = node
+					curr = curr.right
+
+	def logTreeItem(self, node):
+		logging.info('----------------------------------------------------------')
+		logging.info('Parent\t: %s (%s)' % (node.elem.label, node.elem.ctrlType))
+		if not node.left is None:
+			logging.info('Child[0]\t: %s (%s)' % (node.left.elem.label, node.left.elem.ctrlType))
+			curr = node.left.right
+			cnt = 1
+			while not curr is None:
+				logging.info('Child[%d]\t: %s (%s)' % (cnt, curr.elem.label, curr.elem.ctrlType))
+				cnt = cnt + 1
+				curr = curr.right
+
 	def __preTraverseLabel(self, node):
 		rowElement = []
 		if node == None or node.elem == None:
@@ -184,6 +208,7 @@ class RRTE(Host):
 			internal = findFirstElemByAutomationId(DesktopRoot, 'DD_ExplorerView')
 		time.sleep(5)
 		self.host = findFirstElemByName(DesktopRoot, 'Reference Run-time Environment', SCOPE_CHILDREN)
+		self.setCurrUiaElem(self.host)
 		assert isUIAElem(self.host)
 	
 	@staticmethod
@@ -275,23 +300,8 @@ class TreeNode:
 		path.reverse()
 		return path
 	
-	def select(self, uiaElem):
-		return self.elem.select(uiaElem)
-	
-	def appendChildren(self, uiaElem):
-		elems = self.elem.children(uiaElem)
-		#logging.info('Children count is %d' % len(elems))
-		if len(elems) > 0:
-			curr = None
-			for x in range(0, len(elems)):
-				node = TreeNode(elems[x])
-				node.parent = self
-				if x == 0:
-					self.left = node
-					curr = self.left
-				else :
-					curr.right = node
-					curr = curr.right
+	def select(self, host):
+		return self.elem.select(host)
 
 class Element: # abstract class
 	def __init__(self, label):
@@ -299,7 +309,7 @@ class Element: # abstract class
 		self.ctrlType	= ''
 		self.rectangle	= None
 	
-	def select(self, uiaElem): # extend a node, for example, group, its processing may be inconsistent on different hosts
+	def select(self): # extend a node, for example, group, its processing may be inconsistent on different hosts
 		pass
 	
 	def children(self, uiaElem):
@@ -488,7 +498,7 @@ class RElement(Element):
 			return self.__createLayoutElement(uiaElem)
 
 class RRoot(RElement):
-	def select(self, uiaElem):
+	def select(self, host):
 		'''
 		assert isUIAElem(uiaElem)
 		# wait dialog close
@@ -501,7 +511,8 @@ class RRoot(RElement):
 		'''
 		time.sleep(1)
 		# get main uia element
-		all = findAllElemByControlType(uiaElem, UIAClient.UIA_CustomControlTypeId, SCOPE_CHILDREN)
+		currUia = findFirstElemByName(DesktopRoot, 'Reference Run-time Environment', SCOPE_CHILDREN)
+		all = findAllElemByControlType(currUia, UIAClient.UIA_CustomControlTypeId, SCOPE_CHILDREN)
 		workRoot = all.GetElement(all.Length-1)
 		assert isUIAElem(workRoot)
 		topTAB = findFirstElemByName(workRoot, 'Fdi.Client.DeviceUi.ViewModel.DeviceUiHostContainerItemViewModel')
@@ -511,7 +522,7 @@ class RRoot(RElement):
 		topRoot = findNextSiblingElem(topTABX)
 		assert isUIAElem(topRoot)
 		# return top root(right side)
-		return topRoot
+		host.setCurrUiaElem(topRoot)
 	
 	def children(self, uiaElem):
 		set = []
@@ -551,17 +562,17 @@ class RRootMenu(RElement):
 		super(RRootMenu, self).__init__(label)
 		self.current = None
 		
-	def select(self, uiaElem):
-		assert isUIAElem(uiaElem)
+	def select(self, host):
+		currUia = host.getCurrUiaElem()
 		# search root menu button
 		if not (self.label == 'Offline' or self.label == 'Offline root menu'):
-			onlineRoot = findFirstElemByAutomationId(uiaElem, 'OnlineParameters')
+			onlineRoot = findFirstElemByAutomationId(currUia, 'OnlineParameters')
 			assert isUIAElem(onlineRoot)
 			pane = findFirstElemByControlType(onlineRoot, UIAClient.UIA_PaneControlTypeId)
 			assert isUIAElem(pane)
 			btn = findFirstElemBySubText(pane, self.label)
 		else:
-			btn = findFirstElemBySubText(uiaElem, self.label)
+			btn = findFirstElemBySubText(currUia, self.label)
 		# push root menu button
 		assert isUIAElem(btn)
 		if not self.label == self.current:
@@ -571,25 +582,25 @@ class RRootMenu(RElement):
 			time.sleep(8)
 		else:
 			time.sleep(2)
-		explorer = findFirstElemByAutomationId(uiaElem, 'DD_ExplorerView')
+		explorer = findFirstElemByAutomationId(currUia, 'DD_ExplorerView')
 		assert isUIAElem(explorer)
 		elem = findNextSiblingElem(explorer)
 		assert isUIAElem(elem)
-		return elem
+		host.setCurrUiaElem(elem)
 	
 class RMenu(RElement):
-	def select(self, uiaElem):
-		assert isUIAElem(uiaElem)
-		tree = findFirstElemBySubText(uiaElem, self.label)
+	def select(self, host):
+		currUia = host.getCurrUiaElem()
+		tree = findFirstElemBySubText(currUia, self.label)
 		assert isUIAElem(tree)
 		expandTree(tree)
 		time.sleep(1)
-		return tree
+		host.setCurrUiaElem(tree)
 
 class RWindow(RElement):
-	def select(self, uiaElem):
-		assert isUIAElem(uiaElem)
-		leaf = findFirstElemBySubText(uiaElem, self.label)
+	def select(self, host):
+		currUia = host.getCurrUiaElem()
+		leaf = findFirstElemBySubText(currUia, self.label)
 		assert isUIAElem(leaf)
 		pushLeaf(leaf)
 		time.sleep(2)
@@ -599,25 +610,25 @@ class RWindow(RElement):
 			assert isUIAElem(curr)
 		pane = findNextSiblingElem(curr)
 		assert isUIAElem(pane)
-		return pane
+		host.setCurrUiaElem(pane)
 
 class RPage(RElement):
-	def select(self, uiaElem):
-		assert isUIAElem(uiaElem)
-		tabs = findFirstElemByControlType(uiaElem, UIAClient.UIA_TabControlTypeId, SCOPE_CHILDREN)
+	def select(self, host):
+		currUia = host.getCurrUiaElem()
+		tabs = findFirstElemByControlType(currUia, UIAClient.UIA_TabControlTypeId, SCOPE_CHILDREN)
 		tab = findFirstElemByName(tabs, self.label)
 		assert isUIAElem(tab)
 		selectTab(tab)
 		time.sleep(1.2)
-		return tab
+		host.setCurrUiaElem(tab)
 
 class RGroup(RElement):
-	def select(self, uiaElem):
-		assert isUIAElem(uiaElem)
-		group = findFirstElemByName(uiaElem, self.label, SCOPE_CHILDREN)
+	def select(self, host):
+		currUia = host.getCurrUiaElem()
+		group = findFirstElemByName(currUia, self.label, SCOPE_CHILDREN)
 		time.sleep(0.2)
 		assert isUIAElem(group)
-		return group
+		host.setCurrUiaElem(group)
 
 class RVariable(RElement):
 	def __init__(self, label, readonly=False):
@@ -688,7 +699,7 @@ class RBitEnum(RVariable):
 	def __init__(self, label, readonly):
 		super(RBitEnum, self).__init__(label, readonly)
 		self.options = []
-	
+
 	def option(self, uiaElem):
 		assert isUIAElem(uiaElem)
 		parent = uiaElem # FF & ProfiNet FDI package
@@ -707,7 +718,7 @@ class RBitEnum(RVariable):
 if __name__ == '__main__':
 	#pdb.set_trace()
 	logging.basicConfig(level = logging.INFO)
-	logCurrentTime('Start RRTE')
+	logging.info('[Start RRTE] : ' + datetime.datetime.now().strftime('%Y.%m.%d-%H:%M:%S'))
 	top = RRoot('root')
 	top.ctrlType = ''
 	top.rectangle = None
@@ -715,9 +726,9 @@ if __name__ == '__main__':
 	rrte = RRTE(root)
 	rrte.startUp()
 	rrte.createTree(rrte.root)
-	logCurrentTime('Finished tree generation')
+	logging.info('[Finished tree generation] : ' + datetime.datetime.now().strftime('%Y.%m.%d-%H:%M:%S'))
 	rrte.dumpMenuLabel2Csv(rrte.root)
 	rrte.dumpEnumOpt2Csv(rrte.root)
 	rrte.dumpBitEnumOpt2Csv(rrte.root)
 	t = datetime.datetime.now()
-	logCurrentTime('Finished label collection')
+	logging.info('[Finished label collection] : ' + datetime.datetime.now().strftime('%Y.%m.%d-%H:%M:%S'))
