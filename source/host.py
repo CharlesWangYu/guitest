@@ -24,7 +24,6 @@ class Host:
 	def __init__(self, root=None):
 		self.root = root
 		self.host = None
-		self.__currUia = None
 		self.__csvFile = None
 		self.__treeDeepth = 0
 		self.__csvColumn = 10
@@ -40,23 +39,15 @@ class Host:
 	
 	def unload(self):
 		pass
-	
-	def getCurrUiaElem(self):
-		assert isUIAElem(self.__currUia)
-		return self.__currUia
-	
-	def setCurrUiaElem(self, uiaElem):
-		assert isUIAElem(uiaElem)
-		self.__currUia = uiaElem
 		
-	def createTree(self, root):
-		assert not root == None
-		assert not root.isVariableNode()
-		path = root.getPath()
+	def createTree(self, target):
+		assert not target == None
+		assert not target.isVariableNode()
+		path = target.getPath()
 		for node in path:
-			node.select(self)
-			if not node.isEqual(root): continue
-			self.appendChildren(node)
+			node.select()
+			if not node.isEqual(target): continue
+			node.getChildren()
 			self.logTreeItem(node)
 			currNode = node.left
 			if currNode is None:
@@ -69,22 +60,7 @@ class Host:
 					self.createTree(currNode)
 				currNode = currNode.right
 		time.sleep(0.5)
-		
-	def appendChildren(self, target):
-		elems = target.elem.children(self.getCurrUiaElem())
-		#logging.info('Children count is %d' % len(elems))
-		if len(elems) > 0:
-			curr = None
-			for x in range(0, len(elems)):
-				node = TreeNode(elems[x])
-				node.parent = target
-				if x == 0:
-					target.left = node
-					curr = target.left
-				else :
-					curr.right = node
-					curr = curr.right
-
+	
 	def logTreeItem(self, node):
 		logging.info('----------------------------------------------------------')
 		logging.info('Parent\t: %s (%s)' % (node.elem.label, node.elem.ctrlType))
@@ -208,7 +184,6 @@ class RRTE(Host):
 			internal = findFirstElemByAutomationId(DesktopRoot, 'DD_ExplorerView')
 		time.sleep(5)
 		self.host = findFirstElemByName(DesktopRoot, 'Reference Run-time Environment', SCOPE_CHILDREN)
-		self.setCurrUiaElem(self.host)
 		assert isUIAElem(self.host)
 	
 	@staticmethod
@@ -300,19 +275,50 @@ class TreeNode:
 		path.reverse()
 		return path
 	
-	def select(self, host):
-		return self.elem.select(host)
+	def select(self):
+		return self.elem.select()
+	
+	def getChildren(self):
+		elems = self.elem.getChildren()
+		# set path info into element object
+		for elem in elems:
+			path = []
+			path.extend(self.elem.path)
+			path.append(elem) # append self to oneself's path
+			elem.path = path
+		# append children node into tree
+		if len(elems) > 0:
+			curr = None
+			for x in range(0, len(elems)):
+				node = TreeNode(elems[x])
+				node.parent = self
+				if x == 0:
+					self.left = node
+					curr = self.left
+				else :
+					curr.right = node
+					curr = curr.right
 
 class Element: # abstract class
 	def __init__(self, label):
+		self.path		= None # parent node path
 		self.label		= label
 		self.ctrlType	= ''
 		self.rectangle	= None
 	
+	def getSelfScope(self, scope):
+		pass
+	
+	def getScopeAfterSelect(self):
+		scope = DesktopRoot
+		for elem in self.path:
+			scope = elem.getSelfScope(scope)
+		return scope
+	
 	def select(self): # extend a node, for example, group, its processing may be inconsistent on different hosts
 		pass
 	
-	def children(self, uiaElem):
+	def getChildren(self):
 		pass
 
 class RElement(Element):
@@ -441,9 +447,10 @@ class RElement(Element):
 			pages.append(page)
 		return pages
 	
-	def __createContentElement(self, uiaElem):
-		#all = findAllElem(uiaElem, True, UIAClient.UIA_IsEnabledPropertyId, SCOPE_CHILDREN)
-		all = findAllChildren(uiaElem)
+	def __createContentElement(self):
+		scope = self.getScopeAfterSelect()
+		#all = findAllElem(scope, True, UIAClient.UIA_IsEnabledPropertyId, SCOPE_CHILDREN)
+		all = findAllChildren(scope)
 		set = []
 		for x in range(0, all.Length):
 			item = all.GetElement(x)
@@ -469,8 +476,9 @@ class RElement(Element):
 				pass
 		return set
 	
-	def __createLayoutElement(self, uiaElem):
-		all = findAllElemByControlType(uiaElem, UIAClient.UIA_TreeItemControlTypeId, SCOPE_CHILDREN)
+	def __createLayoutElement(self):
+		scope = self.getScopeAfterSelect()
+		all = findAllElemByControlType(scope, UIAClient.UIA_TreeItemControlTypeId, SCOPE_CHILDREN)
 		set = []
 		for x in range(0, all.Length):
 			item = all.GetElement(x)
@@ -491,14 +499,28 @@ class RElement(Element):
 				set.append(elem)
 		return set
 	
-	def children(self, uiaElem):
-		if isPane(uiaElem) or isTabItem(uiaElem) or isGroup(uiaElem):
-			return self.__createContentElement(uiaElem)
+	def getChildren(self):
+		scope = self.getScopeAfterSelect()
+		if isPane(scope) or isTabItem(scope) or isGroup(scope):
+			return self.__createContentElement()
 		else:
-			return self.__createLayoutElement(uiaElem)
+			return self.__createLayoutElement()
 
 class RRoot(RElement):
-	def select(self, host):
+	def getSelfScope(self, scope):
+		rrte = findFirstElemByName(scope, 'Reference Run-time Environment', SCOPE_CHILDREN)
+		all = findAllElemByControlType(rrte, UIAClient.UIA_CustomControlTypeId, SCOPE_CHILDREN)
+		workRoot = all.GetElement(all.Length-1)
+		assert isUIAElem(workRoot)
+		topTAB = findFirstElemByName(workRoot, 'Fdi.Client.DeviceUi.ViewModel.DeviceUiHostContainerItemViewModel')
+		assert isUIAElem(topTAB)
+		topTABX = findFirstElemByName(topTAB, 'X')
+		assert isUIAElem(topTABX)
+		topRoot = findNextSiblingElem(topTABX)
+		assert isUIAElem(topRoot)
+		return topRoot
+	
+	def select(self):
 		'''
 		assert isUIAElem(uiaElem)
 		# wait dialog close
@@ -522,14 +544,14 @@ class RRoot(RElement):
 		topRoot = findNextSiblingElem(topTABX)
 		assert isUIAElem(topRoot)
 		# return top root(right side)
-		host.setCurrUiaElem(topRoot)
 	
-	def children(self, uiaElem):
+	def getChildren(self):
 		set = []
+		scope = self.getScopeAfterSelect()
 		# get offline root menu item
-		offline = findFirstElemBySubText(uiaElem, 'Offline')
+		offline = findFirstElemBySubText(scope, 'Offline')
 		if not isUIAElem(offline):
-			offline = findFirstElemBySubText(uiaElem, 'Offline root menu')
+			offline = findFirstElemBySubText(scope, 'Offline root menu')
 			assert isUIAElem(offline)
 			menu = RRootMenu('Offline root menu')
 		else:
@@ -538,7 +560,7 @@ class RRoot(RElement):
 		menu.rectangle = offline.CurrentBoundingRectangle
 		set.append(menu)
 		# get online root menu items
-		onlineRoot = findFirstElemByAutomationId(uiaElem, 'OnlineParameters')
+		onlineRoot = findFirstElemByAutomationId(scope, 'OnlineParameters')
 		assert isUIAElem(onlineRoot)
 		pane = findFirstElemByControlType(onlineRoot, UIAClient.UIA_PaneControlTypeId)
 		assert isUIAElem(pane)
@@ -561,9 +583,16 @@ class RRootMenu(RElement):
 	def __init__(self, label):
 		super(RRootMenu, self).__init__(label)
 		self.current = None
-		
-	def select(self, host):
-		currUia = host.getCurrUiaElem()
+	
+	def getSelfScope(self, scope):
+		explorer = findFirstElemByAutomationId(scope, 'DD_ExplorerView')
+		assert isUIAElem(explorer)
+		elem = findNextSiblingElem(explorer) # maybe pane or tree
+		assert isUIAElem(elem)
+		return elem
+	
+	def select(self):
+		currUia = self.path[-2].getScopeAfterSelect()
 		# search root menu button
 		if not (self.label == 'Offline' or self.label == 'Offline root menu'):
 			onlineRoot = findFirstElemByAutomationId(currUia, 'OnlineParameters')
@@ -586,20 +615,34 @@ class RRootMenu(RElement):
 		assert isUIAElem(explorer)
 		elem = findNextSiblingElem(explorer)
 		assert isUIAElem(elem)
-		host.setCurrUiaElem(elem)
 	
 class RMenu(RElement):
-	def select(self, host):
-		currUia = host.getCurrUiaElem()
+	def getSelfScope(self, scope):
+		tree = findFirstElemBySubText(scope, self.label)
+		assert isUIAElem(tree)
+		return tree
+		
+	def select(self):
+		currUia = self.path[-2].getScopeAfterSelect()
 		tree = findFirstElemBySubText(currUia, self.label)
 		assert isUIAElem(tree)
 		expandTree(tree)
 		time.sleep(1)
-		host.setCurrUiaElem(tree)
 
 class RWindow(RElement):
-	def select(self, host):
-		currUia = host.getCurrUiaElem()
+	def getSelfScope(self, scope):
+		leaf = findFirstElemBySubText(scope, self.label)
+		assert isUIAElem(leaf)
+		curr = leaf
+		while not isTree(curr):
+			curr = findParentElem(curr)
+			assert isUIAElem(curr)
+		pane = findNextSiblingElem(curr)
+		assert isUIAElem(pane)
+		return pane
+	
+	def select(self):
+		currUia = self.path[-2].getScopeAfterSelect()
 		leaf = findFirstElemBySubText(currUia, self.label)
 		assert isUIAElem(leaf)
 		pushLeaf(leaf)
@@ -610,25 +653,34 @@ class RWindow(RElement):
 			assert isUIAElem(curr)
 		pane = findNextSiblingElem(curr)
 		assert isUIAElem(pane)
-		host.setCurrUiaElem(pane)
 
 class RPage(RElement):
-	def select(self, host):
-		currUia = host.getCurrUiaElem()
+	def getSelfScope(self, scope):
+		tabs = findFirstElemByControlType(scope, UIAClient.UIA_TabControlTypeId, SCOPE_CHILDREN)
+		assert isUIAElem(tabs)
+		tab = findFirstElemByName(tabs, self.label)
+		assert isUIAElem(tab)
+		return tab
+	
+	def select(self):
+		currUia = self.path[-2].getScopeAfterSelect()
 		tabs = findFirstElemByControlType(currUia, UIAClient.UIA_TabControlTypeId, SCOPE_CHILDREN)
 		tab = findFirstElemByName(tabs, self.label)
 		assert isUIAElem(tab)
 		selectTab(tab)
 		time.sleep(1.2)
-		host.setCurrUiaElem(tab)
 
 class RGroup(RElement):
-	def select(self, host):
-		currUia = host.getCurrUiaElem()
+	def getSelfScope(self, scope):
+		group = findFirstElemByName(scope, self.label, SCOPE_CHILDREN)
+		assert isUIAElem(group)
+		return group
+	
+	def select(self):
+		currUia = self.path[-2].getScopeAfterSelect()
 		group = findFirstElemByName(currUia, self.label, SCOPE_CHILDREN)
 		time.sleep(0.2)
 		assert isUIAElem(group)
-		host.setCurrUiaElem(group)
 
 class RVariable(RElement):
 	def __init__(self, label, readonly=False):
@@ -722,6 +774,7 @@ if __name__ == '__main__':
 	top = RRoot('root')
 	top.ctrlType = ''
 	top.rectangle = None
+	top.path = [top]
 	root = TreeNode(top)
 	rrte = RRTE(root)
 	rrte.startUp()
