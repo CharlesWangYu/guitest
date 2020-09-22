@@ -15,6 +15,7 @@ import time
 import subprocess
 import csv
 from uia2 import *
+from uiaRRTE import *
 from configparser import ConfigParser
 from comtypes.client import *
 from ctypes import *
@@ -39,10 +40,10 @@ class Host:
 	
 	def unload(self):
 		pass
-		
+	
 	def createTree(self, target):
 		assert not target == None
-		assert not target.isVariableNode()
+		assert not isinstance(target.elem, RVariable)
 		path = target.getPath()
 		for node in path:
 			node.select()
@@ -52,11 +53,11 @@ class Host:
 			currNode = node.left
 			if currNode is None:
 				continue
-			if not currNode.isVariableNode():
+			if not isinstance(currNode.elem, RVariable):
 				self.createTree(currNode)
 			currNode = currNode.right
 			while not currNode == None:
-				if not currNode.isVariableNode():
+				if not isinstance(currNode.elem, RVariable):
 					self.createTree(currNode)
 				currNode = currNode.right
 		time.sleep(0.5)
@@ -94,7 +95,7 @@ class Host:
 		rowElement = []
 		if node == None or node.elem == None:
 			return
-		if node.isEnumNode():
+		if isinstance(node.elem, REnum):
 			if not node.elem.readonly:
 				rowElement.append(node.elem.label)
 				self.__csvFile.writerow(rowElement)
@@ -115,7 +116,7 @@ class Host:
 		rowElement = []
 		if node == None or node.elem == None:
 			return
-		if(node.isBitEnumNode()):
+		if isinstance(node.elem, RBitEnum):
 			rowElement.append(node.elem.label)
 			self.__csvFile.writerow(rowElement)
 			rowElement.clear()
@@ -230,36 +231,15 @@ class TreeNode:
 				return False
 		return True
 	
-	def isMenuNode(self):
-		return isinstance(self.elem, RMenu)
-	
-	def isWindowNode(self):
-		return isinstance(self.elem, RWindow)
-	
-	def isPageNode(self):
-		return isinstance(self.elem, RPage)
-	
-	def isGroupNode(self):
-		return isinstance(self.elem, RGroup)
-	
-	def isVariableNode(self):
-		return isinstance(self.elem, RVariable)
-	
-	def isEnumNode(self):
-		return isinstance(self.elem, REnum)
-	
-	def isBitEnumNode(self):
-		return isinstance(self.elem, RBitEnum)
-	
 	def getStyle(self):
 		style = ''
-		if self.isMenuNode():
+		if isinstance(self.elem, RMenu):
 			style = 'MENU'
-		elif self.isWindowNode():
+		elif isinstance(self.elem, RWindow):
 			style = 'WINDOW'
-		elif self.isPageNode():
+		elif isinstance(self.elem, RPage):
 			style = 'PAGE'
-		elif self.isGroupNode():
+		elif isinstance(self.elem, RGroup):
 			style = 'GROUP'
 		else:
 			pass
@@ -299,6 +279,24 @@ class TreeNode:
 					curr.right = node
 					curr = curr.right
 
+def createParam(uiaElem):
+	assert isCustom(uiaElem)
+	if isContentNameEnum(uiaElem):
+		param = REnum(uiaElem)
+		param.option(uiaElem)
+	elif isContentNameString(uiaElem):
+		param = RString(uiaElem)
+	elif isContentNameNumeric(uiaElem):
+		param = RNumeric(uiaElem)
+	elif isContentNameBitEnum(uiaElem):
+		param = RBitEnum(uiaElem)
+		param.option(uiaElem)
+	elif isContentNameDate(uiaElem):
+		param = RDate(uiaElem)
+	elif isContentNameTime(uiaElem):
+		param = RTime(uiaElem)
+	return param
+	
 class Element: # abstract class
 	def __init__(self, label):
 		self.path		= None # parent node path
@@ -322,145 +320,21 @@ class Element: # abstract class
 		pass
 
 class RElement(Element):
-	def isString(self, uiaElem):
-		return 'Fdi.Ui.ViewModel.Content.StringParameterViewModel' == uiaElem.CurrentName
-	
-	def isDate(self, uiaElem):
-		return 'Fdi.Ui.ViewModel.Content.DateTimeParameterViewModel' == uiaElem.CurrentName
-	
-	def isTime(self, uiaElem):
-		return 'Fdi.Ui.ViewModel.Content.UidTimeSpanViewModel' == uiaElem.CurrentName
-	
-	def isNumeric(self, uiaElem):
-		return 'Fdi.Ui.ViewModel.Content.NumericParameterViewModel' == uiaElem.CurrentName
-	
-	def isEnum(self, uiaElem):
-		return 'Fdi.Ui.ViewModel.Content.EnumerationViewModel' == uiaElem.CurrentName
-	
-	def isBitEnum(self, uiaElem):
-		return 'Fdi.Ui.ViewModel.Content.BitEnumerationViewModel' == uiaElem.CurrentName
-	
-	def isMethod(self, uiaElem): # in menu tree
-		return 'Fdi.Ui.ViewModel.Layout.ActionMenuItemViewModel' == uiaElem.CurrentName
-	
-	def isMenu(self, uiaElem): # in menu tree, include menu and window
-		return 'Fdi.Ui.ViewModel.Layout.RootMenuViewModel' == uiaElem.CurrentName
-	
-	def isTextEnabled(self, uiaElem):
-		assert isUIAElem(uiaElem)
-		count = 0
-		edit = findFirstElemByControlType(uiaElem, UIAClient.UIA_EditControlTypeId)
-		while (not isUIAElem(edit)) and (count < 3):
-			edit = findFirstElemByControlType(uiaElem, UIAClient.UIA_EditControlTypeId)
-			count += 1
-			time.sleep(0.1)
-		assert isUIAElem(edit)
-		return edit.CurrentIsEnabled
-	
-	def isEnumEnabled(self, uiaElem):
-		assert isUIAElem(uiaElem)
-		count = 0
-		combo = findFirstElemByControlType(uiaElem, UIAClient.UIA_ComboBoxControlTypeId)
-		while (not isUIAElem(combo)) and (count < 3):
-			combo = findFirstElemByControlType(uiaElem, UIAClient.UIA_ComboBoxControlTypeId)
-			count += 1
-			time.sleep(0.1)
-		assert isUIAElem(combo)
-		return combo.CurrentIsEnabled
-	
-	def isBitEnumEnabled(self, uiaElem):
-		# TODO :
-		return True
-	
-	def __createString(self, uiaElem):
-		assert self.isString(uiaElem)
-		label = RRTE.getElemSubName(uiaElem)
-		readonly = not self.isTextEnabled(uiaElem)
-		elem = RString(label, readonly)
-		return elem
-	
-	def __createDate(self, uiaElem):
-		assert self.isDate(uiaElem)
-		label = RRTE.getElemSubName(uiaElem)
-		readonly = not self.isTextEnabled(uiaElem)
-		elem = RDate(label, readonly)
-		return elem
-	
-	def __createTime(self, uiaElem):
-		assert self.isTime(uiaElem)
-		label = RRTE.getElemSubName(uiaElem)
-		readonly = not self.isTextEnabled(uiaElem)
-		elem = RTime(label, readonly)
-		return elem
-	
-	def __createNumeric(self, uiaElem):
-		assert self.isNumeric(uiaElem)
-		label = RRTE.getElemSubName(uiaElem)
-		readonly = not self.isTextEnabled(uiaElem)
-		elem = RTime(label, readonly)
-		return elem
-	
-	def __createEnum(self, uiaElem):
-		assert self.isEnum(uiaElem)
-		label = RRTE.getElemSubName(uiaElem)
-		readonly = not self.isEnumEnabled(uiaElem)
-		elem = REnum(label, readonly)
-		elem.option(uiaElem)
-		return elem
-	
-	def __createBitEnum(self, uiaElem):
-		assert self.isBitEnum(uiaElem)
-		group = findFirstElemByControlType(uiaElem, UIAClient.UIA_GroupControlTypeId)
-		if isUIAElem(group):
-			label = RRTE.getElemSubName(group)
-		else: # FF & ProfiNet FDI package
-			label = RRTE.getElemSubName(uiaElem)
-		readonly = not self.isBitEnumEnabled(uiaElem)
-		elem = RBitEnum(label, readonly)
-		elem.option(uiaElem)
-		return elem
-		
-	def __createParam(self, uiaElem):
-		assert isCustom(uiaElem)
-		if self.isEnum(uiaElem):
-			return self.__createEnum(uiaElem)
-		elif self.isString(uiaElem):
-			return self.__createString(uiaElem)
-		elif self.isNumeric(uiaElem):
-			return self.__createNumeric(uiaElem)
-		elif self.isBitEnum(uiaElem):
-			return self.__createBitEnum(uiaElem)
-		elif self.isDate(uiaElem):
-			return self.__createDate(uiaElem)
-		elif self.isTime(uiaElem):
-			return self.__createTime(uiaElem)
-			
-	def __createPage(self, uiaElem):
-		assert isTab(uiaElem)
-		uias = findAllElemByControlType(uiaElem, UIAClient.UIA_TabItemControlTypeId, SCOPE_CHILDREN)
-		pages = []
-		for x in range(0, uias.Length):
-			item = uias.GetElement(x)
-			page = RPage(item.CurrentName)
-			page.ctrlType = 'TabItem'
-			page.rectangle = item.CurrentBoundingRectangle
-			pages.append(page)
-		return pages
-	
-	def __createContentElement(self):
+	def __getContentElement(self):
 		scope = self.getScopeAfterSelect()
 		#all = findAllElem(scope, True, UIAClient.UIA_IsEnabledPropertyId, SCOPE_CHILDREN)
 		all = findAllChildren(scope)
 		set = []
 		for x in range(0, all.Length):
 			item = all.GetElement(x)
-			if isCustom(item): # variable(others, Enum, BitEnum)
-				elem = self.__createParam(item)
+			if isCustom(item): # variable(others, Enum, BitEnum
+				elem = createParam(item)
 				elem.ctrlType = 'Custom'
 				elem.rectangle = item.CurrentBoundingRectangle
 				set.append(elem)
 			elif isButton(item): # method
-				elem = RMethod(RRTE.getElemSubName(item))
+				label = RRTE.getElemSubName(item)
+				elem = RMethod(label)
 				elem.ctrlType = 'Button'
 				elem.rectangle = item.CurrentBoundingRectangle
 				set.append(elem)
@@ -470,30 +344,37 @@ class RElement(Element):
 				elem.rectangle = item.CurrentBoundingRectangle
 				set.append(elem)
 			elif isTab(item): # page
-				tabs = self.__createPage(item)
-				set.extend(tabs)
+				uias = findAllElemByControlType(item, UIAClient.UIA_TabItemControlTypeId, SCOPE_CHILDREN)
+				pages = []
+				for x in range(0, uias.Length):
+					elem = uias.GetElement(x)
+					page = RPage(elem.CurrentName)
+					page.ctrlType = 'TabItem'
+					page.rectangle = elem.CurrentBoundingRectangle
+					pages.append(page)
+				set.extend(pages)
 			else:
 				pass
 		return set
 	
-	def __createLayoutElement(self):
+	def __getLayoutElement(self):
 		scope = self.getScopeAfterSelect()
 		all = findAllElemByControlType(scope, UIAClient.UIA_TreeItemControlTypeId, SCOPE_CHILDREN)
 		set = []
 		for x in range(0, all.Length):
 			item = all.GetElement(x)
-			if self.isMethod(item):
-				name = RRTE.getMenuMethodName(item)
-				elem = RMethod(name)
+			if isLayoutNameMethod(item):
+				label = RRTE.getMenuMethodName(item)
+				elem = RMethod(label)
 				elem.ctrlType = 'Button'
 				elem.rectangle = item.CurrentBoundingRectangle
 				set.append(elem)
-			elif self.isMenu(item):
-				name = RRTE.getElemSubName(item)
+			elif isLayoutNameMenu(item):
+				label = RRTE.getElemSubName(item)
 				if isTreeLeaf(item):
-					elem = RWindow(name)
+					elem = RWindow(label)
 				else:
-					elem = RMenu(name)
+					elem = RMenu(label)
 				elem.ctrlType = 'TreeItem'
 				elem.rectangle = item.CurrentBoundingRectangle
 				set.append(elem)
@@ -502,9 +383,9 @@ class RElement(Element):
 	def getChildren(self):
 		scope = self.getScopeAfterSelect()
 		if isPane(scope) or isTabItem(scope) or isGroup(scope):
-			return self.__createContentElement()
+			return self.__getContentElement()
 		else:
-			return self.__createLayoutElement()
+			return self.__getLayoutElement()
 
 class RRoot(RElement):
 	def getSelfScope(self, scope):
@@ -521,29 +402,7 @@ class RRoot(RElement):
 		return topRoot
 	
 	def select(self):
-		'''
-		assert isUIAElem(uiaElem)
-		# wait dialog close
-		desktop = IUIA.GetRootElement()
-		assert isUIAElem(desktop)
-		internal = findFirstElemByAutomationId(desktop, 'DD_ExplorerView')
-		while not isUIAElem(internal):
-			time.sleep(1.5)
-			internal = findFirstElemByAutomationId(DesktopRoot, 'DD_ExplorerView')
-		'''
-		time.sleep(1)
-		# get main uia element
-		currUia = findFirstElemByName(DesktopRoot, 'Reference Run-time Environment', SCOPE_CHILDREN)
-		all = findAllElemByControlType(currUia, UIAClient.UIA_CustomControlTypeId, SCOPE_CHILDREN)
-		workRoot = all.GetElement(all.Length-1)
-		assert isUIAElem(workRoot)
-		topTAB = findFirstElemByName(workRoot, 'Fdi.Client.DeviceUi.ViewModel.DeviceUiHostContainerItemViewModel')
-		assert isUIAElem(topTAB)
-		topTABX = findFirstElemByName(topTAB, 'X')
-		assert isUIAElem(topTABX)
-		topRoot = findNextSiblingElem(topTABX)
-		assert isUIAElem(topRoot)
-		# return top root(right side)
+		pass
 	
 	def getChildren(self):
 		set = []
@@ -592,29 +451,25 @@ class RRootMenu(RElement):
 		return elem
 	
 	def select(self):
-		currUia = self.path[-2].getScopeAfterSelect()
+		scope = self.path[-2].getScopeAfterSelect()
 		# search root menu button
 		if not (self.label == 'Offline' or self.label == 'Offline root menu'):
-			onlineRoot = findFirstElemByAutomationId(currUia, 'OnlineParameters')
+			onlineRoot = findFirstElemByAutomationId(scope, 'OnlineParameters')
 			assert isUIAElem(onlineRoot)
 			pane = findFirstElemByControlType(onlineRoot, UIAClient.UIA_PaneControlTypeId)
 			assert isUIAElem(pane)
 			btn = findFirstElemBySubText(pane, self.label)
 		else:
-			btn = findFirstElemBySubText(currUia, self.label)
+			btn = findFirstElemBySubText(scope, self.label)
 		# push root menu button
 		assert isUIAElem(btn)
 		if not self.label == self.current:
 			pushButton(btn)
 			self.current = self.label
 			#RRTE.waitDialogClose()
-			time.sleep(8)
+			time.sleep(6)
 		else:
-			time.sleep(2)
-		explorer = findFirstElemByAutomationId(currUia, 'DD_ExplorerView')
-		assert isUIAElem(explorer)
-		elem = findNextSiblingElem(explorer)
-		assert isUIAElem(elem)
+			time.sleep(1)
 	
 class RMenu(RElement):
 	def getSelfScope(self, scope):
@@ -623,11 +478,11 @@ class RMenu(RElement):
 		return tree
 		
 	def select(self):
-		currUia = self.path[-2].getScopeAfterSelect()
-		tree = findFirstElemBySubText(currUia, self.label)
+		scope = self.path[-2].getScopeAfterSelect()
+		tree = findFirstElemBySubText(scope, self.label)
 		assert isUIAElem(tree)
 		expandTree(tree)
-		time.sleep(1)
+		time.sleep(0.5)
 
 class RWindow(RElement):
 	def getSelfScope(self, scope):
@@ -642,17 +497,11 @@ class RWindow(RElement):
 		return pane
 	
 	def select(self):
-		currUia = self.path[-2].getScopeAfterSelect()
-		leaf = findFirstElemBySubText(currUia, self.label)
+		scope = self.path[-2].getScopeAfterSelect()
+		leaf = findFirstElemBySubText(scope, self.label)
 		assert isUIAElem(leaf)
 		pushLeaf(leaf)
-		time.sleep(2)
-		curr = leaf
-		while not isTree(curr):
-			curr = findParentElem(curr)
-			assert isUIAElem(curr)
-		pane = findNextSiblingElem(curr)
-		assert isUIAElem(pane)
+		time.sleep(1)
 
 class RPage(RElement):
 	def getSelfScope(self, scope):
@@ -663,12 +512,12 @@ class RPage(RElement):
 		return tab
 	
 	def select(self):
-		currUia = self.path[-2].getScopeAfterSelect()
-		tabs = findFirstElemByControlType(currUia, UIAClient.UIA_TabControlTypeId, SCOPE_CHILDREN)
+		scope = self.path[-2].getScopeAfterSelect()
+		tabs = findFirstElemByControlType(scope, UIAClient.UIA_TabControlTypeId, SCOPE_CHILDREN)
 		tab = findFirstElemByName(tabs, self.label)
 		assert isUIAElem(tab)
 		selectTab(tab)
-		time.sleep(1.2)
+		time.sleep(0.5)
 
 class RGroup(RElement):
 	def getSelfScope(self, scope):
@@ -677,18 +526,21 @@ class RGroup(RElement):
 		return group
 	
 	def select(self):
-		currUia = self.path[-2].getScopeAfterSelect()
-		group = findFirstElemByName(currUia, self.label, SCOPE_CHILDREN)
-		time.sleep(0.2)
-		assert isUIAElem(group)
+		pass
 
 class RVariable(RElement):
-	def __init__(self, label, readonly=False):
+	def __init__(self, uiaElem):
+		label = RRTE.getElemSubName(uiaElem)
 		super(RVariable, self).__init__(label)
-		self.readonly = readonly
+		self.readonly = not isEditboxEnabled(uiaElem)
 
 class RMethod(RVariable):
-	pass
+	def __init__(self, label):
+		self.path		= None # parent node path
+		self.label		= label
+		self.ctrlType	= ''
+		self.rectangle	= None
+		self.readonly	= True
 
 class RString(RVariable):
 	pass
@@ -703,8 +555,13 @@ class RNumeric(RVariable):
 	pass
 
 class REnum(RVariable):
-	def __init__(self, label, readonly):
-		super(REnum, self).__init__(label, readonly)
+	def __init__(self, uiaElem):
+		assert isContentNameEnum(uiaElem)
+		self.path		= None # parent node path
+		self.label		= RRTE.getElemSubName(uiaElem)
+		self.ctrlType	= ''
+		self.rectangle	= None
+		self.readonly	= not isComboboxEnabled(uiaElem)
 		self.__ne107 = ['No Effect', 'Maintenance Required', 'Failure', 'Out of Specification', 'Function Check']
 		self.options = []
 	
@@ -748,10 +605,19 @@ class REnum(RVariable):
 			self.options.extend(self.__ne107)
 
 class RBitEnum(RVariable):
-	def __init__(self, label, readonly):
-		super(RBitEnum, self).__init__(label, readonly)
+	def __init__(self, uiaElem):
+		assert isContentNameBitEnum(uiaElem)
+		group = findFirstElemByControlType(uiaElem, UIAClient.UIA_GroupControlTypeId)
+		if isUIAElem(group):
+			self.label = RRTE.getElemSubName(group)
+		else: # FF & ProfiNet FDI package
+			self.label = RRTE.getElemSubName(uiaElem)
+		self.path		= None # parent node path
+		self.ctrlType	= ''
+		self.rectangle	= None
+		self.readonly 	= not isBitEnumGroupEnabled(uiaElem)
 		self.options = []
-
+	
 	def option(self, uiaElem):
 		assert isUIAElem(uiaElem)
 		parent = uiaElem # FF & ProfiNet FDI package
