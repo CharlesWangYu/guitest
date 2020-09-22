@@ -25,11 +25,11 @@ class RRTE(Host):
 		self.config.read('test.conf', encoding='UTF-8')
 	
 	def startUp(self):
-		inputMode = self.config['MISC']['TEST_FILE_TYPE'].strip("'")
-		hostApp	= self.config['MISC']['HOST_APP_PATH'].strip("'") + '\Reference Run-time Environment\Fdi.Reference.Client.exe'
-		testFile = self.config['MISC']['TEST_FILE'].strip("'")
-		outPath = self.config['MISC']['OUTPUT_PATH'].strip("'")
-		logPath = self.config['MISC']['RRTE_LOG_PATH'].strip("'")
+		inputMode = self.config['COMM']['FCG_FILE_TYPE'].strip("'")
+		hostApp	= self.config['COMM']['HOST_APP_PATH'].strip("'") + '\Reference Run-time Environment\Fdi.Reference.Client.exe'
+		testFile = self.config['COMM']['FCG_FILE'].strip("'")
+		outPath = self.config['COMM']['OUTPUT_FILE_PATH'].strip("'")
+		logPath = self.config['LOG']['RRTE_LOG_PATH'].strip("'")
 		execCmd = '\"' + hostApp + '\" -l \"' + testFile + '\"'
 		subprocess.Popen(execCmd, shell=True, stdout=subprocess.PIPE, close_fds=True)
 		logging.info('execCmd = %s' % execCmd)
