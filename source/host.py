@@ -10,6 +10,7 @@
 import logging
 import os
 import csv
+import pickle
 from uia2 import *
 from uiaRRTE import *
 
@@ -64,6 +65,14 @@ class Host:
 					self.createTree(currNode)
 				currNode = currNode.right
 	
+	def serialize(self):
+		f = open('./tree.bin', 'wb')
+		pickle.dump(self.root, f)
+	
+	def restore(self):
+		f = open('./tree.bin', 'rb')
+		self.root = pickle.load(f)
+		
 	def traverse(self, root, func):
 		pass
 

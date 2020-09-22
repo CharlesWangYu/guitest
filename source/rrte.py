@@ -9,7 +9,6 @@
 import pdb
 import logging
 import sys
-import datetime
 import time
 import subprocess
 from host import *
@@ -420,22 +419,3 @@ class RBitEnum(RVariable):
 			item = all.GetElement(x)
 			set.append(item.CurrentName)
 		self.options.extend(set)
-
-if __name__ == '__main__':
-	#pdb.set_trace()
-	logging.basicConfig(level = logging.INFO)
-	logging.info('[Start RRTE] : ' + datetime.datetime.now().strftime('%Y.%m.%d-%H:%M:%S'))
-	top = RRoot('root')
-	top.ctrlType = ''
-	top.rectangle = None
-	top.path = [top]
-	root = TreeNode(top)
-	rrte = RRTE(root)
-	rrte.startUp()
-	rrte.createTree(rrte.root)
-	logging.info('[Finished tree generation] : ' + datetime.datetime.now().strftime('%Y.%m.%d-%H:%M:%S'))
-	Util.dumpMenuLabel2Csv(rrte.root)
-	Util.dumpEnumOpt2Csv(rrte.root)
-	Util.dumpBitEnumOpt2Csv(rrte.root)
-	t = datetime.datetime.now()
-	logging.info('[Finished label collection] : ' + datetime.datetime.now().strftime('%Y.%m.%d-%H:%M:%S'))
