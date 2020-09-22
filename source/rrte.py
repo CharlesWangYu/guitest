@@ -1,5 +1,5 @@
 '''
-@File		: host.py
+@File		: rrte.py
 @Date		: 2020/08/30
 @Author		: Wang.Yu
 @Version	: 1.0
@@ -434,8 +434,8 @@ if __name__ == '__main__':
 	rrte.startUp()
 	rrte.createTree(rrte.root)
 	logging.info('[Finished tree generation] : ' + datetime.datetime.now().strftime('%Y.%m.%d-%H:%M:%S'))
-	rrte.dumpMenuLabel2Csv(rrte.root)
-	rrte.dumpEnumOpt2Csv(rrte.root)
-	rrte.dumpBitEnumOpt2Csv(rrte.root)
+	Util.dumpMenuLabel2Csv(rrte.root)
+	Util.dumpEnumOpt2Csv(rrte.root)
+	Util.dumpBitEnumOpt2Csv(rrte.root)
 	t = datetime.datetime.now()
 	logging.info('[Finished label collection] : ' + datetime.datetime.now().strftime('%Y.%m.%d-%H:%M:%S'))

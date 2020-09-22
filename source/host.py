@@ -18,9 +18,6 @@ class Host:
 	def __init__(self, root=None):
 		self.root = root
 		self.host = None
-		self.__csvFile = None
-		self.__treeDeepth = 0
-		self.__csvColumn = 10
 	
 	@staticmethod
 	def logTreeItem(node):
@@ -66,93 +63,6 @@ class Host:
 				if not currNode.elem.isLeaf():
 					self.createTree(currNode)
 				currNode = currNode.right
-
-	def __preTraverseLabel(self, node):
-		rowElement = []
-		if node == None or node.elem == None:
-			return
-		for x in range(0, self.__csvColumn):
-			if(x != self.__treeDeepth):
-				rowElement.append('')
-			else:
-				rowElement.append(node.elem.label)
-		rowElement.append(node.elem.label)
-		rowElement.append(node.elem.style)
-		self.__csvFile.writerow(rowElement)
-		self.__treeDeepth += 1
-		self.__preTraverseLabel(node.left)
-		self.__treeDeepth -= 1
-		self.__preTraverseLabel(node.right)
-	
-	def __preTraverseEnumOpts(self, node):
-		rowElement = []
-		if node == None or node.elem == None:
-			return
-		if node.elem.isEnum():
-			if not node.elem.readonly:
-				rowElement.append(node.elem.label)
-				self.__csvFile.writerow(rowElement)
-				rowElement.clear()
-				for item in node.elem.options:
-					rowElement.append('')
-					rowElement.append(item)
-					self.__csvFile.writerow(rowElement)
-					rowElement.clear()
-			else:
-				rowElement.append(node.elem.label + ' (Not Read)')
-				self.__csvFile.writerow(rowElement)
-				rowElement.clear()
-		self.__preTraverseEnumOpts(node.left)
-		self.__preTraverseEnumOpts(node.right)
-	
-	def __preTraverseBitEnumOpts(self, node):
-		rowElement = []
-		if node == None or node.elem == None:
-			return
-		if node.elem.isBitEnum():
-			rowElement.append(node.elem.label)
-			self.__csvFile.writerow(rowElement)
-			rowElement.clear()
-			for item in node.elem.options:
-				rowElement.append('')
-				rowElement.append(item)
-				self.__csvFile.writerow(rowElement)
-				rowElement.clear()
-		self.__preTraverseBitEnumOpts(node.left)
-		self.__preTraverseBitEnumOpts(node.right)
-			
-	def dumpMenuLabel2Csv(self, root):
-		headers = ['ITEM0', 'ITEM1', 'ITEM2', 'ITEM3', 'ITEM4', 'ITEM5', 'ITEM6', 'ITEM7', 'ITEM8', 'ITEM9', 'LABEL', 'STYLE']
-		outputPath = os.getcwd() + '\\output\\'
-		outputFile = outputPath + 'outputTree.csv'
-		if not os.path.exists(outputPath):
-			os.makedirs(outputPath)
-		with open(outputFile, 'w', newline='', encoding='UTF-8') as self.__csvFile:
-			self.__csvFile = csv.writer(self.__csvFile)
-			self.__csvFile.writerow(headers)
-			self.__preTraverseLabel(root)
-	
-	def dumpEnumOpt2Csv(self, root):
-		headers = ['ENUM', 'OPTION']
-		outputPath = os.getcwd() + '\\output\\'
-		outputFile = outputPath + 'outputEnumOpts.csv'
-		if not os.path.exists(outputPath):
-			os.makedirs(outputPath)
-		with open(outputFile, 'w', newline='', encoding='UTF-8') as self.__csvFile:
-			self.__csvFile = csv.writer(self.__csvFile)
-			self.__csvFile.writerow(headers)
-			self.__preTraverseEnumOpts(root)
-	
-	def dumpBitEnumOpt2Csv(self, root):
-		headers = ['BITENUM', 'OPTION']
-		outputPath = os.getcwd() + '\\output\\'
-		outputFile = outputPath + 'outputBitEnumOpts.csv'
-		if not os.path.exists(outputPath):
-			os.makedirs(outputPath)
-		with open(outputFile, 'w', newline='', encoding='UTF-8') as self.__csvFile:
-			self.__csvFile = csv.writer(self.__csvFile)
-			self.__csvFile.writerow(headers)
-			self.__preTraverseBitEnumOpts(root)
 	
 	def traverse(self, root, func):
 		pass
@@ -240,3 +150,101 @@ class Element: # abstract class
 	
 	def getChildren(self):
 		pass
+
+class Util:
+	csvFile = None
+	treeDeepth = 0
+	csvColumn = 10
+	
+	@staticmethod
+	def preTraverseLabel(node):
+		rowElement = []
+		if node == None or node.elem == None:
+			return
+		for x in range(0, Util.csvColumn):
+			if(x != Util.treeDeepth):
+				rowElement.append('')
+			else:
+				rowElement.append(node.elem.label)
+		rowElement.append(node.elem.label)
+		rowElement.append(node.elem.style)
+		Util.csvFile.writerow(rowElement)
+		Util.treeDeepth += 1
+		Util.preTraverseLabel(node.left)
+		Util.treeDeepth -= 1
+		Util.preTraverseLabel(node.right)
+	
+	@staticmethod
+	def preTraverseEnumOpts(node):
+		rowElement = []
+		if node == None or node.elem == None:
+			return
+		if node.elem.isEnum():
+			if not node.elem.readonly:
+				rowElement.append(node.elem.label)
+				Util.csvFile.writerow(rowElement)
+				rowElement.clear()
+				for item in node.elem.options:
+					rowElement.append('')
+					rowElement.append(item)
+					Util.csvFile.writerow(rowElement)
+					rowElement.clear()
+			else:
+				rowElement.append(node.elem.label + ' (Not Read)')
+				Util.csvFile.writerow(rowElement)
+				rowElement.clear()
+		Util.preTraverseEnumOpts(node.left)
+		Util.preTraverseEnumOpts(node.right)
+	
+	@staticmethod
+	def preTraverseBitEnumOpts(node):
+		rowElement = []
+		if node == None or node.elem == None:
+			return
+		if node.elem.isBitEnum():
+			rowElement.append(node.elem.label)
+			Util.csvFile.writerow(rowElement)
+			rowElement.clear()
+			for item in node.elem.options:
+				rowElement.append('')
+				rowElement.append(item)
+				Util.csvFile.writerow(rowElement)
+				rowElement.clear()
+		Util.preTraverseBitEnumOpts(node.left)
+		Util.preTraverseBitEnumOpts(node.right)
+	
+	@staticmethod
+	def dumpMenuLabel2Csv(root):
+		headers = ['ITEM0', 'ITEM1', 'ITEM2', 'ITEM3', 'ITEM4', 'ITEM5', 'ITEM6', 'ITEM7', 'ITEM8', 'ITEM9', 'LABEL', 'STYLE']
+		outputPath = os.getcwd() + '\\output\\'
+		outputFile = outputPath + 'outputTree.csv'
+		if not os.path.exists(outputPath):
+			os.makedirs(outputPath)
+		with open(outputFile, 'w', newline='', encoding='UTF-8') as Util.csvFile:
+			Util.csvFile = csv.writer(Util.csvFile)
+			Util.csvFile.writerow(headers)
+			Util.preTraverseLabel(root)
+	
+	@staticmethod
+	def dumpEnumOpt2Csv(root):
+		headers = ['ENUM', 'OPTION']
+		outputPath = os.getcwd() + '\\output\\'
+		outputFile = outputPath + 'outputEnumOpts.csv'
+		if not os.path.exists(outputPath):
+			os.makedirs(outputPath)
+		with open(outputFile, 'w', newline='', encoding='UTF-8') as Util.csvFile:
+			Util.csvFile = csv.writer(Util.csvFile)
+			Util.csvFile.writerow(headers)
+			Util.preTraverseEnumOpts(root)
+	
+	@staticmethod
+	def dumpBitEnumOpt2Csv(root):
+		headers = ['BITENUM', 'OPTION']
+		outputPath = os.getcwd() + '\\output\\'
+		outputFile = outputPath + 'outputBitEnumOpts.csv'
+		if not os.path.exists(outputPath):
+			os.makedirs(outputPath)
+		with open(outputFile, 'w', newline='', encoding='UTF-8') as Util.csvFile:
+			Util.csvFile = csv.writer(Util.csvFile)
+			Util.csvFile.writerow(headers)
+			Util.preTraverseBitEnumOpts(root)
