@@ -19,24 +19,6 @@ from configparser import ConfigParser
 from comtypes.client import *
 from ctypes import *
 
-def createParam(uiaElem):
-	assert isCustom(uiaElem)
-	if isContentNameEnum(uiaElem):
-		param = REnum(uiaElem)
-		param.option(uiaElem)
-	elif isContentNameString(uiaElem):
-		param = RString(uiaElem)
-	elif isContentNameNumeric(uiaElem):
-		param = RNumeric(uiaElem)
-	elif isContentNameBitEnum(uiaElem):
-		param = RBitEnum(uiaElem)
-		param.option(uiaElem)
-	elif isContentNameDate(uiaElem):
-		param = RDate(uiaElem)
-	elif isContentNameTime(uiaElem):
-		param = RTime(uiaElem)
-	return param
-
 class RRTE(Host):
 	def __init__(self, root):
 		super(RRTE, self).__init__(root)
@@ -73,15 +55,34 @@ class RRTE(Host):
 		time.sleep(1)
 
 class RElement(Element):
-	def __getContentElement(self):
-		scope = self.getScopeAfterSelect()
+	@staticmethod
+	def createParam(uiaElem):
+		assert isCustom(uiaElem)
+		if isContentNameEnum(uiaElem):
+			param = REnum(uiaElem)
+			param.option(uiaElem)
+		elif isContentNameString(uiaElem):
+			param = RString(uiaElem)
+		elif isContentNameNumeric(uiaElem):
+			param = RNumeric(uiaElem)
+		elif isContentNameBitEnum(uiaElem):
+			param = RBitEnum(uiaElem)
+			param.option(uiaElem)
+		elif isContentNameDate(uiaElem):
+			param = RDate(uiaElem)
+		elif isContentNameTime(uiaElem):
+			param = RTime(uiaElem)
+		return param
+	
+	@staticmethod
+	def getChildrenFormContent(scope):
 		#all = findAllElem(scope, True, UIAClient.UIA_IsEnabledPropertyId, SCOPE_CHILDREN)
 		all = findAllChildren(scope)
 		set = []
 		for x in range(0, all.Length):
 			item = all.GetElement(x)
 			if isCustom(item): # variable(others, Enum, BitEnum
-				elem = createParam(item)
+				elem = RElement.createParam(item)
 				elem.ctrlType = 'Custom'
 				elem.rectangle = item.CurrentBoundingRectangle
 				set.append(elem)
@@ -110,8 +111,8 @@ class RElement(Element):
 				pass
 		return set
 	
-	def __getLayoutElement(self):
-		scope = self.getScopeAfterSelect()
+	@staticmethod
+	def getChildrenFormLayout(scope):
 		all = findAllElemByControlType(scope, UIAClient.UIA_TreeItemControlTypeId, SCOPE_CHILDREN)
 		set = []
 		for x in range(0, all.Length):
@@ -136,9 +137,9 @@ class RElement(Element):
 	def getChildren(self):
 		scope = self.getScopeAfterSelect()
 		if isPane(scope) or isTabItem(scope) or isGroup(scope):
-			return self.__getContentElement()
+			return RElement.getChildrenFormContent(scope)
 		else:
-			return self.__getLayoutElement()
+			return RElement.getChildrenFormLayout(scope)
 
 class RRoot(RElement):
 	def __init__(self, label):

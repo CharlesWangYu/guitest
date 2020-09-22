@@ -22,6 +22,19 @@ class Host:
 		self.__treeDeepth = 0
 		self.__csvColumn = 10
 	
+	@staticmethod
+	def logTreeItem(node):
+		logging.info('----------------------------------------------------------')
+		logging.info('Parent\t: %s (%s)' % (node.elem.label, node.elem.ctrlType))
+		if not node.left is None:
+			logging.info('Child[0]\t: %s (%s)' % (node.left.elem.label, node.left.elem.ctrlType))
+			curr = node.left.right
+			cnt = 1
+			while not curr is None:
+				logging.info('Child[%d]\t: %s (%s)' % (cnt, curr.elem.label, curr.elem.ctrlType))
+				cnt = cnt + 1
+				curr = curr.right
+	
 	def startUp(self):
 		pass
 	
@@ -42,7 +55,7 @@ class Host:
 			node.select()
 			if not node.isEqual(target): continue
 			node.getChildren()
-			self.logTreeItem(node)
+			Host.logTreeItem(node)
 			currNode = node.left
 			if currNode is None:
 				continue
@@ -53,18 +66,6 @@ class Host:
 				if not currNode.elem.isLeaf():
 					self.createTree(currNode)
 				currNode = currNode.right
-	
-	def logTreeItem(self, node):
-		logging.info('----------------------------------------------------------')
-		logging.info('Parent\t: %s (%s)' % (node.elem.label, node.elem.ctrlType))
-		if not node.left is None:
-			logging.info('Child[0]\t: %s (%s)' % (node.left.elem.label, node.left.elem.ctrlType))
-			curr = node.left.right
-			cnt = 1
-			while not curr is None:
-				logging.info('Child[%d]\t: %s (%s)' % (cnt, curr.elem.label, curr.elem.ctrlType))
-				cnt = cnt + 1
-				curr = curr.right
 
 	def __preTraverseLabel(self, node):
 		rowElement = []
