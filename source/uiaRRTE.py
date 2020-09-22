@@ -6,8 +6,8 @@
 @Contact	: yu.wang@cn.yokogawa.com
 @License	: (C)Copyright 2020 Yokogawa China Co., Ltd.
 '''
-import pdb
-import logging
+#import pdb
+#import logging
 from uia2 import *
 from comtypes.client import *
 from ctypes import *
@@ -65,4 +65,14 @@ def isComboboxEnabled(uiaElem):
 def isBitEnumGroupEnabled(uiaElem):
 	# TODO :
 	return True
-	
+
+def getElemSubName(uiaElem):
+	textbox = findFirstElemByControlType(uiaElem, UIAClient.UIA_TextControlTypeId, SCOPE_CHILDREN)
+	text = textbox.CurrentName
+	return text
+
+def getMenuMethodName(uiaElem):
+	btns = findAllElemByControlType(uiaElem, UIAClient.UIA_ButtonControlTypeId, SCOPE_CHILDREN)
+	btn = btns.GetElement(btns.Length-1)
+	text = btn.CurrentName
+	return text

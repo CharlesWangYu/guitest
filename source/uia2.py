@@ -6,9 +6,8 @@
 @Contact	: yu.wang@cn.yokogawa.com
 @License	: (C)Copyright 2020 Yokogawa China Co., Ltd.
 '''
-import pdb
+#import pdb
 #import logging
-import time
 from comtypes.client import *
 from ctypes import *
 
@@ -252,7 +251,7 @@ if __name__ == '__main__':
 	for x in range(0, all.Length):
 		item = all.GetElement(x)
 		print (item.CurrentClassName)
-	pdb.set_trace()
+	#pdb.set_trace()
 	#test = findFirstElemByName(DesktopRoot, 'XXXXXXXXX')
 	test = findFirstElemByControlType(DesktopRoot, UIAClient.UIA_WindowControlTypeId)
 	assert isUIAElem(test)
