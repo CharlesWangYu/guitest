@@ -48,15 +48,15 @@ class Host:
 	def createTree(self, target):
 		assert not target == None
 		assert not target.elem.isLeaf()
+		# migrate to the target screen
 		path = target.getPath()
 		for node in path:
 			node.select()
-			if not node.isEqual(target): continue
-			node.getChildren()
-			Host.logTreeItem(node)
-			currNode = node.left
-			if currNode is None:
-				continue
+		# append children node to the target node
+		node.getChildren()
+		Host.logTreeItem(node)
+		currNode = node.left
+		if not currNode is None:
 			if not currNode.elem.isLeaf():
 				self.createTree(currNode)
 			currNode = currNode.right

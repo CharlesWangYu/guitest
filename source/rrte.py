@@ -59,14 +59,14 @@ class RElement(Element):
 		assert isCustom(uiaElem)
 		if isContentNameEnum(uiaElem):
 			param = REnum(uiaElem)
-			param.option(uiaElem)
+			param.getOption(uiaElem)
 		elif isContentNameString(uiaElem):
 			param = RString(uiaElem)
 		elif isContentNameNumeric(uiaElem):
 			param = RNumeric(uiaElem)
 		elif isContentNameBitEnum(uiaElem):
 			param = RBitEnum(uiaElem)
-			param.option(uiaElem)
+			param.getOption(uiaElem)
 		elif isContentNameDate(uiaElem):
 			param = RDate(uiaElem)
 		elif isContentNameTime(uiaElem):
@@ -366,7 +366,7 @@ class REnum(RVariable):
 	def isEnum(self):
 		return True
 	
-	def option(self, uiaElem):
+	def getOption(self, uiaElem):
 		assert isUIAElem(uiaElem)
 		if self.readonly: return
 		if not self.__isNE107Label():
@@ -405,7 +405,7 @@ class RBitEnum(RVariable):
 	def isBitEnum(self):
 		return True
 	
-	def option(self, uiaElem):
+	def getOption(self, uiaElem):
 		assert isUIAElem(uiaElem)
 		parent = uiaElem # FF & ProfiNet FDI package
 		group = findFirstElemByControlType(uiaElem, UIAClient.UIA_GroupControlTypeId)
