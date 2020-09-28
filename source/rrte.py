@@ -10,6 +10,7 @@ import pdb
 import logging
 import sys
 import time
+import shutil
 import subprocess
 from host import *
 from uia2 import *
@@ -40,6 +41,224 @@ class RRTE(Host):
 		time.sleep(5)
 		self.host = findFirstElemByName(DesktopRoot, 'Reference Run-time Environment', SCOPE_CHILDREN)
 		assert isUIAElem(self.host)
+	
+	def exit(self):
+		mainMenuView = findFirstElemByAutomationId(self.host, 'mainMenuView')
+		assert isUIAElem(mainMenuView)
+		ribbonTAB = findFirstChildElem(mainMenuView)
+		assert isUIAElem(ribbonTAB)
+		ribbonMenu = findFirstElemByControlType(ribbonTAB,UIAClient.UIA_MenuControlTypeId)
+		assert isUIAElem(ribbonMenu)
+		expandCombo(ribbonMenu)
+		exitButton = findFirstElemByName(ribbonMenu, 'Exit', SCOPE_CHILDREN)
+		assert isUIAElem(exitButton)
+		pushButton(exitButton)
+		time.sleep(20) # Please do not shorten the time, it will cause failure to restart RRTE.
+
+	def copyLogs(self, folderName):
+		logPath = self.config['LOG']['RRTE_LOG_PATH'].strip("'")
+		outPath = self.config['COMM']['OUTPUT_FILE_PATH'].strip("'")
+		outPath = outPath + '\\' + folderName
+		if os.path.exists(logPath):
+			shutil.copytree(logPath, outPath)
+
+	def clearLogs(self):
+		#logging.info('>>>>>> Clearing the log files...')
+		logPath = self.config['LOG']['RRTE_LOG_PATH'].strip("'")
+		if os.path.exists(logPath):
+			shutil.rmtree(logPath)
+
+	def clearOutput(self):
+		#logging.info('>>>>>> Clearing the out files...')
+		outPath = self.config['COMM']['OUTPUT_FILE_PATH'].strip("'")
+		if os.path.exists(outPath):
+			shutil.rmtree(outPath)
+
+	def pushBtnApply(self):
+		try:
+			topTAB   = findFirstElemByName(self.host, 'Fdi.Client.DeviceUi.ViewModel.DeviceUiHostContainerItemViewModel')
+			assert isUIAElem(topTAB)
+			explorer = findFirstElem(topTAB, 'DD_ExplorerView', UIAClient.UIA_AutomationIdPropertyId)
+			assert isUIAElem(explorer)
+			treeRoot = findNextSiblingElem(explorer)
+			assert isUIAElem(treeRoot)
+			paneRoot = findNextSiblingElem(treeRoot)
+			assert isUIAElem(paneRoot)
+			paneRoot.SetFocus()
+			RevertRoot = findNextSiblingElem(paneRoot)
+			assert isUIAElem(RevertRoot)
+			ApplyRoot  = findNextSiblingElem(RevertRoot)
+			assert isUIAElem(ApplyRoot)
+			pushButton(ApplyRoot)
+			#logging.info('Information: Push the button of <Apply> success')
+		except Exception as e:
+			print('[Error] : Button "Apply" can not be pushed!')
+
+	def setTraceLevel(self, logLevel):
+		groupTraceLevel = findFirstElemByName(self.host, 'Trace Level')
+		assert isUIAElem(groupTraceLevel)
+		listTraceLevel = findFirstChildElem(groupTraceLevel)
+		assert isUIAElem(listTraceLevel)
+		menuTraceLevel = findFirstChildElem(listTraceLevel)
+		assert isUIAElem(menuTraceLevel)
+		expandCombo(menuTraceLevel)
+		setEditbox(menuTraceLevel, logLevel)
+		#logging.info('Information: TraceLevel = %s' % logLevel)
+
+	def getLogByScreen(self, node):
+		loadingDelay = int(self.config['LOG']['LOG_LOADING_TIME'].strip("'"))
+		if node == None or node.elem == None:
+			return
+		if isinstance(node.elem, RWindow) or isinstance(node.elem, RPage):
+			logging.info('----------------------------------------------------------')
+			self.startUp()
+			#self.setTraceLevel('Verbose')
+			logging.info('Loging Node\t: %s (%s)' % (node.elem.label, node.elem.ctrlType))
+			logFolder = ''
+			path = node.getPath()
+			for item in path:
+				logFolder = logFolder + '\\' + item.elem.label
+				item.select()
+			logging.info('Node Path\t: %s (%s)' % (logFolder, node.elem.ctrlType))
+			time.sleep(loadingDelay)
+			self.autoSetParameter(node.left)
+			self.pushBtnApply()
+			time.sleep(4)
+			self.exit()
+			logging.info('Loging Copy\t: %s' %(logFolder))
+			self.copyLogs(logFolder)
+			self.clearLogs()
+			logging.info('Loging Finished\t: %s (%s)' % (node.elem.label, node.elem.ctrlType))
+		elif node.elem.ctrlType == 'TreeItem':
+			pass
+		self.getLogByScreen(node.left)
+		self.getLogByScreen(node.right)
+
+	def getLogByRootMenu(self, node):
+		node = node.left
+		while node != None and node.elem != None:
+			logging.info('----------------------------------------------------------')
+			self.startUp()
+			# self.setTraceLevel('Verbose')
+			logging.info('Loging Node\t: %s (%s)' % (node.elem.label, node.elem.ctrlType))
+			logFolder = ''
+			path = node.getPath()
+			for item in path:
+				logFolder = logFolder + '\\' + item.elem.label
+				item.select(self)
+			logging.info('Node Path\t: %s (%s)' % (logFolder, node.elem.ctrlType))
+			self.getLogsOfRootMenu(node.left)
+			self.exitRRTE()
+			logging.info('Loging Copy\t: %s' %(logFolder))
+			self.copyLogFiles(logFolder)
+			self.clearLogPath()
+			logging.info('Loging Finished\t: %s (%s)' % (node.elem.label, node.elem.ctrlType))
+			node = node.right
+
+	def getLogsOfRootMenu(self, node):
+
+		loadingDelay = int(self.config['MISC']['LOG_LOADING_TIME'].strip("'"))
+
+		if node == None or node.elem == None:
+			return
+		if node.isWindowNode() or node.isPageNode():
+			logging.info('>>>>>>Node Name\t: %s (%s)' % (node.elem.label, node.elem.ctrlType))
+			path = node.getPath()
+			for item in path:
+				item.select(self)
+			time.sleep(loadingDelay)
+			self.autoSetParameter(node.left)
+			self.pushButtonApply()
+			time.sleep(4)
+		elif node.elem.ctrlType == 'TreeItem':
+			pass
+
+		self.getLogsOfRootMenu(node.left)
+		self.getLogsOfRootMenu(node.right)
+
+	def autoSetParameter(self, node):
+		if node == None or node.elem == None:
+			return
+		NodeRW  = 'N/A'
+		NodeVal = 'N/A'
+		if isinstance(node.elem, RVariable):
+			if isinstance(node.elem, RMethod):
+				pass
+			elif isinstance(node.elem, REnum): # TODO
+				NodeVal = node.elem.currentVal
+				if node.elem.readonly:
+					NodeRW = 'Readonly'
+				else:
+					NodeRW = 'Writable'
+					#uiaElem = self.getCurrUiaElem()
+					anchor = node.elem.path[-2].getAnchorAfterSelect()
+					uiaElem = findFirstElemByName(anchor, node.elem.label)
+					uiaElem = findParentElem(uiaElem)
+					uiaElem = findFirstElemByControlType(uiaElem, UIAClient.UIA_ComboBoxControlTypeId)
+					assert isUIAElem(uiaElem)
+					expandCombo(uiaElem)
+					time.sleep(1)
+					uiaElemArray = findAllElemByControlType(uiaElem, UIAClient.UIA_ListItemControlTypeId)
+					for x in range(0, uiaElemArray.Length):
+						uiaItem = uiaElemArray.GetElement(x)
+						uiaText = findFirstElemByControlType(uiaItem, UIAClient.UIA_TextControlTypeId)
+						if uiaText.CurrentName == node.elem.currentVal:
+							pass
+						else:
+							pattern = uiaItem.GetCurrentPattern(UIAClient.UIA_SelectionItemPatternId)
+							Selection = cast(pattern, POINTER(UIAClient.IUIAutomationSelectionItemPattern))
+							Selection.Select()
+							break
+					time.sleep(1)
+					expandCombo(uiaElem)
+					uiaElemArray = findAllElemByControlType(uiaElem, UIAClient.UIA_ListItemControlTypeId)
+					for x in range(0, uiaElemArray.Length):
+						uiaItem = uiaElemArray.GetElement(x)
+						uiaText = findFirstElemByControlType(uiaItem, UIAClient.UIA_TextControlTypeId)
+						if uiaText.CurrentName == node.elem.currentVal:
+							pattern = uiaItem.GetCurrentPattern(UIAClient.UIA_SelectionItemPatternId)
+							Selection = cast(pattern, POINTER(UIAClient.IUIAutomationSelectionItemPattern))
+							Selection.Select()
+							break
+			elif isinstance(node.elem, RBitEnum):
+				NodeVal = node.elem.currentVal
+				if node.elem.readonly:
+					NodeRW = 'Readonly'
+				else:
+					NodeRW = 'Writable'
+					#uiaElem = self.getCurrUiaElem()
+					anchor = node.elem.path[-2].getAnchorAfterSelect()
+					uiaElem = findFirstElemByName(anchor, node.elem.label)
+					uiaElem = findParentElem(uiaElem)
+					uiaElem = findFirstElemByControlType(uiaElem, UIAClient.UIA_CustomControlTypeId)
+					assert isUIAElem(uiaElem)
+					time.sleep(0.4)
+					uiaElem = findFirstElemByControlType(uiaElem, UIAClient.UIA_CheckBoxControlTypeId)
+					assert isUIAElem(uiaElem)
+					pattern = uiaElem.GetCurrentPattern(UIAClient.UIA_TogglePatternId)
+					ctrl = cast(pattern, POINTER(UIAClient.IUIAutomationTogglePattern))
+					ctrl.Toggle()
+					time.sleep(0.4)
+					ctrl.Toggle()
+					time.sleep(0.4)
+			else:
+				NodeVal = node.elem.currentVal
+				if node.elem.readonly:
+					NodeRW = 'Readonly'
+				else:
+					NodeRW = 'Writable'
+					#uiaElem = self.getCurrUiaElem()
+					anchor = node.elem.path[-2].getAnchorAfterSelect()
+					uiaElem = findFirstElemByName(anchor, node.elem.label)
+					uiaElem = findParentElem(uiaElem)
+					uiaElem = findFirstElemByControlType(uiaElem, UIAClient.UIA_EditControlTypeId)
+					assert isUIAElem(uiaElem)
+					setEditbox(uiaElem, '')
+					setEditbox(uiaElem, NodeVal)
+		logging.info('%s : [Value = %s, RW = %s, Type = %s]' %(node.elem.label, NodeVal, NodeRW, node.elem.ctrlType))
+		if isinstance(node.elem, RGroup):
+			self.autoSetParameter(node.left)
+		self.autoSetParameter(node.right)
 	
 	@staticmethod
 	def waitDialogClose():
@@ -134,7 +353,7 @@ class RElement(Element):
 		return set
 	
 	def getChildren(self):
-		scope = self.getScopeAfterSelect()
+		scope = self.getAnchorAfterSelect()
 		if isPane(scope) or isTabItem(scope) or isGroup(scope):
 			return RElement.getChildrenFormContent(scope)
 		else:
@@ -145,8 +364,8 @@ class RRoot(RElement):
 		super(RRoot, self).__init__(label)
 		self.style = 'ROOT'
 	
-	def getSelfScope(self, scope):
-		rrte = findFirstElemByName(scope, 'Reference Run-time Environment', SCOPE_CHILDREN)
+	def getSelfAnchor(self, anchor):
+		rrte = findFirstElemByName(anchor, 'Reference Run-time Environment', SCOPE_CHILDREN)
 		all = findAllElemByControlType(rrte, UIAClient.UIA_CustomControlTypeId, SCOPE_CHILDREN)
 		workRoot = all.GetElement(all.Length-1)
 		assert isUIAElem(workRoot)
@@ -163,11 +382,11 @@ class RRoot(RElement):
 	
 	def getChildren(self):
 		set = []
-		scope = self.getScopeAfterSelect()
+		anchor = self.getAnchorAfterSelect()
 		# get offline root menu item
-		offline = findFirstElemBySubText(scope, 'Offline')
+		offline = findFirstElemBySubText(anchor, 'Offline')
 		if not isUIAElem(offline):
-			offline = findFirstElemBySubText(scope, 'Offline root menu')
+			offline = findFirstElemBySubText(anchor, 'Offline root menu')
 			assert isUIAElem(offline)
 			menu = RRootMenu('Offline root menu')
 		else:
@@ -176,7 +395,7 @@ class RRoot(RElement):
 		menu.rectangle = offline.CurrentBoundingRectangle
 		set.append(menu)
 		# get online root menu items
-		onlineRoot = findFirstElemByAutomationId(scope, 'OnlineParameters')
+		onlineRoot = findFirstElemByAutomationId(anchor, 'OnlineParameters')
 		assert isUIAElem(onlineRoot)
 		pane = findFirstElemByControlType(onlineRoot, UIAClient.UIA_PaneControlTypeId)
 		assert isUIAElem(pane)
@@ -199,49 +418,47 @@ class RRootMenu(RElement):
 	def __init__(self, label):
 		super(RRootMenu, self).__init__(label)
 		self.style = 'MENU'
-		self.current = None
 	
-	def getSelfScope(self, scope):
-		explorer = findFirstElemByAutomationId(scope, 'DD_ExplorerView')
+	def getSelfAnchor(self, anchor):
+		explorer = findFirstElemByAutomationId(anchor, 'DD_ExplorerView')
 		assert isUIAElem(explorer)
 		elem = findNextSiblingElem(explorer) # maybe pane or tree
 		assert isUIAElem(elem)
 		return elem
 	
 	def select(self):
-		scope = self.path[-2].getScopeAfterSelect()
+		anchor = self.path[-2].getAnchorAfterSelect()
 		# search root menu button
 		if not (self.label == 'Offline' or self.label == 'Offline root menu'):
-			onlineRoot = findFirstElemByAutomationId(scope, 'OnlineParameters')
+			onlineRoot = findFirstElemByAutomationId(anchor, 'OnlineParameters')
 			assert isUIAElem(onlineRoot)
 			pane = findFirstElemByControlType(onlineRoot, UIAClient.UIA_PaneControlTypeId)
 			assert isUIAElem(pane)
 			btn = findFirstElemBySubText(pane, self.label)
 		else:
-			btn = findFirstElemBySubText(scope, self.label)
+			btn = findFirstElemBySubText(anchor, self.label)
 		# push root menu button
 		assert isUIAElem(btn)
-		if not self.label == self.current:
+		if not isRootMenuPushed(btn):
 			pushButton(btn)
-			self.current = self.label
 			#RRTE.waitDialogClose()
 			time.sleep(6)
 		else:
-			time.sleep(1)
+			time.sleep(0.2)
 	
 class RMenu(RElement):
 	def __init__(self, label):
 		super(RMenu, self).__init__(label)
 		self.style = 'MENU'
 	
-	def getSelfScope(self, scope):
-		tree = findFirstElemBySubText(scope, self.label)
+	def getSelfAnchor(self, anchor):
+		tree = findFirstElemBySubText(anchor, self.label)
 		assert isUIAElem(tree)
 		return tree
 		
 	def select(self):
-		scope = self.path[-2].getScopeAfterSelect()
-		tree = findFirstElemBySubText(scope, self.label)
+		anchor = self.path[-2].getAnchorAfterSelect()
+		tree = findFirstElemBySubText(anchor, self.label)
 		assert isUIAElem(tree)
 		expandTree(tree)
 		time.sleep(0.5)
@@ -251,8 +468,8 @@ class RWindow(RElement):
 		super(RWindow, self).__init__(label)
 		self.style = 'WINDOW'
 	
-	def getSelfScope(self, scope):
-		leaf = findFirstElemBySubText(scope, self.label)
+	def getSelfAnchor(self, anchor):
+		leaf = findFirstElemBySubText(anchor, self.label)
 		assert isUIAElem(leaf)
 		curr = leaf
 		while not isTree(curr):
@@ -263,8 +480,8 @@ class RWindow(RElement):
 		return pane
 	
 	def select(self):
-		scope = self.path[-2].getScopeAfterSelect()
-		leaf = findFirstElemBySubText(scope, self.label)
+		anchor = self.path[-2].getAnchorAfterSelect()
+		leaf = findFirstElemBySubText(anchor, self.label)
 		assert isUIAElem(leaf)
 		pushLeaf(leaf)
 		time.sleep(1)
@@ -274,16 +491,16 @@ class RPage(RElement):
 		super(RPage, self).__init__(label)
 		self.style = 'PAGE'
 	
-	def getSelfScope(self, scope):
-		tabs = findFirstElemByControlType(scope, UIAClient.UIA_TabControlTypeId, SCOPE_CHILDREN)
+	def getSelfAnchor(self, anchor):
+		tabs = findFirstElemByControlType(anchor, UIAClient.UIA_TabControlTypeId, SCOPE_CHILDREN)
 		assert isUIAElem(tabs)
 		tab = findFirstElemByName(tabs, self.label)
 		assert isUIAElem(tab)
 		return tab
 	
 	def select(self):
-		scope = self.path[-2].getScopeAfterSelect()
-		tabs = findFirstElemByControlType(scope, UIAClient.UIA_TabControlTypeId, SCOPE_CHILDREN)
+		anchor = self.path[-2].getAnchorAfterSelect()
+		tabs = findFirstElemByControlType(anchor, UIAClient.UIA_TabControlTypeId, SCOPE_CHILDREN)
 		tab = findFirstElemByName(tabs, self.label)
 		assert isUIAElem(tab)
 		selectTab(tab)
@@ -294,8 +511,8 @@ class RGroup(RElement):
 		super(RGroup, self).__init__(label)
 		self.style = 'GROUP'
 	
-	def getSelfScope(self, scope):
-		group = findFirstElemByName(scope, self.label, SCOPE_CHILDREN)
+	def getSelfAnchor(self, anchor):
+		group = findFirstElemByName(anchor, self.label, SCOPE_CHILDREN)
 		assert isUIAElem(group)
 		return group
 	
@@ -306,8 +523,9 @@ class RVariable(RElement):
 	def __init__(self, uiaElem):
 		label = getElemSubName(uiaElem)
 		super(RVariable, self).__init__(label)
-		self.readonly = not isEditboxEnabled(uiaElem)
+		self.readonly = isEditboxEnabled(uiaElem)
 		self.style = 'VARIABLE'
+		self.currentVal = getCurrentValString(uiaElem)
 	
 	def isLeaf(self):
 		return True
@@ -342,8 +560,9 @@ class REnum(RVariable):
 		self.rectangle	= None
 		self.readonly	= not isComboboxEnabled(uiaElem)
 		self.style		= 'VARIABLE'
-		self.__ne107 = ['No Effect', 'Maintenance Required', 'Failure', 'Out of Specification', 'Function Check']
-		self.options = []
+		self.__ne107 	= ['No Effect', 'Maintenance Required', 'Failure', 'Out of Specification', 'Function Check']
+		self.options 	= []
+		self.currentVal = ''
 	
 	def __isNE107Label(self):
 		for item in self.__ne107:
@@ -383,6 +602,10 @@ class REnum(RVariable):
 				item = all.GetElement(x)
 				enum = findFirstElemByControlType(item, UIAClient.UIA_TextControlTypeId)
 				set.append(enum.CurrentName)
+				pattern = item.GetCurrentPattern(UIAClient.UIA_SelectionItemPatternId)
+				selection = cast(pattern, POINTER(UIAClient.IUIAutomationSelectionItemPattern))
+				if selection.CurrentIsSelected:
+					self.currentVal = enum.CurrentName
 			self.options.extend(set)
 		else:
 			self.options.extend(self.__ne107)
@@ -400,7 +623,8 @@ class RBitEnum(RVariable):
 		self.rectangle	= None
 		self.readonly 	= not isBitEnumGroupEnabled(uiaElem)
 		self.style		= 'VARIABLE'
-		self.options = []
+		self.options 	= []
+		self.currentVal = []
 	
 	def isBitEnum(self):
 		return True
@@ -418,4 +642,8 @@ class RBitEnum(RVariable):
 		for x in range(0, all.Length):
 			item = all.GetElement(x)
 			set.append(item.CurrentName)
+			pattern = item.GetCurrentPattern(UIAClient.UIA_TogglePatternId)
+			selection = cast(pattern, POINTER(UIAClient.IUIAutomationTogglePattern))
+			if selection.CurrentToggleState:
+				self.currentVal.append(item.CurrentName)
 		self.options.extend(set)

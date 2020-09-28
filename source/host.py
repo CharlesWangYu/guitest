@@ -145,14 +145,14 @@ class Element: # abstract class
 	def isBitEnum(self):
 		return False
 	
-	def getSelfScope(self, scope):
+	def getSelfAnchor(self, anchor):
 		pass
 	
-	def getScopeAfterSelect(self):
-		scope = DesktopRoot
+	def getAnchorAfterSelect(self):
+		anchor = DesktopRoot
 		for elem in self.path:
-			scope = elem.getSelfScope(scope)
-		return scope
+			anchor = elem.getSelfAnchor(anchor)
+		return anchor
 	
 	def select(self): # extend a node, for example, group, its processing may be inconsistent on different hosts
 		pass

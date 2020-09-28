@@ -8,6 +8,7 @@
 '''
 #import pdb
 #import logging
+import time
 from comtypes.client import *
 from ctypes import *
 
@@ -25,6 +26,9 @@ SCOPE_CHILDREN			= UIAClient.TreeScope_Children
 SCOPE_DESCENDANTS		= UIAClient.TreeScope_Descendants
 
 # This is a group of functions used to judge the attributes of UIA objects
+def getNullUIAElem():
+	return cast(0, POINTER(UIAClient.IUIAutomationElement))
+	
 def isUIAElem(elem):
 	NULL = cast(0, POINTER(UIAClient.IUIAutomationElement))
 	return not (elem == NULL)
@@ -141,46 +145,58 @@ def findFirstElemBySubText(root, name):
 	if not isUIAElem(child):
 		return cast(0, POINTER(UIAClient.IUIAutomationElement))
 	element = findParentElem(child)
-	#assert isUIAElem(element)
 	return element
 
 def findParentElem(child):
 	walker = IUIA.ControlViewWalker
 	parent = walker.GetParentElement(child)
-	assert isUIAElem(parent)
 	return parent
 
 def findFirstChildElem(elem):
 	walker = IUIA.ControlViewWalker
 	first = walker.GetFirstChildElement(elem)
-	assert isUIAElem(first)
 	return first
 
 def findLastChildElem(elem):
 	walker = IUIA.ControlViewWalker
 	last = walker.GetLastChildElement(elem)
-	assert isUIAElem(last)
 	return last
 
 def findNextSiblingElem(elem):
 	walker = IUIA.ControlViewWalker
 	next = walker.GetNextSiblingElement(elem)
-	assert isUIAElem(next)
 	return next
 
 def findPreviousSiblingElem(elem):
 	walker = IUIA.ControlViewWalker
 	element = walker.GetPreviousSiblingElement(elem)
-	assert isUIAElem(next)
 	return element
 
+def findWindowBlock(name):
+	win = getNullUIAElem()
+	while not isUIAElem(win):
+		time.sleep(1)
+		win = findFirstElem2ANDCond(DesktopRoot, UIAClient.UIA_WindowControlTypeId, UIAClient.UIA_ControlTypePropertyId, name, UIAClient.UIA_NamePropertyId, SCOPE_CHILDREN)
+	time.sleep(0.1)
+	return win
+
+def findFirstElemBlock(root, key, type, scope=SCOPE_DESCENDANTS):
+	part = getNullUIAElem()
+	while not isUIAElem(part):
+		time.sleep(1)
+		part = findFirstElem(root, key, type, scope)
+	time.sleep(0.1)
+	return part
+	
 # This is a group of functions for manipulating UIA objects.
 def setEditbox(elem, text):
 	assert isUIAElem(elem)
 	pattern = elem.GetCurrentPattern(UIAClient.UIA_ValuePatternId)
 	ctrl = cast(pattern, POINTER(UIAClient.IUIAutomationValuePattern))
 	elem.SetFocus()
+	time.sleep(0.4)
 	ctrl.SetValue(text)
+	time.sleep(0.4)
 
 def expandCombo(elem):
 	assert isUIAElem(elem)

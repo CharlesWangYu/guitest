@@ -38,9 +38,12 @@ def isLayoutNameMenu(uiaElem): # in menu tree, include menu and window
 
 def isEditboxEnabled(uiaElem):
 	assert isUIAElem(uiaElem)
-	count = 0
 	edit = findFirstElemByControlType(uiaElem, UIAClient.UIA_EditControlTypeId)
+	pattern = edit.GetCurrentPattern(UIAClient.UIA_ValuePatternId)
+	status = cast(pattern, POINTER(UIAClient.IUIAutomationValuePattern))
+	return status.CurrentIsReadOnly
 	'''
+	count = 0
 	while (not isUIAElem(edit)) and (count < 3):
 		edit = findFirstElemByControlType(uiaElem, UIAClient.UIA_EditControlTypeId)
 		count += 1
@@ -51,9 +54,9 @@ def isEditboxEnabled(uiaElem):
 
 def isComboboxEnabled(uiaElem):
 	assert isUIAElem(uiaElem)
-	count = 0
 	combo = findFirstElemByControlType(uiaElem, UIAClient.UIA_ComboBoxControlTypeId)
 	'''
+	count = 0
 	while (not isUIAElem(combo)) and (count < 3):
 		combo = findFirstElemByControlType(uiaElem, UIAClient.UIA_ComboBoxControlTypeId)
 		count += 1
@@ -64,7 +67,12 @@ def isComboboxEnabled(uiaElem):
 
 def isBitEnumGroupEnabled(uiaElem):
 	# TODO :
-	return True
+	return True	
+
+def isRootMenuPushed(uiaElem):
+	assert isUIAElem(uiaElem)
+	btnX = findFirstElemByName(uiaElem, 'X', SCOPE_CHILDREN)
+	return btnX.CurrentIsOffscreen == 0 # 0:isOffScreen=False, 1:isOffScreen=True
 
 def getElemSubName(uiaElem):
 	textbox = findFirstElemByControlType(uiaElem, UIAClient.UIA_TextControlTypeId, SCOPE_CHILDREN)
@@ -75,4 +83,10 @@ def getMenuMethodName(uiaElem):
 	btns = findAllElemByControlType(uiaElem, UIAClient.UIA_ButtonControlTypeId, SCOPE_CHILDREN)
 	btn = btns.GetElement(btns.Length-1)
 	text = btn.CurrentName
+	return text
+
+def getCurrentValString(uiaElem):
+	editItem = findFirstElemByControlType(uiaElem, UIAClient.UIA_EditControlTypeId)
+	textbox  = findFirstElemByControlType(editItem, UIAClient.UIA_TextControlTypeId)
+	text = textbox.CurrentName
 	return text
