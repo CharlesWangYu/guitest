@@ -194,21 +194,25 @@ def setEditbox(elem, text):
 	pattern = elem.GetCurrentPattern(UIAClient.UIA_ValuePatternId)
 	ctrl = cast(pattern, POINTER(UIAClient.IUIAutomationValuePattern))
 	elem.SetFocus()
-	time.sleep(0.4)
+	time.sleep(0.1)
 	ctrl.SetValue(text)
-	time.sleep(0.4)
+	time.sleep(0.1)
 
 def expandCombo(elem):
 	assert isUIAElem(elem)
 	pattern = elem.GetCurrentPattern(UIAClient.UIA_ExpandCollapsePatternId)
 	ctrl = cast(pattern, POINTER(UIAClient.IUIAutomationExpandCollapsePattern))
 	if ctrl.value.CurrentExpandCollapseState == UIAClient.ExpandCollapseState_Collapsed:
+		time.sleep(0.1)
+		elem.SetFocus()
+		time.sleep(0.1)
 		ctrl.Expand()
 
 def collapseCombo(elem):
 	pattern = elem.GetCurrentPattern(UIAClient.UIA_ExpandCollapsePatternId)
 	ctrl = cast(pattern, POINTER(UIAClient.IUIAutomationExpandCollapsePattern))
 	if ctrl.value.CurrentExpandCollapseState == UIAClient.ExpandCollapseState_Expanded:
+		elem.SetFocus()
 		ctrl.Collapse()
 
 def expandTree(elem):
@@ -218,6 +222,7 @@ def expandTree(elem):
 	pattern = btn.GetCurrentPattern(UIAClient.UIA_TogglePatternId)
 	ctrl = cast(pattern, POINTER(UIAClient.IUIAutomationTogglePattern))
 	if not ctrl.value.CurrentToggleState:
+		elem.SetFocus()
 		ctrl.Toggle()
 
 def collapseTree(elem):
@@ -227,18 +232,21 @@ def collapseTree(elem):
 	pattern = btn.GetCurrentPattern(UIAClient.UIA_TogglePatternId)
 	ctrl = cast(pattern, POINTER(UIAClient.IUIAutomationTogglePattern))
 	if ctrl.value.CurrentToggleState:
+		elem.SetFocus()
 		ctrl.Toggle()
 
 def pushLeaf(elem):
 	assert isTreeLeaf(elem)
 	pattern = elem.GetCurrentPattern(UIAClient.UIA_SelectionItemPatternId)
 	ctrl = cast(pattern, POINTER(UIAClient.IUIAutomationSelectionItemPattern))
+	elem.SetFocus()
 	ctrl.Select()
 
 def pushButton(elem):
 	assert isUIAElem(elem)
 	pattern = elem.GetCurrentPattern(UIAClient.UIA_InvokePatternId)
 	ctrl = cast(pattern, POINTER(UIAClient.IUIAutomationInvokePattern))
+	elem.SetFocus()
 	ctrl.Invoke()
 	
 def selectTab(elem):
@@ -246,6 +254,7 @@ def selectTab(elem):
 	pattern = elem.GetCurrentPattern(UIAClient.UIA_SelectionItemPatternId)
 	ctrl = cast(pattern, POINTER(UIAClient.IUIAutomationSelectionItemPattern))
 	if not ctrl.value.CurrentIsSelected:
+		elem.SetFocus()
 		ctrl.Select()
 
 def selectCheckbox(elem):
@@ -253,6 +262,7 @@ def selectCheckbox(elem):
 	pattern = elem.GetCurrentPattern(UIAClient.UIA_TogglePatternId)
 	ctrl = cast(pattern, POINTER(UIAClient.IUIAutomationTogglePattern))
 	if not ctrl.value.CurrentToggleState:
+		elem.SetFocus()
 		ctrl.Toggle()
 
 def unselectCheckbox(elem):
@@ -260,6 +270,7 @@ def unselectCheckbox(elem):
 	pattern = elem.GetCurrentPattern(UIAClient.UIA_TogglePatternId)
 	ctrl = cast(pattern, POINTER(UIAClient.IUIAutomationTogglePattern))
 	if ctrl.value.CurrentToggleState:
+		elem.SetFocus()
 		ctrl.Toggle()
 
 if __name__ == '__main__':

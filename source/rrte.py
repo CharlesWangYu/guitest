@@ -91,6 +91,7 @@ class RRTE(Host):
 			assert isUIAElem(ApplyRoot)
 			pushButton(ApplyRoot)
 			#logging.info('Information: Push the button of <Apply> success')
+			time.sleep(4)
 		except Exception as e:
 			print('[Error] : Button "Apply" can not be pushed!')
 
@@ -123,7 +124,6 @@ class RRTE(Host):
 			time.sleep(loadingDelay)
 			self.autoSetParameter(node.left)
 			self.pushBtnApply()
-			time.sleep(4)
 			self.exit()
 			logging.info('Loging Copy\t: %s' %(logFolder))
 			self.copyLogs(logFolder)
@@ -145,31 +145,30 @@ class RRTE(Host):
 			path = node.getPath()
 			for item in path:
 				logFolder = logFolder + '\\' + item.elem.label
-				item.select(self)
+				item.select()
 			logging.info('Node Path\t: %s (%s)' % (logFolder, node.elem.ctrlType))
 			self.getLogsOfRootMenu(node.left)
-			self.exitRRTE()
+			self.exit()
 			logging.info('Loging Copy\t: %s' %(logFolder))
-			self.copyLogFiles(logFolder)
-			self.clearLogPath()
+			self.copyLogs(logFolder)
+			self.clearLogs()
 			logging.info('Loging Finished\t: %s (%s)' % (node.elem.label, node.elem.ctrlType))
 			node = node.right
 
 	def getLogsOfRootMenu(self, node):
 
-		loadingDelay = int(self.config['MISC']['LOG_LOADING_TIME'].strip("'"))
+		loadingDelay = int(self.config['LOG']['LOG_LOADING_TIME'].strip("'"))
 
 		if node == None or node.elem == None:
 			return
-		if node.isWindowNode() or node.isPageNode():
+		if isinstance(node.elem, RWindow) or isinstance(node.elem, RPage):
 			logging.info('>>>>>>Node Name\t: %s (%s)' % (node.elem.label, node.elem.ctrlType))
 			path = node.getPath()
 			for item in path:
-				item.select(self)
+				item.select()
 			time.sleep(loadingDelay)
 			self.autoSetParameter(node.left)
-			self.pushButtonApply()
-			time.sleep(4)
+			self.pushBtnApply()
 		elif node.elem.ctrlType == 'TreeItem':
 			pass
 
@@ -393,7 +392,7 @@ class RRoot(RElement):
 			menu = RRootMenu('Offline')
 		menu.ctrlType = 'Button'
 		menu.rectangle = offline.CurrentBoundingRectangle
-		set.append(menu)
+		#set.append(menu)
 		# get online root menu items
 		onlineRoot = findFirstElemByAutomationId(anchor, 'OnlineParameters')
 		assert isUIAElem(onlineRoot)
@@ -405,9 +404,9 @@ class RRoot(RElement):
 			label = getElemSubName(item)
 			if label == 'Online': continue # TODO
 			#if label == 'Device root menu': continue # TODO
-			#if label == 'Diagnostic root menu': continue # TODO
-			#if label == 'Maintenance root menu': continue # TODO
-			#if label == 'Process variables root menu': continue # TODO
+			if label == 'Diagnostic root menu': continue # TODO
+			if label == 'Maintenance root menu': continue # TODO
+			if label == 'Process variables root menu': continue # TODO
 			elem = RRootMenu(label)
 			elem.ctrlType = 'Button'
 			elem.rectangle = item.CurrentBoundingRectangle

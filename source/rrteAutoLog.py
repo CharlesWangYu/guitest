@@ -10,6 +10,7 @@
 #import logging
 import os
 import datetime
+import re
 from host import *
 from rrte import *
 
@@ -20,7 +21,7 @@ class TextCheck:
 		self.config.read('test.conf', encoding='UTF-8')
 
 	def checkAllLogFiles(self, Keyword = 'Error'):
-		logPath = self.config['MISC']['OUTPUT_PATH'].strip("'")
+		logPath = self.config['COMM']['OUTPUT_FILE_PATH'].strip("'")
 		logPath = logPath + '\\'
 		reportPath = logPath + 'CheckReport.txt'
 		if os.path.isfile(reportPath):
@@ -93,11 +94,11 @@ if __name__ == '__main__':
 	logging.info('[Start logging] : ' + datetime.datetime.now().strftime('%Y.%m.%d-%H:%M:%S'))
 	rrte.clearLogs()
 	rrte.clearOutput()
-	rrte.getLogByScreen(rrte.root)
-	#rrte.getLogByRootMenu(rrte.root)
+	#rrte.getLogByScreen(rrte.root)
+	rrte.getLogByRootMenu(rrte.root)
 	logging.info('[Stop logging] : ' + datetime.datetime.now().strftime('%Y.%m.%d-%H:%M:%S'))
 	#logging.info('>>>>>> Log getting finished')
 	#logging.info('==========================================================')
 	# Confirm error information in log files
-	#text = TextCheck()
-	#text.checkAllLogFiles('Entry')
+	text = TextCheck()
+	text.checkAllLogFiles('Entry')
