@@ -78,19 +78,16 @@ class RRTE(Host):
 		try:
 			topTAB   = findFirstElemByName(self.host, 'Fdi.Client.DeviceUi.ViewModel.DeviceUiHostContainerItemViewModel')
 			assert isUIAElem(topTAB)
-			explorer = findFirstElem(topTAB, 'DD_ExplorerView', UIAClient.UIA_AutomationIdPropertyId)
-			assert isUIAElem(explorer)
-			treeRoot = findNextSiblingElem(explorer)
-			assert isUIAElem(treeRoot)
-			paneRoot = findNextSiblingElem(treeRoot)
-			assert isUIAElem(paneRoot)
-			paneRoot.SetFocus()
-			RevertRoot = findNextSiblingElem(paneRoot)
-			assert isUIAElem(RevertRoot)
-			ApplyRoot  = findNextSiblingElem(RevertRoot)
-			assert isUIAElem(ApplyRoot)
-			pushButton(ApplyRoot)
-			#logging.info('Information: Push the button of <Apply> success')
+			custom = findFirstElemByControlType(topTAB, UIAClient.UIA_CustomControlTypeId,SCOPE_CHILDREN)
+			assert isUIAElem(custom)
+			applyBut = findFirstElemByName(custom,'Apply',SCOPE_CHILDREN)
+			assert isUIAElem(applyBut)
+			revertBut = findPreviousSiblingElem(applyBut)
+			assert isUIAElem(revertBut)
+			focusItem = findPreviousSiblingElem(revertBut)
+			assert isUIAElem(focusItem)
+			focusItem.SetFocus()
+			pushButton(applyBut)
 			time.sleep(4)
 		except Exception as e:
 			print('[Error] : Button "Apply" can not be pushed!')
@@ -106,31 +103,50 @@ class RRTE(Host):
 		setEditbox(menuTraceLevel, logLevel)
 		#logging.info('Information: TraceLevel = %s' % logLevel)
 
+	def isNodeHaveVairable(self, node):
+		node = node.left
+		while node != None and node.elem != None:
+			if isinstance(node.elem, RVariable):
+				if not isinstance(node.elem, RMethod):
+					return True
+			elif isinstance(node.elem, RGroup):
+				return True
+			node = node.right
+		return False
+
+	def getRRTE_Logs(self, node):
+		SeparateLogs = self.config['LOG']['LOG_SEPARATED'].strip("'")
+		if SeparateLogs == 'ON':
+			self.getLogByScreen(node)
+		else:
+			self.getLogByRootMenu(node)
+
 	def getLogByScreen(self, node):
 		loadingDelay = int(self.config['LOG']['LOG_LOADING_TIME'].strip("'"))
 		if node == None or node.elem == None:
 			return
 		if isinstance(node.elem, RWindow) or isinstance(node.elem, RPage):
-			logging.info('----------------------------------------------------------')
-			self.startUp()
-			#self.setTraceLevel('Verbose')
-			logging.info('Loging Node\t: %s (%s)' % (node.elem.label, node.elem.ctrlType))
-			logFolder = ''
-			path = node.getPath()
-			for item in path:
-				logFolder = logFolder + '\\' + item.elem.label
-				item.select()
-			logging.info('Node Path\t: %s (%s)' % (logFolder, node.elem.ctrlType))
-			time.sleep(loadingDelay)
-			self.autoSetParameter(node.left)
-			self.pushBtnApply()
-			self.exit()
-			logging.info('Loging Copy\t: %s' %(logFolder))
-			self.copyLogs(logFolder)
-			self.clearLogs()
-			logging.info('Loging Finished\t: %s (%s)' % (node.elem.label, node.elem.ctrlType))
-		elif node.elem.ctrlType == 'TreeItem':
-			pass
+			if self.isNodeHaveVairable(node):
+				logging.info('----------------------------------------------------------')
+				self.startUp()
+				#self.setTraceLevel('Verbose')
+				logging.info('Loging Node\t: %s (%s)' % (node.elem.label, node.elem.ctrlType))
+				logFolder = ''
+				path = node.getPath()
+				for item in path:
+					logFolder = logFolder + '\\' + item.elem.label
+					item.select()
+				logging.info('Node Path\t: %s (%s)' % (logFolder, node.elem.ctrlType))
+				time.sleep(loadingDelay)
+				self.autoSetParameter(node.left)
+				self.pushBtnApply()
+				self.exit()
+				logging.info('Loging Copy\t: %s' %(logFolder))
+				self.copyLogs(logFolder)
+				self.clearLogs()
+				logging.info('Loging Finished\t: %s (%s)' % (node.elem.label, node.elem.ctrlType))
+			else:
+				logging.info('Information: [%s] does not need to obtain Logs' % (node.elem.label))
 		self.getLogByScreen(node.left)
 		self.getLogByScreen(node.right)
 
@@ -156,22 +172,20 @@ class RRTE(Host):
 			node = node.right
 
 	def getLogsOfRootMenu(self, node):
-
 		loadingDelay = int(self.config['LOG']['LOG_LOADING_TIME'].strip("'"))
-
 		if node == None or node.elem == None:
 			return
 		if isinstance(node.elem, RWindow) or isinstance(node.elem, RPage):
-			logging.info('>>>>>>Node Name\t: %s (%s)' % (node.elem.label, node.elem.ctrlType))
-			path = node.getPath()
-			for item in path:
-				item.select()
-			time.sleep(loadingDelay)
-			self.autoSetParameter(node.left)
-			self.pushBtnApply()
-		elif node.elem.ctrlType == 'TreeItem':
-			pass
-
+			if self.isNodeHaveVairable(node):
+				logging.info('>>>>>>Opening Node [%s (%s)] and waitting parameter loading' % (node.elem.label, node.elem.ctrlType))
+				path = node.getPath()
+				for item in path:
+					item.select()
+				time.sleep(loadingDelay)
+				self.autoSetParameter(node.left)
+				self.pushBtnApply()
+			else:
+				logging.info('Information: [%s] does not need to obtain Logs' % (node.elem.label))
 		self.getLogsOfRootMenu(node.left)
 		self.getLogsOfRootMenu(node.right)
 
@@ -392,7 +406,7 @@ class RRoot(RElement):
 			menu = RRootMenu('Offline')
 		menu.ctrlType = 'Button'
 		menu.rectangle = offline.CurrentBoundingRectangle
-		#set.append(menu)
+		set.append(menu)
 		# get online root menu items
 		onlineRoot = findFirstElemByAutomationId(anchor, 'OnlineParameters')
 		assert isUIAElem(onlineRoot)
@@ -402,11 +416,11 @@ class RRoot(RElement):
 		for x in range(0, all.Length):
 			item = all.GetElement(x)
 			label = getElemSubName(item)
-			if label == 'Online': continue # TODO
+			#if label == 'Online': continue # TODO
 			#if label == 'Device root menu': continue # TODO
-			if label == 'Diagnostic root menu': continue # TODO
-			if label == 'Maintenance root menu': continue # TODO
-			if label == 'Process variables root menu': continue # TODO
+			#if label == 'Diagnostic root menu': continue # TODO
+			#if label == 'Maintenance root menu': continue # TODO
+			#if label == 'Process variables root menu': continue # TODO
 			elem = RRootMenu(label)
 			elem.ctrlType = 'Button'
 			elem.rectangle = item.CurrentBoundingRectangle
@@ -441,9 +455,9 @@ class RRootMenu(RElement):
 		if not isRootMenuPushed(btn):
 			pushButton(btn)
 			#RRTE.waitDialogClose()
-			time.sleep(6)
+			time.sleep(8)
 		else:
-			time.sleep(0.2)
+			time.sleep(1)
 	
 class RMenu(RElement):
 	def __init__(self, label):

@@ -30,6 +30,7 @@ if __name__ == '__main__':
 		logging.info('[Finished tree generation] : ' + datetime.datetime.now().strftime('%Y.%m.%d-%H:%M:%S'))
 		rrte.serialize()
 	else:
+		logging.info('[Restore tree generation] : ' + datetime.datetime.now().strftime('%Y.%m.%d-%H:%M:%S'))
 		rrte.restore()
 	Util.dumpMenuLabel2Csv(rrte.root)
 	Util.dumpEnumOpt2Csv(rrte.root)

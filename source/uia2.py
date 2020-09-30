@@ -116,7 +116,7 @@ def findAllElem4ORCond(root, key1, key2, key3, key4, type, scope=SCOPE_DESCENDAN
 		combine = IUIA.CreateOrConditionFromArray(condArray)
 		all = root.FindAll(scope, combine)
 		return all
-	except e:
+	except Exception as e:
 		print ('Catch abnormal [%s]' % e)
 
 def findFirstElem(root, key, type, scope=SCOPE_DESCENDANTS):
@@ -227,7 +227,7 @@ def expandTree(elem):
 
 def collapseTree(elem):
 	assert isUIAElem(elem)
-	btn = findFirstElemByControlType(onlineRoot, UIAClient.UIA_ButtonControlTypeId, SCOPE_CHILDREN)
+	btn = findFirstElemByControlType(elem, UIAClient.UIA_ButtonControlTypeId, SCOPE_CHILDREN)
 	assert isUIAElem(btn)
 	pattern = btn.GetCurrentPattern(UIAClient.UIA_TogglePatternId)
 	ctrl = cast(pattern, POINTER(UIAClient.IUIAutomationTogglePattern))

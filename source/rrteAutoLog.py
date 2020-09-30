@@ -14,42 +14,52 @@ import re
 from host import *
 from rrte import *
 
-######TextCheck#######
-class TextCheck:
+
+class logResultCheck:
+
+	logPath =  None
+	reportFile = None
+
 	def __init__(self):
 		self.config = ConfigParser()
 		self.config.read('test.conf', encoding='UTF-8')
 
+	def getLogsPath(self):
+		logsPath = self.config['COMM']['OUTPUT_FILE_PATH'].strip("'") + '\\'
+		return logsPath
+
+	def getReportPath(self):
+		reportPath = self.getLogsPath() + 'CheckReport.txt'
+		return reportPath
+
+	def clearReportFile(self):
+		if os.path.isfile(self.getReportPath()):
+			os.remove(self.getReportPath())
+
+	def writeReportFile(self, message):
+		with open(self.getReportPath(), 'w', newline='', encoding='UTF-8') as reportFile:
+			reportFile.write(message + '\r\n')
+			logging.info(message)
+
 	def checkAllLogFiles(self, Keyword = 'Error'):
-		logPath = self.config['COMM']['OUTPUT_FILE_PATH'].strip("'")
-		logPath = logPath + '\\'
-		reportPath = logPath + 'CheckReport.txt'
-		if os.path.isfile(reportPath):
-			os.remove(reportPath)
-		checkReort ='============ Begin of the Report ============ \r\n'
-		checkReort = checkReort + 'ReportPath = ' + logPath + '\r\n'
-		checkReort = checkReort + 'ReportData = ' + datetime.datetime.now().strftime('%Y-%m-%d')  + '\r\n'
-		checkReort = checkReort + 'ReportTime = ' + datetime.datetime.now().strftime('%H:%M:%S')  + '\r\n'
-		logging.info(checkReort)
-		for root, dirs, files in os.walk(logPath):
+		self.clearReportFile()
+		self.writeReportFile('======================== Begin of the Report ========================')
+		self.writeReportFile('ReportPath = ' + self.getReportPath())
+		self.writeReportFile('ReportData = ' + datetime.datetime.now().strftime('%Y-%m-%d'))
+		self.writeReportFile('ReportTime = ' + datetime.datetime.now().strftime('%H:%M:%S'))
+
+		for root, dirs, files in os.walk(self.getLogsPath()):
 			for file in files:
 				filePath = os.path.join(root, file).encode('utf-8')
-				logging.info('------------------------------------------')
-				logging.info('Find Out File: %s' %(filePath))
-				checkReort = checkReort + '------------------------------------------------------------------\r\n'
-				checkReort = checkReort + self.checkOneLogFile(Keyword, filePath)
+				self.checkOneLogFile(Keyword, filePath)
 
-		checkReort = checkReort + '============ End of the Report ============'
-		with open(reportPath, 'w', newline='', encoding='UTF-8') as reportFile:
-			reportFile.write(checkReort)
+		self.writeReportFile('======================== End of the Report ========================')
 
 	def checkOneLogFile(self, Keyword, filePath):
-		checkResult = ''
 		if os.path.exists(filePath):
-			message = 'FilePath = ' + str(filePath)
-			checkResult = checkResult + message + '\r\n'
-			message = '>>>Start to check file'
-			checkResult = checkResult + message + '\r\n'
+			self.writeReportFile('-------------------------------------------------------------------')
+			self.writeReportFile('Checking Log = ' + str(filePath))
+
 			with open(filePath, 'r', encoding='UTF-8')as fileTxt:
 				lineNum = 0
 				lineErr = 0
@@ -57,18 +67,12 @@ class TextCheck:
 					lineNum = lineNum+1
 					matchReult = re.search(Keyword, lineTxt, flags=0)
 					if matchReult:
-						message = '[Line ' + str(lineNum) + ']: ' + lineTxt.replace('\n', '')
-						checkResult = checkResult + message + '\r\n'
+						self.writeReportFile('[Line ' + str(lineNum) + ']: ' + lineTxt.replace('\n', ''))
 						lineErr = lineErr+1
-				message = 'As shown above, there are ' + str(lineErr) + ' lines have [' + Keyword + '], please check...'
-				checkResult = checkResult + message + '\r\n'
-			message = '>>>Completed checking file'
-			checkResult = checkResult + message + '\r\n'
+				self.writeReportFile('As shown above, there are ' + str(lineErr) + ' lines have [' + Keyword + '], please check...')
 		else:
-			message ='Error：Can not find the file!'
-			checkResult = checkResult + message + '\r\n'
-		logging.info(checkResult)
-		return checkResult
+			self.writeReportFile('Error：Can not find the file!')
+
 
 if __name__ == '__main__':
 	#pdb.set_trace()
@@ -91,14 +95,13 @@ if __name__ == '__main__':
 		logging.info('[Restore tree generation] : ' + datetime.datetime.now().strftime('%Y.%m.%d-%H:%M:%S'))
 		rrte.restore()
 	# Get logging
+	logging.info('==========================================================')
 	logging.info('[Start logging] : ' + datetime.datetime.now().strftime('%Y.%m.%d-%H:%M:%S'))
 	rrte.clearLogs()
 	rrte.clearOutput()
-	#rrte.getLogByScreen(rrte.root)
-	rrte.getLogByRootMenu(rrte.root)
+	rrte.getRRTE_Logs(rrte.root)
 	logging.info('[Stop logging] : ' + datetime.datetime.now().strftime('%Y.%m.%d-%H:%M:%S'))
-	#logging.info('>>>>>> Log getting finished')
-	#logging.info('==========================================================')
+	logging.info('==========================================================')
 	# Confirm error information in log files
-	text = TextCheck()
-	text.checkAllLogFiles('Entry')
+	check = logResultCheck()
+	check.checkAllLogFiles('Entry')

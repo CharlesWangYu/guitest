@@ -66,8 +66,8 @@ def isComboboxEnabled(uiaElem):
 	return combo.CurrentIsEnabled
 
 def isBitEnumGroupEnabled(uiaElem):
-	# TODO :
-	return True	
+	checkBox = findFirstElemByControlType(uiaElem, UIAClient.UIA_CheckBoxControlTypeId)
+	return checkBox.CurrentIsEnabled
 
 def isRootMenuPushed(uiaElem):
 	assert isUIAElem(uiaElem)
