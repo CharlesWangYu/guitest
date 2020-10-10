@@ -12,6 +12,17 @@ from uia2 import *
 from comtypes.client import *
 from ctypes import *
 
+def waitProgressBarClose():
+	desktop = IUIA.GetRootElement()
+	assert isUIAElem(desktop)
+	rrte = findFirstElemByName(desktop, 'Reference Run-time Environment', SCOPE_CHILDREN)
+	assert isUIAElem(rrte)
+	process = findFirstElemByControlType(rrte, UIAClient.UIA_WindowControlTypeId, SCOPE_CHILDREN)
+	while isUIAElem(process):
+		time.sleep(0.1)
+		process = findFirstElemByControlType(rrte, UIAClient.UIA_WindowControlTypeId, SCOPE_CHILDREN)
+	time.sleep(0.1)
+			
 def isContentNameString(uiaElem):
 	return 'Fdi.Ui.ViewModel.Content.StringParameterViewModel' == uiaElem.CurrentName
 
@@ -42,26 +53,12 @@ def isEditboxEnabled(uiaElem):
 	pattern = edit.GetCurrentPattern(UIAClient.UIA_ValuePatternId)
 	status = cast(pattern, POINTER(UIAClient.IUIAutomationValuePattern))
 	return status.CurrentIsReadOnly
-	'''
-	count = 0
-	while (not isUIAElem(edit)) and (count < 3):
-		edit = findFirstElemByControlType(uiaElem, UIAClient.UIA_EditControlTypeId)
-		count += 1
-		time.sleep(0.1)
-	'''
 	assert isUIAElem(edit)
 	return edit.CurrentIsEnabled
 
 def isComboboxEnabled(uiaElem):
 	assert isUIAElem(uiaElem)
 	combo = findFirstElemByControlType(uiaElem, UIAClient.UIA_ComboBoxControlTypeId)
-	'''
-	count = 0
-	while (not isUIAElem(combo)) and (count < 3):
-		combo = findFirstElemByControlType(uiaElem, UIAClient.UIA_ComboBoxControlTypeId)
-		count += 1
-		time.sleep(0.1)
-	'''
 	assert isUIAElem(combo)
 	return combo.CurrentIsEnabled
 
@@ -73,6 +70,26 @@ def isRootMenuPushed(uiaElem):
 	assert isUIAElem(uiaElem)
 	btnX = findFirstElemByName(uiaElem, 'X', SCOPE_CHILDREN)
 	return btnX.CurrentIsOffscreen == 0 # 0:isOffScreen=False, 1:isOffScreen=True
+	
+def isTreeItemExpand(uiaElem):
+	assert isUIAElem(uiaElem)
+	btn = findFirstElemByControlType(uiaElem, UIAClient.UIA_ButtonControlTypeId, SCOPE_CHILDREN)
+	assert isUIAElem(btn)
+	pattern = btn.GetCurrentPattern(UIAClient.UIA_TogglePatternId)
+	ctrl = cast(pattern, POINTER(UIAClient.IUIAutomationTogglePattern))
+	return ctrl.value.CurrentToggleState
+
+def isTreeLeafSelected(uiaElem):
+	assert isUIAElem(uiaElem)
+	pattern = uiaElem.GetCurrentPattern(UIAClient.UIA_SelectionItemPatternId)
+	ctrl = cast(pattern, POINTER(UIAClient.IUIAutomationSelectionItemPattern))
+	return ctrl.value.CurrentIsSelected
+	
+def isTabSelected(uiaElem):
+	assert isUIAElem(uiaElem)
+	pattern = uiaElem.GetCurrentPattern(UIAClient.UIA_SelectionItemPatternId)
+	ctrl = cast(pattern, POINTER(UIAClient.IUIAutomationSelectionItemPattern))
+	return ctrl.value.CurrentIsSelected
 
 def getElemSubName(uiaElem):
 	textbox = findFirstElemByControlType(uiaElem, UIAClient.UIA_TextControlTypeId, SCOPE_CHILDREN)
@@ -90,3 +107,43 @@ def getCurrentValString(uiaElem):
 	textbox  = findFirstElemByControlType(editItem, UIAClient.UIA_TextControlTypeId)
 	text = textbox.CurrentName
 	return text
+
+def setEditboxCurrVal(uiaElem, currVal):
+	editor = findFirstElemByControlType(uiaElem, UIAClient.UIA_EditControlTypeId)
+	assert isUIAElem(editor)
+	setEditbox(editor, '')
+	setEditbox(editor, currVal)
+
+def setGroupCheckboxCurrVal(uiaElem):
+	custom = findFirstElemByControlType(uiaElem, UIAClient.UIA_CustomControlTypeId)
+	assert isUIAElem(custom)
+	checkbox = findFirstElemByControlType(custom, UIAClient.UIA_CheckBoxControlTypeId)
+	assert isUIAElem(checkbox)
+	pattern = checkbox.GetCurrentPattern(UIAClient.UIA_TogglePatternId)
+	ctrl = cast(pattern, POINTER(UIAClient.IUIAutomationTogglePattern))
+	ctrl.Toggle()
+	time.sleep(0.1) # Do not delete this delay. It will cause failure in the interval between two toggle operations.
+	ctrl.Toggle()
+
+def setComboboxCurrVal(uiaElem, currVal):
+	combo = findFirstElemByControlType(uiaElem, UIAClient.UIA_ComboBoxControlTypeId)
+	assert isUIAElem(combo)
+	expandCombo(combo)
+	opts = findAllElemByControlType(combo, UIAClient.UIA_ListItemControlTypeId)
+	for x in range(0, opts.Length):
+		opt = opts.GetElement(x)
+		txt = findFirstElemByControlType(opt, UIAClient.UIA_TextControlTypeId)
+		if not txt.CurrentName == currVal:
+			pattern = opt.GetCurrentPattern(UIAClient.UIA_SelectionItemPatternId)
+			Selection = cast(pattern, POINTER(UIAClient.IUIAutomationSelectionItemPattern))
+			Selection.Select()
+			break
+	expandCombo(combo)
+	for x in range(0, opts.Length):
+		opt = opts.GetElement(x)
+		txt = findFirstElemByControlType(opt, UIAClient.UIA_TextControlTypeId)
+		if txt.CurrentName == currVal:
+			pattern = opt.GetCurrentPattern(UIAClient.UIA_SelectionItemPatternId)
+			Selection = cast(pattern, POINTER(UIAClient.IUIAutomationSelectionItemPattern))
+			Selection.Select()
+			break

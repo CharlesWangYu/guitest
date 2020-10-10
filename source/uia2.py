@@ -196,7 +196,6 @@ def setEditbox(elem, text):
 	elem.SetFocus()
 	time.sleep(0.1)
 	ctrl.SetValue(text)
-	time.sleep(0.1)
 
 def expandCombo(elem):
 	assert isUIAElem(elem)
@@ -247,6 +246,7 @@ def pushButton(elem):
 	pattern = elem.GetCurrentPattern(UIAClient.UIA_InvokePatternId)
 	ctrl = cast(pattern, POINTER(UIAClient.IUIAutomationInvokePattern))
 	elem.SetFocus()
+	#time.sleep(0.1)
 	ctrl.Invoke()
 	
 def selectTab(elem):

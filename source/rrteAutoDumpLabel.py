@@ -8,9 +8,9 @@
 '''
 #import pdb
 #import logging
-import os
 import datetime
 import re
+from configparser import ConfigParser
 from host import *
 from rrte import *
 
@@ -18,20 +18,22 @@ if __name__ == '__main__':
 	#pdb.set_trace()
 	logging.basicConfig(level = logging.INFO)
 	logging.info('[Start RRTE] : ' + datetime.datetime.now().strftime('%Y.%m.%d-%H:%M:%S'))
+	config = ConfigParser()
+	config.read('test.conf', encoding='UTF-8')
 	top = RRoot('root')
 	top.ctrlType = ''
 	top.rectangle = None
 	top.path = [top]
 	root = TreeNode(top)
-	rrte = RRTE(root)
+	rrte = RRTE(config, root)
 	rrte.startUp()
-	if not os.path.exists('./tree.bin'):
+	if not rrte.isDesTreeSerialized():
 		rrte.createTree(rrte.root)
 		logging.info('[Finished tree generation] : ' + datetime.datetime.now().strftime('%Y.%m.%d-%H:%M:%S'))
-		rrte.serialize()
+		rrte.serializeDesTree()
 	else:
 		logging.info('[Restore tree generation] : ' + datetime.datetime.now().strftime('%Y.%m.%d-%H:%M:%S'))
-		rrte.restore()
+		rrte.restoreDesTree()
 	Util.dumpMenuLabel2Csv(rrte.root)
 	Util.dumpEnumOpt2Csv(rrte.root)
 	Util.dumpBitEnumOpt2Csv(rrte.root)

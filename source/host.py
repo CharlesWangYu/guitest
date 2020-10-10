@@ -16,7 +16,8 @@ from uiaRRTE import *
 
 # It's EDD's host application's abstract class.
 class Host:
-	def __init__(self, root=None):
+	def __init__(self, config=None, root=None):
+		self.config = config
 		self.root = root
 		self.host = None
 	
@@ -49,13 +50,12 @@ class Host:
 		assert not target == None
 		assert not target.elem.isLeaf()
 		# migrate to the target screen
-		path = target.getPath()
-		for node in path:
-			node.select()
+		for item in target.elem.path:
+			item.select()
 		# append children node to the target node
-		node.getChildren()
-		Host.logTreeItem(node)
-		currNode = node.left
+		target.appendChildren()
+		Host.logTreeItem(target)
+		currNode = target.left
 		if not currNode is None:
 			if not currNode.elem.isLeaf():
 				self.createTree(currNode)
@@ -65,14 +65,28 @@ class Host:
 					self.createTree(currNode)
 				currNode = currNode.right
 	
-	def serialize(self):
-		f = open('./tree.bin', 'wb')
+	def serializeSrcTree(self):
+		f = open('./tree_src.bin', 'wb')
 		pickle.dump(self.root, f)
 	
-	def restore(self):
-		f = open('./tree.bin', 'rb')
+	def serializeDesTree(self):
+		f = open('./tree_des.bin', 'wb')
+		pickle.dump(self.root, f)
+	
+	def restoreSrcTree(self):
+		f = open('./tree_src.bin', 'rb')
+		self.root = pickle.load(f)
+	
+	def restoreDesTree(self):
+		f = open('./tree_des.bin', 'rb')
 		self.root = pickle.load(f)
 		
+	def isSrcTreeSerialized(self):
+		return os.path.exists('./tree_src.bin')
+	
+	def isDesTreeSerialized(self):
+		return os.path.exists('./tree_des.bin')
+			
 	def traverse(self, root, func):
 		pass
 
@@ -108,7 +122,7 @@ class TreeNode:
 	def select(self):
 		return self.elem.select()
 	
-	def getChildren(self):
+	def appendChildren(self):
 		elems = self.elem.getChildren()
 		# set path info into element object
 		for elem in elems:
@@ -128,6 +142,16 @@ class TreeNode:
 				else :
 					curr.right = node
 					curr = curr.right
+	
+	def getPathName(self):
+		pathName = ''
+		for item in self.elem.path:
+			pathName = pathName + '\\' + item.label
+		return pathName
+	
+	def selectTargetNode(self):
+		for item in self.elem.path:
+			item.select()
 	
 class Element: # abstract class
 	def __init__(self, label):
