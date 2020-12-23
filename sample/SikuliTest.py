@@ -1,5 +1,6 @@
 #coding=utf-8
 from lackey import *
+from keyboard import mouse
 import os, random
 import time
 
@@ -23,7 +24,11 @@ time.sleep(4)
 click('./imgs/collar_beans.jpg')
 time.sleep(1)
 if find('./imgs/screen_lingjingdou_flag.jpg'):
-	pass
+	hover('./imgs/grow_beans_img_big.img')
+	#dragDrop(t, Location(t.x + 100, t.y + 100))
+	mouseDown(Button.RIGHT)
+	mouseMove(t1.left(122))
+	mouseUp()
 else:
 	click('./imgs/sign_in_beans.jpg')
 	time.sleep(1)
