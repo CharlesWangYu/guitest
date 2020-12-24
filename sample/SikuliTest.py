@@ -1,8 +1,34 @@
 #coding=utf-8
 from lackey import *
-from keyboard import mouse
+from win32api import *
+from win32con import *
 import os, random
 import time
+import pynput
+
+mouse = pynput.mouse.Controller()
+
+print('Please put mouse cursor on some image.')
+time.sleep(4)
+#mouse.click(pynput.mouse.Button.left)
+for x in range(0, 10):
+	mouse.press(pynput.mouse.Button.left)
+	mouse.move(15, 0)
+mouse.release(pynput.mouse.Button.left)
+
+os._exit(0)
+
+tmp = GetCursorPos()
+print('coordinate is (%d, %d)' % (tmp[0], tmp[1]))
+(x, y) = (tmp[0], tmp[1])
+print('coordinate is (%d, %d)' % (x, y))
+mouse_event(MOUSEEVENTF_LEFTDOWN, x, y, 0, 0)
+time.sleep(1)
+mouse_event(MOUSEEVENTF_MOVE, x+5, y+5, 0, 0);
+time.sleep(1)
+mouse_event(MOUSEEVENTF_LEFTUP, x+5, y+5, 0, 0);
+
+os._exit(0)
 
 App.open(r'C:\Users\Wangyu\AppData\Local\vysor\Vysor.exe')
 time.sleep(4)
