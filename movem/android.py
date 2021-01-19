@@ -12,45 +12,43 @@ import logging
 import os
 import time
 from numpy import *
-from pynput import *
 
 import sikuli2
 
+FOOT_BAR_HORIZONTAL_OFFSET		= 90
+FOOT_BAR_VERTICAL_OFFSET		= 32
+SEARCH_ICON_HORIZONTAL_OFFSET	= 155
+SEARCH_ICON_VERTICAL_OFFSET		= 55
+TASK_CLEAR_VERTICAL_OFFSET		= 98
+
 class Android:
 	def __init__(self, type):
-		self.imgPath = os.path.abspath('.') + '\\images\\' + type + '\\'
+		self.imgPath		= os.path.abspath('.') + '\\images\\' + type + '\\'
+		self.homeBtnPos		= sikuli2.getBottomLeft().right(int(sikuli2.getWidth()/2)).above(FOOT_BAR_VERTICAL_OFFSET)
+		self.taskBtnPos		= self.homeBtnPos.left(FOOT_BAR_HORIZONTAL_OFFSET)
+		self.backBtnPos		= self.homeBtnPos.right(FOOT_BAR_HORIZONTAL_OFFSET)
+		self.searchIconPos	= self.homeBtnPos.left(SEARCH_ICON_HORIZONTAL_OFFSET).above(SEARCH_ICON_VERTICAL_OFFSET)
+		self.taskClearPos	= self.homeBtnPos.above(TASK_CLEAR_VERTICAL_OFFSET)
+		sikuli2.setTimeout(1)
 	
 	def img(self, fileName):
 		return self.imgPath + fileName
-	
-	def clickFuncBtn(self, funcName):
-		icons = []
-		btnBlack = self.img(funcName) + '_black.jpg'
-		btnWhite = self.img(funcName) + '_white.jpg'
-		icons.append(btnBlack)
-		icons.append(btnWhite)
-		for count in range(0, 4):
-			for icon in icons:
-				if sikuli2.exists(icon):
-					sikuli2.clickImage(icon)
-					return
-			time.sleep(0.1)
 
 	def clickHomeBtn(self):
-		self.clickFuncBtn('home')
+		sikuli2.clickPosition(self.homeBtnPos)
 
 	def clickTaskBtn(self):
-		self.clickFuncBtn('task')
+		sikuli2.clickPosition(self.taskBtnPos)
 
 	def clickBackBtn(self):
-		self.clickFuncBtn('back')
+		sikuli2.clickPosition(self.backBtnPos)
 
 	def clickSearchBtn(self):
-		sikuli2.clickImage(self.img('search_icon.jpg'))
+		sikuli2.clickPosition(self.searchIconPos)
 	
-	def clickTaskCloseBtn(self):
-		sikuli2.clickImage(self.img('close.jpg'))
-		time.sleep(0.2)
+	def clickTaskClearBtn(self):
+		sikuli2.clickPosition(self.taskClearPos)
+		time.sleep(0.5)
 
 	def typeInSearhFrame(self, appName):
 		sikuli2.clickImage(self.img('search_frame_cancel.jpg'))
@@ -59,7 +57,8 @@ class Android:
 	def searchApp(self, appName):
 		self.clickHomeBtn()
 		self.clickSearchBtn()
-		self.typeInSearhFrame(appName)
+		if exists(app.img('sign_success.jpg')) :
+			self.typeInSearhFrame(appName)
 	
 if __name__ == '__main__':
 	import remote
@@ -68,4 +67,7 @@ if __name__ == '__main__':
 	ctrl = remote.Scrcpy()
 	ctrl.connect()
 	android = Android('redmik20pro_miui11')
-	android.searchApp('qutoutiao')
+	#android.searchApp('qutoutiao')
+	android.clickHomeBtn()
+	android.clickTaskBtn()
+	android.clickTaskClearBtn()
