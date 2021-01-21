@@ -12,17 +12,95 @@ import logging
 import os
 import time
 import fnmatch
+import re
 
 import uia2
 import sikuli2
 import android # remote connect in this package
 
-class QuTouTiao:
+class App: # Abstract class
+	ABOVE	= 0
+	BELOW	= 1
+	LEFT	= 2
+	RIGHT	= 3
+	
 	def __init__(self, android):
 		self.panel = android
-		self.imgPath = os.path.abspath('.') + '\\images\\qutoutiao\\'
-		self.viewPattern = [1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1]
+		self.imgPath = ''
 	
+	def img(self, imgName):
+		return self.imgPath + imgName
+	
+	def findPolymorphicImage(self, imgName):
+		if re.search('.', imgName): # determined image file name
+			return sikuli2.exists(self.img(imgName))
+		else: # ambiguous image file name
+			for fileName in os.listdir(self.imgPath):
+				if fnmatch.fnmatchcase(fileName, imgName + '*.jpg') :
+					if sikuli2.exists(self.img(fileName)) :
+						return fileName
+			return None
+	
+	def clickPolymorphicImage(self, imgName):
+		if re.search('.', imgName): # determined image file name
+			sikuli2.clickImage(self.img(imgName))
+		else: # ambiguous image file name
+			for fileName in os.listdir(self.imgPath):
+				if fnmatch.fnmatchcase(fileName, imgName + '*.jpg') :
+					if sikuli2.clickImage(self.img(fileName)) :
+						return True
+			return False
+	
+	def clickAfterSeeingSth(imgName, direction=None, offset=0, delay=0, target=None):
+		'''
+		This method used to click target after the image has been found.
+		The target of click can be a image or a certain area or location.
+		Args:
+			imgName		: image file name for the Pattern in lacky
+			direction	: Offset direction
+			offset		: Offset when clicked
+			delay		: The delay from the finding image to clicking
+			target		: Pattern or Region or Location in lacky or (x,y)
+						  The default is the image found
+		Return:
+			Boolean		: Whether the find and click operation is successful
+		'''
+		assert target is None or isinstance(target, basestring) or isinstance(target, lacky.Region) or isinstance(target, lacky.Location) or isinstance(target, tuple)
+		
+		found = findPolymorphicImage(imgName)
+		if found is None : return False # can't find image
+		# init target
+		if target is None:
+			targetPos = sikuli2.getArea(self.img(imgName)).getCenter()
+		elif isinstance(target, basestring):
+			clickTarget = findPolymorphicImage(target)
+			if clickTarget is None : return False # can't find target image
+			targetPos = sikuli2.getArea(self.img(clickTarget)).getCenter()
+		elif isinstance(target, lacky.Region):
+			targetPos = target.getCenter()
+		elif isinstance(target, lacky.Location):
+			targetPos = target
+		elif isinstance(target, tuple):
+			targetPos = lacky.Location(target)
+		# calculate shift
+		if direction == App.ABOVE:
+			targetPos = targetPos.above(offset)
+		elif direction == App.BELOW:
+			targetPos = targetPos.below(offset)
+		elif direction == App.LEFT:
+			targetPos = targetPos.left(offset)
+		elif direction == App.RIGHT:
+			targetPos = targetPos.right(offset)
+		# delay and click target
+		if delay != 0 : time.sleep(delay)
+		return clickPosition(targetPos)
+
+class QuTouTiao(App):
+	def __init__(self, android):
+		super(QuTouTiao, self).__init__(android)
+		self.imgPath = os.path.abspath('.') + '\\images\\qutoutiao\\'
+		#self.viewPattern = [1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1]
+	'''
 	def img(self, fileName):
 		return self.imgPath + fileName
 		
@@ -31,10 +109,19 @@ class QuTouTiao:
 			if fnmatch.fnmatchcase(fileName, imgName + '*.jpg') :
 				if sikuli2.clickImage(self.img(fileName)) :
 					return
+	'''
 	
 	def open(self):
 		self.panel.clickHomeBtn()
 		self.panel.clickTaskBtn()
+		if not self.clickAfterSeeingSth('icon', APP.BELOW, 100):
+			self.panel.clickHomeBtn()
+			self.panel.clickSearchBtn()
+			#if not sikuli2.clickImage(self.img('icon.jpg')):
+			if not findPolymorphicImage('icon') is None:
+				self.panel.typeInSearhFrame('qutoutiao')
+				self.clickAfterSeeingSth('icon')
+		'''
 		if sikuli2.exists(self.img('icon.jpg')) :
 			sikuli2.clickArea(sikuli2.getArea(self.img('icon.jpg')).below(100))
 		else :
@@ -43,6 +130,7 @@ class QuTouTiao:
 			if not sikuli2.clickImage(self.img('icon.jpg')):
 				self.panel.typeInSearhFrame('qutoutiao')
 				sikuli2.clickImage(self.img('icon.jpg'))
+		'''
 		self.igoreRubbishInfo()
 		#sikuli2.clickImage(self.img('skip_ads.jpg'))
 	
@@ -69,6 +157,7 @@ class QuTouTiao:
 	
 	def igoreRubbishInfo(self):
 		sikuli2.setTimeout(0.4)
+		self.cancelPushingInfo()
 		self.cancelGettigRightNow()
 		self.cancelSignSuccess()
 		sikuli2.setTimeout(1)
@@ -89,6 +178,11 @@ class QuTouTiao:
 	def cancelSignSuccess(self):
 		if sikuli2.exists(self.img('sign_success.jpg')) :
 			sikuli2.clickImage(self.img('sign_success_cancel.jpg'))
+	
+	def cancelPushingInfo(self):
+		if sikuli2.exists(self.img('i_know.jpg')) :
+			area = sikuli2.getArea(self.img(fileName)).below(70)
+			sikuli2.clickArea(area)
 	
 	def cancelInviteFriends(self):
 		if sikuli2.exists(self.img('invite_friends.jpg')) :
