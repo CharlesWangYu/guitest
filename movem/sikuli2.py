@@ -34,6 +34,9 @@ def exists(imgName, timeout=None):
 	match = WORK_AREA.exists(imgName, timeout)
 	return match != None and match.getScore() >= DEFAULT_SIMILARITY_THRESHOLD
 
+def findAll(imgName, timeout=None):
+	return list(WORK_AREA.findAll(imgName))
+
 def hoverImage(imgName):
 	WORK_AREA.hover(imgName)
 	time.sleep(0.1)
@@ -84,6 +87,14 @@ def wheelDown(steps):
 def wheelUp(steps):
 	WORK_AREA.wheel(1, steps) # 1:Up
 	time.sleep(0.1)
+
+def leftClick():
+	mouse = lackey.Mouse()
+	mouse.click(button=mouse.LEFT)
+
+def rightClick():
+	mouse = lackey.Mouse()
+	mouse.click(button=mouse.RIGHT)
 
 def flickDown():
 	lackey.SettingsMaster.MoveMouseDelay = 0.01
@@ -156,6 +167,22 @@ def type(text):
 def setTimeout(seconds):
 	WORK_AREA.setAutoWaitTimeout(seconds)
 
+def setSimilarity(threshold):
+	global DEFAULT_SIMILARITY_THRESHOLD
+	DEFAULT_SIMILARITY_THRESHOLD = threshold
+
+def enableInfoLog():
+	lackey.SettingsMaster.InfoLogs = True
+
+def disableInfoLog():
+	lackey.SettingsMaster.InfoLogs = False
+
+def enableActionLog():
+	lackey.SettingsMaster.ActionLogs = True
+
+def disableActionLog():
+	lackey.SettingsMaster.ActionLogs = False
+
 # coordinate operation
 def getCenter():
 	return WORK_AREA.getCenter()
@@ -190,28 +217,6 @@ def getArea(imgName):
 		return match
 	else :
 		return lackey.Region(0, 0, 0, 0)
-
-'''
-def shiftLeft(area, offset):
-	assert area[2] != 0 and area[3] != 0
-	region = lackey.Region(area).left(offset)
-	return (region.getX(), region.getY(), region.getW(), region.getH())
-
-def shiftRight(area, offset):
-	assert area[2] != 0 and area[3] != 0
-	region = lackey.Region(area).right(offset)
-	return (region.getX(), region.getY(), region.getW(), region.getH())
-
-def shiftUp(area, offset):
-	assert area[2] != 0 and area[3] != 0
-	region = lackey.Region(area).above(offset)
-	return (region.getX(), region.getY(), region.getW(), region.getH())
-
-def shiftDown(area, offset):
-	assert area[2] != 0 and area[3] != 0
-	region = lackey.Region(area).below(offset)
-	return (region.getX(), region.getY(), region.getW(), region.getH())
-'''
 
 '''
 lackey的主要封装：
