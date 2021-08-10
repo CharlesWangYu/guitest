@@ -16,13 +16,14 @@ import win32print
 import time
 from win32api import GetSystemMetrics
 
-import uia2
 import sikuli2
+from uia2 import *
 
 class RemoteCtrl:
 	def __init__(self):
 		self.uiaApp		= None
 		self.rectangle	= None
+		self.phoneType	= ''
 		self.scale		= self.getScale()
 	
 	def connect(self):
@@ -50,25 +51,34 @@ class RemoteCtrl:
 
 class Scrcpy(RemoteCtrl):
 	def connect(self):
-		cmd = '"D:\Program Files\scrcpy-win64-v1.17\scrcpy.exe"'
+		# start up
+		cmd = '"D:\Program Files\Scrcpy\scrcpy.exe -Sw --disable-screensaver --always-on-top"'
 		subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, close_fds=True)
-		self.uiaApp = uia2.getNullUIAElem()
-		while not uia2.isUIAElem(self.uiaApp):
+		# capture remote screen
+		self.uiaApp = getNullUIAElem()
+		while not isUIAElem(self.uiaApp):
 			time.sleep(0.1)
-			self.uiaApp = uia2.findFirstElemByClassName(uia2.DesktopRoot, 'SDL_app')
+			self.uiaApp = findFirstElemByClassName(DesktopRoot, 'SDL_app')
 		self.rectangle = self.getRealRectangle(self.uiaApp.CurrentBoundingRectangle)
+		self.phoneType	= self.uiaApp.CurrentName
 		logging.info('Connect with "%s".' % (self.uiaApp.CurrentName))
 		logging.info('Remote control tool is "%s".' % (self.__class__.__name__))
-		sikuli2.initGlobalRegion(self.rectangle)
-		logging.info('System display scale is "%.2f".' % (self.scale))
+		# set screen information to lackey
+		left	= self.rectangle.left
+		top		= self.rectangle.top
+		width	= self.rectangle.right - self.rectangle.left
+		height	= self.rectangle.bottom - self.rectangle.top
+		sikuli2.initScreenScope(self.rectangle)
+		sikuli2.initScreenScale(self.scale)
+		logging.info('Screen area is (%d,%d,%d,%d)' %(left, top, width, height))
+		logging.info('Screen scale is "%.2f".' % (self.scale))
 	
 	def disconnect(self):
 		closeWindow(self.uiaApp)
-		logging.info('Disconnect with cell phone.')
+		logging.info('Disconnect with smart phone(Andriod system).')
 
 if __name__ == '__main__':
 	#pdb.set_trace()
 	logging.basicConfig(level = logging.INFO)
 	remote = Scrcpy()
 	remote.connect()
-	#remote.disconnect()

@@ -20,10 +20,13 @@ if __name__ == '__main__':
 	ctrl = remote.Scrcpy()
 	ctrl.connect()
 	app = QuTouTiao(android.Android('redmik20pro_miui11'))
-	tasks = TaskSet()
-	tasks.register(QTTClose(app))
-	tasks.register(QTTOpen(app))
-	tasks.register(QTTReceive(app))
-	#tasks.register(QTTTreasureBox(app))
-	tasks.register(QTTBrowseNews(app))
-	tasks.execute()
+	# create task list
+	tasks = []
+	tasks.append(QTTClose(app))
+	tasks.append(QTTOpen(app))
+	tasks.append(QTTReceive(app))
+	#tasks.append(QTTTreasureBox(app))
+	tasks.append(QTTBrowseNews(app))
+	# execute tasks
+	for task in tasks:
+		task.execute()
