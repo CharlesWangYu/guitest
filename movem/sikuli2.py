@@ -142,6 +142,7 @@ def clickImageBlock(imgName, region=None):
 	while not existImage(imgName, region):
 		time.sleep(0.1)
 	return region.click(imgName)
+	time.sleep(0.1)
 
 def clickImageTimeOut(imgName, region=None):
 	global WORK_SCOPE
@@ -153,6 +154,7 @@ def clickImageTimeOut(imgName, region=None):
 		count += 1
 	if count != timeout:
 		region.click(imgName)
+		time.sleep(0.1)
 	return count != timeout
 
 def clickArea(region):
@@ -169,7 +171,6 @@ def hoverImage(imgName, region=None):
 	global WORK_SCOPE
 	if region is None: region = WORK_SCOPE
 	region.hover(imgName)
-	time.sleep(0.1)
 
 def hoverArea(region):
 	assert(region.getW() != 0)
@@ -179,7 +180,6 @@ def hoverArea(region):
 def hoverPosition(position):
 	global WORK_SCOPE
 	WORK_SCOPE.hover(position)
-	time.sleep(0.1)
 
 def wheelDown(steps):
 	global WORK_SCOPE
@@ -210,15 +210,14 @@ def rightClick():
 def flick(direction):
 	assert(direction <= DIRECTION_RIGHT)
 	# calculate filck distance
-	distance = WORK_SCOPE.getH() if direction < DIRECTION_LEFT else WORK_SCOPE.getW()
+	distance = getHeight() if direction < DIRECTION_LEFT else getWidth()
 	distance /= 2
 	distance -= 200 if direction < DIRECTION_LEFT else 30
-	lackey.SettingsMaster.MoveMouseDelay = 0.01
-	pos = WORK_SCOPE.getCenter()
-	hoverPosition(pos)
+	setMoveMouseDelay(0.01)
+	hoverPosition(getCenter())
 	mouseDown()
 	time.sleep(0.01)
-	flickStep  = int(distance / 4)
+	flickStep = int(distance / 4)
 	for count in range(0, 4):
 		if direction == DIRECTION_UP:
 			pos = pos.above(flickStep)
@@ -229,8 +228,9 @@ def flick(direction):
 		elif direction == DIRECTION_RIGHT:
 			pos = pos.right(flickStep)
 		hoverPosition(pos)
-	mouseDown()
-	lackey.SettingsMaster.MoveMouseDelay = 0.3
+		time.sleep(0.01)
+	mouseUp()
+	setMoveMouseDelay(0.3)
 	time.sleep(0.2)
 	
 def flickDown():
@@ -244,7 +244,7 @@ def flickLeft():
 
 def flickRight():
 	flick(DIRECTION_RIGHT)
-
+	
 def typeChar(text):
 	global WORK_SCOPE
 	WORK_SCOPE.type(text)
@@ -255,6 +255,9 @@ def setSimThreshold(threshold):
 	global SIM_THRESHOLD
 	SIM_THRESHOLD = threshold
 
+def setMoveMouseDelay(seconds):
+	lackey.SettingsMaster.MoveMouseDelay = seconds
+	
 def setTimeout(seconds):
 	lackey.setAutoWaitTimeout(seconds)
 

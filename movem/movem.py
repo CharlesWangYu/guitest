@@ -19,7 +19,7 @@ if __name__ == '__main__':
 	logging.basicConfig(level = logging.INFO)
 	ctrl = remote.Scrcpy()
 	ctrl.connect()
-	app = QuTouTiao(android.Android('redmik20pro_miui11'))
+	app = QuTouTiao(Android('M2007J17C_V125')) # TODO:Android(ctrl.type)
 	# create task list
 	tasks = []
 	tasks.append(QTTClose(app))

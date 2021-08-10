@@ -19,19 +19,19 @@ class JingDong(App):
 		self.imgPath = os.path.abspath('.') + '\\images\\jingdong\\'
 
 	def clickHome(self):
-		self.clickAfterSeeingSth('foot_home')
+		self.foundThenClick('foot_home')
 
 	def clickSort(self):
-		self.clickAfterSeeingSth('foot_sort')
+		self.foundThenClick('foot_sort')
 
 	def clickDiscovery(self):
-		self.clickAfterSeeingSth('foot_discovery')
+		self.foundThenClick('foot_discovery')
 
 	def clickCart(self):
-		self.clickAfterSeeingSth('foot_cart')
+		self.foundThenClick('foot_cart')
 
 	def clickMine(self):
-		self.clickAfterSeeingSth('foot_mine')
+		self.foundThenClick('foot_mine')
 
 	def clickLiveRoomBack(self):
 		pos = sikuli2.getTopRight().left(30).below(70)
@@ -50,7 +50,7 @@ class JingDong(App):
 			self.clickHome()
 			self.hoverCenter()
 			for count in range(0,6):
-				if self.clickAfterSeeingSth('more_channel.jpg'):
+				if self.foundThenClick('more_channel.jpg'):
 					return True
 				else:
 					sikuli2.flickLeft()
@@ -60,7 +60,7 @@ class JingDong(App):
 		self.clickHome()
 		self.hoverCenter()
 		for count in range(0,6):
-			if self.clickAfterSeeingSth('live_room_entry'):
+			if self.foundThenClick('live_room_entry'):
 				return True
 			time.sleep(0.5)
 		return False
@@ -68,7 +68,7 @@ class JingDong(App):
 	def enterBoBoRock(self):
 		self.enterLiveRoom()
 		for count in range(0,6):
-			if self.clickAfterSeeingSth('boborock'):
+			if self.foundThenClick('boborock'):
 				return True
 			time.sleep(0.5)
 		return False
@@ -77,7 +77,7 @@ class JingDong(App):
 		self.clickHome()
 		self.hoverCenter()
 		for count in range(0,6):
-			if self.clickAfterSeeingSth('supermarket'):
+			if self.foundThenClick('supermarket'):
 				return True
 			else:
 				sikuli2.flickRight()
@@ -87,7 +87,7 @@ class JingDong(App):
 		self.clickHome()
 		self.hoverCenter()
 		for count in range(0,6):
-			if self.clickAfterSeeingSth('get_beans.jpg'):
+			if self.foundThenClick('get_beans.jpg'):
 				return True
 			else:
 				sikuli2.flickRight()
@@ -96,7 +96,7 @@ class JingDong(App):
 	def enterChannel(self, channelName):
 		if not self.enterMoreChanel(): return False
 		for count in range(0,20):
-			if self.clickAfterSeeingSth(channelName):
+			if self.foundThenClick(channelName):
 				time.sleep(2)
 				return True
 			else:
@@ -112,10 +112,10 @@ class JingDong(App):
 			if self.findPolymorphicImage('sign_in_boborock.jpg'): break
 			time.sleep(0.5)
 		# sign in
-		if not self.clickAfterSeeingSth('sig_in_boborock.jpg'): return False
+		if not self.foundThenClick('sig_in_boborock.jpg'): return False
 		logging.info('The beans for sign in boborock have been successfully obtained!')
 		time.sleep(0.5)
-		self.clickAfterSeeingSth('boborock_reward_ok.jpg')
+		self.foundThenClick('boborock_reward_ok.jpg')
 		time.sleep(0.5)
 		return True
 
@@ -137,40 +137,40 @@ class JingDong(App):
 				time.sleep(0.5)
 			if not (toShare or toView): return
 			# enter live room
-			if toShare: self.clickAfterSeeingSth('to_share_broadcast.jpg')
-			else: self.clickAfterSeeingSth('to_view_broadcast.jpg')
+			if toShare: self.foundThenClick('to_share_broadcast.jpg')
+			else: self.foundThenClick('to_view_broadcast.jpg')
 			# share broadcast to wechat
 			time.sleep(0.5)
 			self.clickLiveRoomShare()
 			time.sleep(0.5)
-			self.clickAfterSeeingSth('share_to_wechat_friends.jpg')
+			self.foundThenClick('share_to_wechat_friends.jpg')
 			time.sleep(1)
-			self.clickAfterSeeingSth('share_to_assistant.jpg')
+			self.foundThenClick('share_to_assistant.jpg')
 			time.sleep(0.5)
-			self.clickAfterSeeingSth('wechat_share_button.jpg')
+			self.foundThenClick('wechat_share_button.jpg')
 			time.sleep(0.5)
-			self.clickAfterSeeingSth('return_to_jingdog.jpg')
+			self.foundThenClick('return_to_jingdog.jpg')
 			# view live broadcast
 			if self.findPolymorphicImage('boborock_get_beans_flag.jpg'):
 				while True:
 					# lottery
 					if self.findPolymorphicImage('lottery_right_now.jpg'):
-						self.clickAfterSeeingSth('lottery_right_now.jpg')
+						self.foundThenClick('lottery_right_now.jpg')
 						time.sleep(0.5)
-						self.clickAfterSeeingSth('lottery_finished.jpg')
+						self.foundThenClick('lottery_finished.jpg')
 					# finish viewing
 					if self.findPolymorphicImage('boborock_get_beans.jpg'): break
 					# view 10 seconds again
 					time.sleep(10)
 			# exit live room
-			if self.clickAfterSeeingSth('boborock_get_beans.jpg'): time.sleep(0.5)
+			if self.foundThenClick('boborock_get_beans.jpg'): time.sleep(0.5)
 			else: self.panel.clickBackBtn()
 			# collect beans
 			for count in range(0,2):
-				if self.clickAfterSeeingSth('boborock_collect_beans.jpg'):
+				if self.foundThenClick('boborock_collect_beans.jpg'):
 					logging.info('The beans in boborock have been successfully obtained!')
 				time.sleep(0.5)
-				self.clickAfterSeeingSth('boborock_reward_ok.jpg')
+				self.foundThenClick('boborock_reward_ok.jpg')
 				time.sleep(0.5)
 
 	def overturnCard(self):
@@ -192,7 +192,7 @@ class JingDong(App):
 					target = card
 		if target is None: return False
 		if not sikuli2.clickArea(target): return False
-		#self.clickAfterSeeingSth('bean_after_overturn', App.BELOW, 270)
+		#self.foundThenClick('bean_after_overturn', App.BELOW, 270)
 		return True
 	
 class JDOpen(Task):
@@ -213,12 +213,12 @@ class JDBoBoRock(Task):
 class JDSignInSuperMarket(Task):
 	def execute(self):
 		if self.app.enterSuperMarket():
-			if self.app.clickAfterSeeingSth('sign_in_supermarket.jpg'):
+			if self.app.foundThenClick('sign_in_supermarket.jpg'):
 				time.sleep(2) # wait for progress
-				#self.app.clickAfterSeeingSth('build_shelves')
-				if self.app.clickAfterSeeingSth('supermarket_reward.jpg'):
+				#self.app.foundThenClick('build_shelves')
+				if self.app.foundThenClick('supermarket_reward.jpg'):
 					logging.info('The beans in supermarket have been successfully obtained!')
-					self.app.clickAfterSeeingSth('supermarket_reward_ok')
+					self.app.foundThenClick('supermarket_reward_ok')
 				self.app.panel.clickBackBtn()
 				self.app.panel.clickBackBtn()
 			self.app.panel.clickBackBtn()
@@ -226,7 +226,7 @@ class JDSignInSuperMarket(Task):
 class JDFlopInMakeupShop(Task):
 	def execute(self):
 		if not self.app.enterChannel('makeup_shop.jpg'): return
-		if not self.app.clickAfterSeeingSth('sign_in_shop_makeup.jpg'): return
+		if not self.app.foundThenClick('sign_in_shop_makeup.jpg'): return
 		if self.app.overturnCard():
 			logging.info('The beans in makeup shop have been successfully obtained!')
 		self.app.panel.clickBackBtn()
@@ -263,8 +263,8 @@ class JDFlopInDrinkingShop(Task):
 class JDFlopInDigitalDeviceShop(Task):
 	def execute(self):
 		if not self.app.enterChannel('cool_play_shop.jpg'): return
-		if self.app.clickAfterSeeingSth('digital_device_shop'):
-			if self.app.clickAfterSeeingSth('sign_in_digital_device'):
+		if self.app.foundThenClick('digital_device_shop'):
+			if self.app.foundThenClick('sign_in_digital_device'):
 				time.sleep(2)
 				if self.app.overturnCard():
 					logging.info('The beans in digital device shop have been successfully obtained!')

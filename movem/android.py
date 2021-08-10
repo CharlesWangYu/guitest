@@ -9,6 +9,7 @@
 '''
 import pdb
 import logging
+import re
 import os
 import time
 import fnmatch
@@ -64,19 +65,23 @@ class Android:
 		clickPosition(self.XBtnPos)
 		time.sleep(0.5)
 	
-	def cancelBlackScreen(self):
+	def unlockScreen(self):
 		if existImage(self.img('black_sreen.jpg')):
 			hoverPosition(getCenter())
 			rightClick()
 		if existImage(self.img('connected_usb.jpg')):
 			hoverPosition(getCenter())
 			flickUp()
+		if existImage(self.img('wait_unlock.jpg')):
+			typeChar('771130')
 	
+	'''
 	def closeUSBUseDlg(self):
 		if existImage(self.img('usb_use.jpg')):
 			clickPosition(self.xUSBPos)
-
-	def typeInSearhFrame(self, text):
+	'''
+	
+	def typeInSearchBar(self, text):
 		clickImage(self.img('search_frame_cancel.jpg'))
 		typeChar(text)
 	
@@ -84,48 +89,19 @@ class App: # Abstract class
 	def __init__(self, android):
 		self.android = android
 		self.imgPath = ''
-		self.android.cancelBlackScreen()
-		self.android.closeUSBUseDlg()
+		self.android.unlockScreen()
+		#self.android.closeUSBUseDlg()
 	
 	def img(self, imgName):
 		return self.imgPath + imgName
 	
-	def open(self):
-		self.android.clickHomeBtn()
-		self.android.clickTaskBtn()
-		if not self.clickAfterSeeingSth('icon', DIRECTION_DOWN, 100):
-			self.android.clickHomeBtn()
-			self.android.clickSearchBtn()
-			icon = self.findPolymorphicImage('icon')
-			if icon is None:
-				appName = self.__class__.__name__
-				self.android.typeInSearhFrame(appName.lower())
-				icon = self.findPolymorphicImage('icon')
-				if icon is None:
-					print(appName + ' has not been installed in this andriod.')
-					return
-			assert not icon is None
-			self.clickAfterSeeingSth(icon)
-		self.initScreen()
-	
-	def close(self):
-		self.android.clickHomeBtn()
-		self.android.clickTaskBtn()
-		self.android.clickTaskClearBtn()
-	
-	def initScreen(self):
-		pass
-	
-	def hoverCenter(self):
-		hoverPosition(getCenter())
-	
-	def findPolymorphicImage(self, imgName):
-		if re.search('\.', imgName): # determined image file name
+	def findImage(self, imgName):
+		if re.search('\.', imgName): # determined search with full image file name
 			if existImage(self.img(imgName)):
 				return imgName
 			else : 
 				return None
-		else: # ambiguous image file name
+		else: # fuzzy search with key word in image file name
 			for fileName in os.listdir(self.imgPath):
 				if fnmatch.fnmatchcase(fileName, imgName + '*.jpg'):
 					if existImage(self.img(fileName)):
@@ -141,7 +117,6 @@ class App: # Abstract class
 				if fnmatch.fnmatchcase(fileName, imgName + '*.jpg'):
 					return findAll(self.img(fileName))
 			return []
-	'''
 	
 	def clickPolymorphicImage(self, imgName):
 		if re.search('\.', imgName): # determined image file name
@@ -152,8 +127,9 @@ class App: # Abstract class
 					if clickImage(self.img(fileName)):
 						return True
 			return False
+	'''
 	
-	def clickAfterSeeingSth(self, imgName, direction=None, offset=0, delay=0, target=None):
+	def foundThenClick(self, imgName, direction=None, offset=0, delay=0, target=None):
 		'''
 		This method used to click target after the image has been found.
 		The target of click can be a image or a certain area or location.
@@ -169,13 +145,13 @@ class App: # Abstract class
 		'''
 		assert target is None or isinstance(target, basestring) or isinstance(target, lacky.Region) or isinstance(target, lacky.Location) or isinstance(target, tuple)
 		
-		imgFile = self.findPolymorphicImage(imgName)
+		imgFile = self.findImage(imgName)
 		if imgFile is None: return False # can't find source image in panel
 		# init target
 		if target is None:
 			targetPos = getImageArea(self.img(imgFile)).getCenter()
 		elif isinstance(target, basestring):
-			clickTarget = self.findPolymorphicImage(target)
+			clickTarget = self.findImage(target)
 			if clickTarget is None: return False # can't find target image in panel
 			targetPos = getImageArea(self.img(clickTarget)).getCenter()
 		elif isinstance(target, lacky.Region):
@@ -198,6 +174,31 @@ class App: # Abstract class
 		if delay != 0 : time.sleep(delay)
 		return clickPosition(targetPos)
 	
+	def open(self):
+		self.android.clickHomeBtn()
+		self.android.clickTaskBtn()
+		if not self.foundThenClick('icon', DIRECTION_DOWN, 100):
+			self.android.clickHomeBtn()
+			self.android.clickSearchBtn()
+			icon = self.findImage('icon')
+			if icon is None:
+				appName = self.__class__.__name__
+				self.android.typeInSearchBar(appName.lower())
+				icon = self.findImage('icon')
+				if icon is None:
+					logging.info(appName + ' APP has not been installed on this andriod device.')
+			assert not icon is None
+			self.foundThenClick(icon)
+		self.initScreen()
+	
+	def close(self):
+		self.android.clickHomeBtn()
+		self.android.clickTaskBtn()
+		self.android.clickTaskClearBtn()
+	
+	def initScreen(self):
+		pass
+	
 class Task:
 	def __init__(self, app):
 		self.app = app
@@ -211,7 +212,7 @@ if __name__ == '__main__':
 	logging.basicConfig(level = logging.INFO)
 	ctrl = remote.Scrcpy()
 	ctrl.connect()
-	android = Android('redmik20pro_miui11')
+	android = Android('M2007J17C_V125')
 	android.clickHomeBtn()
 	android.clickTaskBtn()
 	android.clickTaskClearBtn()

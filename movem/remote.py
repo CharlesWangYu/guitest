@@ -51,8 +51,16 @@ class RemoteCtrl:
 
 class Scrcpy(RemoteCtrl):
 	def connect(self):
+		'''
+		The hardware and UI system information of smart phone can be capture
+		with the following adb command in terminal.
+		1. "adb shell getprop ro.product.model"				[M2007J17C]
+		2. "adb shell getprop ro.product.odm.marketname"	[Redmi Note 9 Pro]
+		3. "adb shell getprop ro.miui.ui.version.code"		[11]
+		4. "adb shell getprop ro.miui.ui.version.name"		[V125]
+		'''
 		# start up
-		cmd = '"D:\Program Files\Scrcpy\scrcpy.exe -Sw --disable-screensaver --always-on-top"'
+		cmd = 'scrcpy -Sw --disable-screensaver --always-on-top'
 		subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, close_fds=True)
 		# capture remote screen
 		self.uiaApp = getNullUIAElem()
