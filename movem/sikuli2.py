@@ -19,7 +19,7 @@ import lackey
 #HEIGHT			= win32print.GetDeviceCaps(win32gui.GetDC(0), win32con.DESKTOPVERTRES)
 WORK_SCOPE		= lackey.Region(0, 0, 0, 0) # (x, y, w, h = args)
 WORK_SCALE		= 1
-SIM_THRESHOLD	= 0.85
+SIM_THRESHOLD	= 0.7	# It is minimum similarity threshold
 TIMEOUT_SECOND	= 8
 
 SHIFT_UP		= 0
@@ -55,43 +55,56 @@ def initScreenScope(uiaRect):
 def initScreenScale(scale):
 	global		WORK_SCALE
 	WORK_SCALE 	= scale
-
-# Location Access API
-def getCenter():
+	
+# Static API
+def scaleLength(length):
+	global WORK_SCALE
+	return WORK_SCALE * length
+	
+def getCenter(region=None):
 	global WORK_SCOPE
-	return WORK_SCOPE.getCenter() # return a coordinate
+	if region is None: region = WORK_SCOPE
+	return region.getCenter() # return a coordinate
 
-def getTopLeft():
+def getTopLeft(region=None):
 	global WORK_SCOPE
-	return WORK_SCOPE.getTopLeft() # return a coordinate
+	if region is None: region = WORK_SCOPE
+	return region.getTopLeft() # return a coordinate
 
-def getTopRight():
+def getTopRight(region=None):
 	global WORK_SCOPE
-	return WORK_SCOPE.getTopRight() # return a coordinate
+	if region is None: region = WORK_SCOPE
+	return region.getTopRight() # return a coordinate
 
-def getBottomLeft():
+def getBottomLeft(region=None):
 	global WORK_SCOPE
-	return WORK_SCOPE.getBottomLeft() # return a coordinate
+	if region is None: region = WORK_SCOPE
+	return region.getBottomLeft() # return a coordinate
 
-def getBottomRight():
+def getBottomRight(region=None):
 	global WORK_SCOPE
-	return WORK_SCOPE.getBottomRight() # return a coordinate
+	if region is None: region = WORK_SCOPE
+	return region.getBottomRight() # return a coordinate
 
-def getWidth():
+def getWidth(region=None):
 	global WORK_SCOPE
-	return WORK_SCOPE.getW() # return a numeric
+	if region is None: region = WORK_SCOPE
+	return region.getW() # return a numeric
 
-def getHeight():
+def getHeight(region=None):
 	global WORK_SCOPE
-	return WORK_SCOPE.getH() # return a numeric
+	if region is None: region = WORK_SCOPE
+	return region.getH() # return a numeric
 
-def getTopLeftX():
+def getTopLeftX(region=None):
 	global WORK_SCOPE
-	return WORK_SCOPE.getTopLeft().getX() # return a numeric
+	if region is None: region = WORK_SCOPE
+	return region.getTopLeft().getX() # return a numeric
 
-def getTopLeftY():
+def getTopLeftY(region=None):
 	global WORK_SCOPE
-	return WORK_SCOPE.getTopLeft().getY() # return a numeric
+	if region is None: region = WORK_SCOPE
+	return region.getTopLeft().getY() # return a numeric
 
 def getImageArea(imgName, region=None):
 	global WORK_SCOPE
@@ -103,7 +116,7 @@ def getImageArea(imgName, region=None):
 		return lackey.Region(0, 0, 0, 0)
 
 def shiftPos(srcPos, direction, offset):
-	assert(isinstance(srcPos, lacky.Location))
+	assert(isinstance(srcPos, lackey.Location))
 	assert(direction <= SHIFT_RIGHT)
 	assert(offset >= 0)
 	shift = WORK_SCALE * offset
@@ -117,7 +130,6 @@ def shiftPos(srcPos, direction, offset):
 		desPos = srcPos.right(shift)
 	return desPos
 	
-# Query API
 def existImage(imgName, region=None, timeout=None):
 	global WORK_SCOPE
 	if region is None: region = WORK_SCOPE
@@ -127,12 +139,12 @@ def existImage(imgName, region=None, timeout=None):
 		match = region.exists(imgName, timeout)
 	return match != None and match.getScore() >= SIM_THRESHOLD
 
-'''
-def findAll(imgName, timeout=None):
-	return list(WORK_SCOPE.findAll(imgName))
-'''
+def findImages(imgName, region=None):
+	global WORK_SCOPE
+	if region is None: region = WORK_SCOPE
+	return list(region.findAll(imgName))
 
-# Action API
+# Dynamic API
 def waitImage(imgName):
 	count = 0
 	timeout = TIMEOUT_SECOND * 10
@@ -229,19 +241,12 @@ def flick(direction):
 	distance /= 2
 	distance -= 200 if direction < SHIFT_LEFT else 30
 	setMoveMouseDelay(0.01)
-	hoverPos(getCenter())
+	pos = getCenter()
+	hoverPos(pos)
 	mouseDown()
 	time.sleep(0.01)
-	flickStep = int(distance / 4)
 	for count in range(0, 4):
-		if direction == SHIFT_UP:
-			pos = pos.above(flickStep)
-		elif direction == SHIFT_DOWN:
-			pos = pos.below(flickStep)
-		elif direction == SHIFT_LEFT:
-			pos = pos.left(flickStep)
-		elif direction == SHIFT_RIGHT:
-			pos = pos.right(flickStep)
+		pos = shiftPos(pos, direction, int(distance / 4))
 		hoverPos(pos)
 		time.sleep(0.01)
 	mouseUp()
@@ -276,17 +281,19 @@ def setMoveMouseDelay(seconds):
 def setTimeout(seconds):
 	lackey.setAutoWaitTimeout(seconds)
 
-def enableInfoLog():
-	lackey.SettingsMaster.InfoLogs = True
+def enableSikuliLog():
+	lackey.SettingsMaster.ActionLogs	= True
+	lackey.SettingsMaster.InfoLogs		= True
+	lackey.SettingsMaster.DebugLogs		= True
+	lackey.SettingsMaster.ErrorLogs		= True
+	lackey.SettingsMaster.UserLogs		= True
 
-def disableInfoLog():
-	lackey.SettingsMaster.InfoLogs = False
-
-def enableActionLog():
-	lackey.SettingsMaster.ActionLogs = True
-
-def disableActionLog():
-	lackey.SettingsMaster.ActionLogs = False
+def disableSikuliLog():
+	lackey.SettingsMaster.ActionLogs	= False
+	lackey.SettingsMaster.InfoLogs		= False
+	lackey.SettingsMaster.DebugLogs		= False
+	lackey.SettingsMaster.ErrorLogs		= False
+	lackey.SettingsMaster.UserLogs		= False
 	
 if __name__ == '__main__':
 	#pdb.set_trace()

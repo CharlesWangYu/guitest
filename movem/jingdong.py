@@ -11,12 +11,12 @@ import pdb
 import logging
 import time
 
-from task import *
+from app import *
 
 class JingDong(App):
-	def __init__(self, android):
-		super(JingDong, self).__init__(android)
-		self.imgPath = os.path.abspath('.') + '\\images\\jingdong\\'
+	def __init__(self, platform):
+		super(JingDong, self).__init__(platform)
+		self.imgPath = os.path.abspath('.') + '\\res\\app\\jingdong\\'
 
 	def clickHome(self):
 		self.foundThenClick('foot_home')
@@ -164,7 +164,7 @@ class JingDong(App):
 					time.sleep(10)
 			# exit live room
 			if self.foundThenClick('boborock_get_beans.jpg'): time.sleep(0.5)
-			else: self.panel.clickBackBtn()
+			else: self.clickAndroidBackBtn()
 			# collect beans
 			for count in range(0,2):
 				if self.foundThenClick('boborock_collect_beans.jpg'):
@@ -197,18 +197,18 @@ class JingDong(App):
 	
 class JDOpen(Task):
 	def execute(self):
-		self.app.open()
+		self.app.start()
 
 class JDClose(Task):
 	def execute(self):
-		self.app.close()
+		self.app.stop()
 
 class JDBoBoRock(Task):
 	def execute(self):
 		if not self.app.enterBoBoRock(): return
 		self.app.signInBoBoRock()
 		self.app.shareAndViewBroadcast()
-		self.app.panel.clickBackBtn()
+		self.app.clickAndroidBackBtn()
 
 class JDSignInSuperMarket(Task):
 	def execute(self):
@@ -219,9 +219,9 @@ class JDSignInSuperMarket(Task):
 				if self.app.foundThenClick('supermarket_reward.jpg'):
 					logging.info('The beans in supermarket have been successfully obtained!')
 					self.app.foundThenClick('supermarket_reward_ok')
-				self.app.panel.clickBackBtn()
-				self.app.panel.clickBackBtn()
-			self.app.panel.clickBackBtn()
+				self.app.clickAndroidBackBtn()
+				self.app.clickAndroidBackBtn()
+			self.app.clickAndroidBackBtn()
 
 class JDFlopInMakeupShop(Task):
 	def execute(self):
@@ -229,36 +229,36 @@ class JDFlopInMakeupShop(Task):
 		if not self.app.foundThenClick('sign_in_shop_makeup.jpg'): return
 		if self.app.overturnCard():
 			logging.info('The beans in makeup shop have been successfully obtained!')
-		self.app.panel.clickBackBtn()
-		self.app.panel.clickBackBtn()
+		self.app.clickAndroidBackBtn()
+		self.app.clickAndroidBackBtn()
 
 class JDFlopInMotherAndBabyShop(Task):
 	def execute(self):
 		if not self.app.enterChannel('mother_and_baby_shop.jpg'): return
 		if self.app.overturnCard():
 			logging.info('The beans in mothre and baby shop have been successfully obtained!')
-		self.app.panel.clickBackBtn()
+		self.app.clickAndroidBackBtn()
 
 class JDFlopInChildrenClothingShop(Task):
 	def execute(self):
 		if not self.app.enterChannel('children_clothing_shop.jpg'): return
 		if self.app.overturnCard():
 			logging.info('The beans in children clothing shop have been successfully obtained!')
-		self.app.panel.clickBackBtn()
+		self.app.clickAndroidBackBtn()
 
 class JDFlopInUnderWearShop(Task):
 	def execute(self):
 		if not self.app.enterChannel('under_wear_shop.jpg'): return
 		if self.app.overturnCard():
 			logging.info('The beans in under wear shop have been successfully obtained!')
-		self.app.panel.clickBackBtn()
+		self.app.clickAndroidBackBtn()
 
 class JDFlopInDrinkingShop(Task):
 	def execute(self):
 		if not self.app.enterChannel('drinking_shop.jpg'): return
 		if self.app.overturnCard():
 			logging.info('The beans in drinking shop have been successfully obtained!')
-		self.app.panel.clickBackBtn()
+		self.app.clickAndroidBackBtn()
 
 class JDFlopInDigitalDeviceShop(Task):
 	def execute(self):
@@ -268,16 +268,16 @@ class JDFlopInDigitalDeviceShop(Task):
 				time.sleep(2)
 				if self.app.overturnCard():
 					logging.info('The beans in digital device shop have been successfully obtained!')
-				self.app.panel.clickBackBtn()
-			self.app.panel.clickBackBtn()
-		self.app.panel.clickBackBtn()
+				self.app.clickAndroidBackBtn()
+			self.app.clickAndroidBackBtn()
+		self.app.clickAndroidBackBtn()
 
 class JDFlopInSkinCareShop(Task):
 	def execute(self):
 		if not self.app.enterChannel('skin_care_shop.jpg'): return
 		if self.app.overturnCard():
 			logging.info('The beans in skin care shop have been successfully obtained!')
-		self.app.panel.clickBackBtn()
+		self.app.clickAndroidBackBtn()
 
 if __name__ == '__main__':
 	import remote

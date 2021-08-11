@@ -11,24 +11,28 @@ import pdb
 import logging
 import time
 
-from android import *
+from app import *
 
-TOP_BACK_BTN_Y_OFFSET	= 80
 TOP_BACK_BTN_X_OFFSET	= 43
+TOP_BACK_BTN_Y_OFFSET	= 80
+ARTICLE_SUMMARY_H_LIMIT	= 200
+ARTICLE_POS_X_OFFSET	= 40
+ARTICLE_POS_Y_OFFSET	= 50
 
 class QuTouTiao(App):
-	def __init__(self, android):
-		super(QuTouTiao, self).__init__(android)
-		self.imgPath = os.path.abspath('.') + '\\images\\qutoutiao\\'
+	def __init__(self, platform):
+		super(QuTouTiao, self).__init__(platform)
+		self.imgPath = os.path.abspath('.') + '\\res\\app\\qutoutiao\\'
 		self.isFirstOpen = True
 		self.isCanceledGetRightNow = False
 		
-	def initScreen(self):
-		# If program go here, QTT has been opened.
-		# If this is the first time of QTT open, it is necessary that wait for clear rubbish message.
+	def initEntry(self):
+		'''
 		if self.isFirstOpen:
 			self.cancelGetRightNow()
 			self.isFirstOpen = False
+		'''
+		pass
 	
 	def clickTask(self):
 		self.foundThenClick('foot_task')
@@ -36,7 +40,7 @@ class QuTouTiao(App):
 	
 	def clickRefresh(self):
 		self.foundThenClick('foot_refresh')
-		time.sleep(2.5)
+		time.sleep(1) # Here are some delay because of connecting network
 	
 	def clickMine(self):
 		self.foundThenClick('foot_mine')
@@ -51,6 +55,34 @@ class QuTouTiao(App):
 		pos = shiftPos(pos, SHIFT_DOWN, TOP_BACK_BTN_Y_OFFSET)
 		clickPos(pos)
 	
+	def clickOneArticle(self):
+		global WORK_SCALE
+		cnt = 0
+		while True:
+			xIcons = self.findAllImage('x_below_news')
+			if len(xIcons) > 1:
+				for x in range(len(xIcons)-1, 0, -1):
+					height = xIcons[x].getY() - xIcons[x-1].getY()
+					if height < scaleLength(ARTICLE_SUMMARY_H_LIMIT):
+						pos = getTopLeft(xIcons[x])
+						pos = shiftPos(pos, SHIFT_UP, ARTICLE_POS_Y_OFFSET)
+						pos = shiftPos(pos, SHIFT_LEFT, ARTICLE_POS_X_OFFSET)
+						clickPos(pos)
+						return
+			hoverPos(getCenter())
+			if cnt % 2 == 0: wheelDown(5)
+			else: self.clickRefresh()
+			time.sleep(0.5)
+			cnt += 1
+	
+	def browseOneArticle(self, seconds):
+		hoverPos(getCenter())
+		for x in range(0, int(seconds/2)):
+			if x % 2 == 0: wheelDown(3)
+			else: wheelUp(2)
+			time.sleep(2)
+	
+	'''
 	def igoreRubbishInfo(self):
 		setTimeout(1)
 		self.cancelPushingInfo()
@@ -129,26 +161,24 @@ class QuTouTiao(App):
 			elif self.foundThenClick('view_2_min_video', SHIFT_RIGHT, 80):
 				self.viewVideo(140)
 				self.clickTask()
-				'''
-				if exists(self.img('view_3_min_article.jpg')) :
-					pos = getArea(self.img('view_3_min_article.jpg')).getCenter().right(80)
-					clickPos(pos)
-					self.viewArticle(180)
-					self.panel.clickBackBtn()
-				'''
+				#if exists(self.img('view_3_min_article.jpg')) :
+				#	pos = getArea(self.img('view_3_min_article.jpg')).getCenter().right(80)
+				#	clickPos(pos)
+				#	self.viewArticle(180)
+				#	self.clickAndroidBackBtn()
 			elif self.foundThenClick('view_short_video', SHIFT_RIGHT, 80):
 				self.viewShortVideo(65)
 				if self.panel.isFuncBtnShown():
-					self.panel.clickBackBtn()
+					self.clickAndroidBackBtn()
 				else:
 					self.clickTopLeftBack()
 			elif self.foundThenClick('paly_cash_cow', SHIFT_RIGHT, 80):
 				self.palyCashCow()
-				self.panel.clickBackBtn()
+				self.clickAndroidBackBtn()
 			elif self.foundThenClick('to_open_in_task', SHIFT_DOWN, 7):
 				time.sleep(6)
-				self.panel.clickBackBtn()
-				self.panel.clickBackBtn()
+				self.clickAndroidBackBtn()
+				self.clickAndroidBackBtn()
 				time.sleep(1)
 			else:
 				pass
@@ -157,35 +187,40 @@ class QuTouTiao(App):
 			self.foundThenClick('congratulation_for_open_box', SHIFT_DOWN, 400)
 			if self.foundThenClick('open_treasure_box'):
 				self.foundThenClick('congratulation_for_open_box', SHIFT_DOWN, 400)
+	'''
 
+class QTTReadingNews(Task):
+	def execute(self):
+		self.app.start()
+		for count in range(0, 2000):
+			self.app.clickRefresh()
+			self.app.clickOneArticle()
+			time.sleep(0.5)
+			self.app.browseOneArticle(34)
+			self.app.clickTopLeftBack()
+			time.sleep(0.5)
+		self.app.stop()
+
+'''
 class QTTOpen(Task):
 	def execute(self):
-		self.app.open()
+		self.app.start()
 
 class QTTClose(Task):
 	def execute(self):
-		self.app.close()
+		self.app.stop()
 
 class QTTReceive(Task):
 	def execute(self):
-		self.app.open()
+		self.app.start()
 		self.app.receiveGoldCoin()
 
 class QTTTreasureBox(Task):
 	def execute(self):
-		self.app.open()
+		self.app.start()
 		for count in range(0, 5):
 			self.app.openTreasureBox()
-
-class QTTBrowseNews(Task):
-	def execute(self):
-		self.app.close()
-		for count in range(0, 2000):
-			self.app.open()
-			self.app.clickRefresh()
-			self.app.gotoFirstNews()
-			self.app.viewArticle(32)
-			self.app.close()
+'''
 	
 if __name__ == '__main__':
 	import remote
@@ -194,12 +229,8 @@ if __name__ == '__main__':
 	logging.basicConfig(level = logging.INFO)
 	ctrl = remote.Scrcpy()
 	ctrl.connect()
-	app = QuTouTiao(android.Android('M2007J17C_V125'))
+	app = QuTouTiao('M2007J17C_V125')
 	tasks = TaskSet()
-	tasks.register(QTTClose(app))
-	tasks.register(QTTOpen(app))
-	tasks.register(QTTReceive(app))
-	#tasks.register(QTTTreasureBox(app))
-	tasks.register(QTTBrowseNews(app))
+	tasks.register(QTTReadingNews(app))
 	tasks.execute()
 	

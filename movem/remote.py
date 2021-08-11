@@ -16,8 +16,8 @@ import win32print
 import time
 from win32api import GetSystemMetrics
 
-import sikuli2
 from uia2 import *
+from sikuli2 import initScreenScope, initScreenScale
 
 class RemoteCtrl:
 	def __init__(self):
@@ -60,7 +60,7 @@ class Scrcpy(RemoteCtrl):
 		4. "adb shell getprop ro.miui.ui.version.name"		[V125]
 		'''
 		# start up
-		cmd = 'scrcpy -Sw --disable-screensaver --always-on-top'
+		cmd = 'scrcpy -Sw -Tt -m 600 --disable-screensaver'
 		subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, close_fds=True)
 		# capture remote screen
 		self.uiaApp = getNullUIAElem()
@@ -76,8 +76,8 @@ class Scrcpy(RemoteCtrl):
 		top		= self.rectangle.top
 		width	= self.rectangle.right - self.rectangle.left
 		height	= self.rectangle.bottom - self.rectangle.top
-		sikuli2.initScreenScope(self.rectangle)
-		sikuli2.initScreenScale(self.scale)
+		initScreenScope(self.rectangle)
+		initScreenScale(self.scale)
 		logging.info('Screen area is (%d,%d,%d,%d)' %(left, top, width, height))
 		logging.info('Screen scale is "%.2f".' % (self.scale))
 	

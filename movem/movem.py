@@ -17,16 +17,12 @@ if __name__ == '__main__':
 	#pdb.set_trace()
 	#os._exit(0)
 	logging.basicConfig(level = logging.INFO)
+	#disableSikuliLog()
 	ctrl = remote.Scrcpy()
 	ctrl.connect()
-	app = QuTouTiao(Android('M2007J17C_V125')) # TODO:Android(ctrl.type)
-	# create task list
+	app = QuTouTiao('M2007J17C_V125') # TODO : App(ctrl.type)
+	# create task list and execute tasks
 	tasks = []
-	tasks.append(QTTClose(app))
-	tasks.append(QTTOpen(app))
-	tasks.append(QTTReceive(app))
-	#tasks.append(QTTTreasureBox(app))
-	tasks.append(QTTBrowseNews(app))
-	# execute tasks
+	tasks.append(QTTReadingNews(app))
 	for task in tasks:
 		task.execute()
