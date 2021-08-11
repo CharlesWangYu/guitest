@@ -139,6 +139,12 @@ class App: # Abstract class
 		self.clickAndroidHomeBtn()
 		self.clickAndroidTaskBtn()
 		self.clickAndroidTaskClearBtn()
+		self.clickAndroidTaskBtn()
+		icon = self.findFirstImage('icon_small')
+		if not icon is None:
+			pos = shiftPos(getCenter(icon), SHIFT_DOWN, MULTI_TASK_Y_OFFSET)
+			hoverPos(pos)
+			flickRight()
 		time.sleep(0.5)
 	
 	def initEntry(self):
