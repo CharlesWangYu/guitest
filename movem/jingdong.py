@@ -35,11 +35,11 @@ class JingDong(App):
 
 	def clickLiveRoomBack(self):
 		pos = sikuli2.getTopRight().left(30).below(70)
-		sikuli2.clickPosition(pos)
+		sikuli2.clickPos(pos)
 
 	def clickLiveRoomShare(self):
 		pos = sikuli2.getTopRight().left(73).below(70)
-		sikuli2.clickPosition(pos)
+		sikuli2.clickPos(pos)
 
 	def enterMoreChanel(self):
 		if self.findPolymorphicImage('more_channel_title.jpg'):

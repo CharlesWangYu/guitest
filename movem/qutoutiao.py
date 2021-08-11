@@ -13,6 +13,9 @@ import time
 
 from android import *
 
+TOP_BACK_BTN_Y_OFFSET	= 80
+TOP_BACK_BTN_X_OFFSET	= 43
+
 class QuTouTiao(App):
 	def __init__(self, android):
 		super(QuTouTiao, self).__init__(android)
@@ -39,12 +42,14 @@ class QuTouTiao(App):
 		self.foundThenClick('foot_mine')
 	
 	def clickTopLeftBack(self):
-		pos = getTopLeft().right(43).below(80)
-		clickPosition(pos)
+		pos = shiftPos(getTopLeft(), SHIFT_RIGHT, TOP_BACK_BTN_X_OFFSET)
+		pos = shiftPos(pos, SHIFT_DOWN, TOP_BACK_BTN_Y_OFFSET)
+		clickPos(pos)
 	
 	def clickTopRightBack(self):
-		pos = getTopRight().left(43).below(80)
-		clickPosition(pos)
+		pos = shiftPos(getTopRight(), SHIFT_LEFT, TOP_BACK_BTN_X_OFFSET)
+		pos = shiftPos(pos, SHIFT_DOWN, TOP_BACK_BTN_Y_OFFSET)
+		clickPos(pos)
 	
 	def igoreRubbishInfo(self):
 		setTimeout(1)
@@ -56,7 +61,7 @@ class QuTouTiao(App):
 	def cancelGetRightNow(self):
 		if self.isCanceledGetRightNow: return
 		setTimeout(3)
-		if self.foundThenClick('get_right_now', DIRECTION_DOWN, 140):
+		if self.foundThenClick('get_right_now', SHIFT_DOWN, 140):
 			self.isCanceledGetRightNow = True
 		setTimeout(1)
 	
@@ -64,19 +69,19 @@ class QuTouTiao(App):
 		self.foundThenClick('sign_success', target='sign_success_cancel')
 	
 	def cancelPushingInfo(self):
-		self.foundThenClick('i_know', DIRECTION_DOWN, 70)
+		self.foundThenClick('i_know', SHIFT_DOWN, 70)
 	
 	def cancelInviteFriends(self):
-		self.foundThenClick('invite_friends', DIRECTION_DOWN, 140)
+		self.foundThenClick('invite_friends', SHIFT_DOWN, 140)
 	
 	def gotoFirstNews(self):
 		while True:
-			clickPosition(getCenter().below(250))
+			clickPos(shiftPos(getCenter(), SHIFT_DOWN, 250))
 			time.sleep(0.5)
 			if not self.findPolymorphicImage('praise'): return
 			self.clickTopLeftBack()
 			self.clickRefresh()
-			hoverPosition(getCenter())
+			hoverPos(getCenter())
 			wheelDown(5)
 			time.sleep(0.5)
 	
@@ -87,14 +92,14 @@ class QuTouTiao(App):
 	def viewVideo(self, seconds):
 		time.sleep(1)
 		pos = getCenter().above(215)
-		clickPosition(pos)
+		clickPos(pos)
 		time.sleep(seconds)
 	
 	def viewShortVideo(self, seconds):
 		time.sleep(seconds)
 	
 	def viewArticle(self, seconds):
-		hoverPosition(getCenter())
+		hoverPos(getCenter())
 		for x in range(0, int(seconds/2)):
 			if x % 2 == 0: wheelDown(3)
 			else: wheelUp(2)
@@ -115,32 +120,32 @@ class QuTouTiao(App):
 			# ready to enter a task for opening treasure box
 			self.clickRefresh()
 			self.clickTask()
-			hoverPosition(getCenter())
+			hoverPos(getCenter())
 			wheelDown(1)
 			# enter a task
 			setSimilarity(0.95)
-			if self.foundThenClick('sign_success', DIRECTION_RIGHT, 80):
+			if self.foundThenClick('sign_success', SHIFT_RIGHT, 80):
 				pass
-			elif self.foundThenClick('view_2_min_video', DIRECTION_RIGHT, 80):
+			elif self.foundThenClick('view_2_min_video', SHIFT_RIGHT, 80):
 				self.viewVideo(140)
 				self.clickTask()
 				'''
 				if exists(self.img('view_3_min_article.jpg')) :
 					pos = getArea(self.img('view_3_min_article.jpg')).getCenter().right(80)
-					clickPosition(pos)
+					clickPos(pos)
 					self.viewArticle(180)
 					self.panel.clickBackBtn()
 				'''
-			elif self.foundThenClick('view_short_video', DIRECTION_RIGHT, 80):
+			elif self.foundThenClick('view_short_video', SHIFT_RIGHT, 80):
 				self.viewShortVideo(65)
 				if self.panel.isFuncBtnShown():
 					self.panel.clickBackBtn()
 				else:
 					self.clickTopLeftBack()
-			elif self.foundThenClick('paly_cash_cow', DIRECTION_RIGHT, 80):
+			elif self.foundThenClick('paly_cash_cow', SHIFT_RIGHT, 80):
 				self.palyCashCow()
 				self.panel.clickBackBtn()
-			elif self.foundThenClick('to_open_in_task', DIRECTION_DOWN, 7):
+			elif self.foundThenClick('to_open_in_task', SHIFT_DOWN, 7):
 				time.sleep(6)
 				self.panel.clickBackBtn()
 				self.panel.clickBackBtn()
@@ -149,9 +154,9 @@ class QuTouTiao(App):
 				pass
 			setSimilarity(0.85)
 			# finish opening treasure box
-			self.foundThenClick('congratulation_for_open_box', DIRECTION_DOWN, 400)
+			self.foundThenClick('congratulation_for_open_box', SHIFT_DOWN, 400)
 			if self.foundThenClick('open_treasure_box'):
-				self.foundThenClick('congratulation_for_open_box', DIRECTION_DOWN, 400)
+				self.foundThenClick('congratulation_for_open_box', SHIFT_DOWN, 400)
 
 class QTTOpen(Task):
 	def execute(self):
@@ -189,7 +194,7 @@ if __name__ == '__main__':
 	logging.basicConfig(level = logging.INFO)
 	ctrl = remote.Scrcpy()
 	ctrl.connect()
-	app = QuTouTiao(android.Android('redmik20pro_miui11'))
+	app = QuTouTiao(android.Android('M2007J17C_V125'))
 	tasks = TaskSet()
 	tasks.register(QTTClose(app))
 	tasks.register(QTTOpen(app))

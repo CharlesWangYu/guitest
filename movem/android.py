@@ -20,23 +20,25 @@ try:
     basestring
 except NameError:
     basestring = str
-	
-FOOT_BAR_HORIZONTAL_OFFSET		= (90 * WORK_SCALE)
-FOOT_BAR_VERTICAL_OFFSET		= (32 * WORK_SCALE)
-SEARCH_ICON_HORIZONTAL_OFFSET	= (155 * WORK_SCALE)
-SEARCH_ICON_VERTICAL_OFFSET		= (55 * WORK_SCALE)
-TASK_CLEAR_VERTICAL_OFFSET		= (98 * WORK_SCALE)
-USB_USE_CANCEL_OFFSET			= (100 * WORK_SCALE)
+
+FOOT_BAR_X_OFFSET		= 90
+FOOT_BAR_Y_OFFSET		= 32
+SEARCH_ICON_X_OFFSET	= 155
+SEARCH_ICON_Y_OFFSET	= 55
+TASK_CLEAR_Y_OFFSET		= 98
+USB_USE_CANCEL_OFFSET	= 100
 
 class Android:
 	def __init__(self, UIType):
 		self.imgPath	= os.path.abspath('.') + '\\images\\' + UIType + '\\'
-		self.homePos	= getBottomLeft().right(int(getWidth()/2)).above(FOOT_BAR_VERTICAL_OFFSET)
-		self.taskPos	= self.homePos.left(FOOT_BAR_HORIZONTAL_OFFSET)
-		self.backPos	= self.homePos.right(FOOT_BAR_HORIZONTAL_OFFSET)
-		self.QBtnPos	= self.homePos.left(SEARCH_ICON_HORIZONTAL_OFFSET).above(SEARCH_ICON_VERTICAL_OFFSET)
-		self.XBtnPos	= self.homePos.above(TASK_CLEAR_VERTICAL_OFFSET)
-		self.xUSBPos	= self.homePos.above(FOOT_BAR_HORIZONTAL_OFFSET)
+		self.homePos	= shiftPos(getBottomLeft(), SHIFT_RIGHT, int(getWidth()/2))
+		self.homePos	= shiftPos(self.homePos, SHIFT_UP, FOOT_BAR_Y_OFFSET)
+		self.taskPos	= shiftPos(self.homePos, SHIFT_LEFT,  FOOT_BAR_X_OFFSET)
+		self.backPos	= shiftPos(self.homePos, SHIFT_RIGHT, FOOT_BAR_X_OFFSET)
+		self.QBtnPos	= shiftPos(self.homePos, SHIFT_LEFT, SEARCH_ICON_X_OFFSET)
+		self.QBtnPos	= shiftPos(self.QBtnPos, SHIFT_UP, SEARCH_ICON_Y_OFFSET)
+		self.XBtnPos	= shiftPos(self.homePos, SHIFT_UP, TASK_CLEAR_Y_OFFSET)
+		#self.xUSBPos	= shiftPos(self.homePos, SHIFT_UP, FOOT_BAR_Y_OFFSET)
 		setTimeout(1)
 	
 	def img(self, fileName):
@@ -50,27 +52,27 @@ class Android:
 		return None
 
 	def clickHomeBtn(self):
-		clickPosition(self.homePos)
+		clickPos(self.homePos)
 
 	def clickTaskBtn(self):
-		clickPosition(self.taskPos)
+		clickPos(self.taskPos)
 
 	def clickBackBtn(self):
-		clickPosition(self.backPos)
+		clickPos(self.backPos)
 
 	def clickSearchBtn(self):
-		clickPosition(self.QBtnPos)
+		clickPos(self.QBtnPos)
 	
 	def clickTaskClearBtn(self):
-		clickPosition(self.XBtnPos)
+		clickPos(self.XBtnPos)
 		time.sleep(0.5)
 	
 	def unlockScreen(self):
 		if existImage(self.img('black_sreen.jpg')):
-			hoverPosition(getCenter())
+			hoverPos(getCenter())
 			rightClick()
 		if existImage(self.img('connected_usb.jpg')):
-			hoverPosition(getCenter())
+			hoverPos(getCenter())
 			flickUp()
 		if existImage(self.img('wait_unlock.jpg')):
 			typeChar('771130')
@@ -78,7 +80,7 @@ class Android:
 	'''
 	def closeUSBUseDlg(self):
 		if existImage(self.img('usb_use.jpg')):
-			clickPosition(self.xUSBPos)
+			clickPos(self.xUSBPos)
 	'''
 	
 	def typeInSearchBar(self, text):
@@ -129,20 +131,21 @@ class App: # Abstract class
 			return False
 	'''
 	
+	'''
+	This method used to click target after the image has been found.
+	The target of click can be a image or a certain area or location.
+	Args:
+		imgName		: image file name for the Pattern in lacky
+		direction	: Offset direction
+		offset		: Offset when clicked
+		delay		: The delay from the finding image to clicking
+		target		: Pattern or Region or Location in lacky or (x,y)
+					  The default is the image found
+	Return:
+		Boolean		: Whether the find and click operation is successful
+	'''
+	'''
 	def foundThenClick(self, imgName, direction=None, offset=0, delay=0, target=None):
-		'''
-		This method used to click target after the image has been found.
-		The target of click can be a image or a certain area or location.
-		Args:
-			imgName		: image file name for the Pattern in lacky
-			direction	: Offset direction
-			offset		: Offset when clicked
-			delay		: The delay from the finding image to clicking
-			target		: Pattern or Region or Location in lacky or (x,y)
-						  The default is the image found
-		Return:
-			Boolean		: Whether the find and click operation is successful
-		'''
 		assert target is None or isinstance(target, basestring) or isinstance(target, lacky.Region) or isinstance(target, lacky.Location) or isinstance(target, tuple)
 		
 		imgFile = self.findImage(imgName)
@@ -162,22 +165,32 @@ class App: # Abstract class
 			targetPos = lacky.Location(target)
 		# calculate shift
 		if not direction is None:
-			if direction == DIRECTION_UP:
+			if direction == SHIFT_UP:
 				targetPos = targetPos.above(offset)
-			elif direction == DIRECTION_DOWN:
+			elif direction == SHIFT_DOWN:
 				targetPos = targetPos.below(offset)
-			elif direction == DIRECTION_LEFT:
+			elif direction == SHIFT_LEFT:
 				targetPos = targetPos.left(offset)
-			elif direction == DIRECTION_RIGHT:
+			elif direction == SHIFT_RIGHT:
 				targetPos = targetPos.right(offset)
 		# delay and click target
 		if delay != 0 : time.sleep(delay)
-		return clickPosition(targetPos)
+		return clickPos(targetPos)
+	'''
+	
+	def foundThenClick(self, imgName, direction=None, offset=0):
+		imgFile = self.findImage(imgName)
+		if imgFile is None: return False # can't find source image in panel
+		targetPos = getImageArea(self.img(imgFile)).getCenter()
+		if direction is not None:
+			targetPos = shiftPos(targetPos, direction, offset)
+		#time.sleep(0.1)
+		return clickPos(targetPos)
 	
 	def open(self):
 		self.android.clickHomeBtn()
 		self.android.clickTaskBtn()
-		if not self.foundThenClick('icon', DIRECTION_DOWN, 100):
+		if not self.foundThenClick('icon', SHIFT_DOWN, 100):
 			self.android.clickHomeBtn()
 			self.android.clickSearchBtn()
 			icon = self.findImage('icon')
@@ -186,7 +199,7 @@ class App: # Abstract class
 				self.android.typeInSearchBar(appName.lower())
 				icon = self.findImage('icon')
 				if icon is None:
-					logging.info(appName + ' APP has not been installed on this andriod device.')
+					logging.info('APP "' + appName + '" hasn\'t been installed on this andriod device.')
 			assert not icon is None
 			self.foundThenClick(icon)
 		self.initScreen()

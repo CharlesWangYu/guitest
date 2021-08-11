@@ -22,10 +22,10 @@ WORK_SCALE		= 1
 SIM_THRESHOLD	= 0.85
 TIMEOUT_SECOND	= 8
 
-DIRECTION_UP	= 0
-DIRECTION_DOWN	= 1
-DIRECTION_LEFT	= 2
-DIRECTION_RIGHT	= 3
+SHIFT_UP		= 0
+SHIFT_DOWN		= 1
+SHIFT_LEFT		= 2
+SHIFT_RIGHT		= 3
 
 '''
 lackey的主要封装：
@@ -101,6 +101,21 @@ def getImageArea(imgName, region=None):
 		return match # return a area
 	else :
 		return lackey.Region(0, 0, 0, 0)
+
+def shiftPos(srcPos, direction, offset):
+	assert(isinstance(srcPos, lacky.Location))
+	assert(direction <= SHIFT_RIGHT)
+	assert(offset >= 0)
+	shift = WORK_SCALE * offset
+	if direction == SHIFT_UP:
+		desPos = srcPos.above(shift)
+	elif direction == SHIFT_DOWN:
+		desPos = srcPos.below(shift)
+	elif direction == SHIFT_LEFT:
+		desPos = srcPos.left(shift)
+	elif direction == SHIFT_RIGHT:
+		desPos = srcPos.right(shift)
+	return desPos
 	
 # Query API
 def existImage(imgName, region=None, timeout=None):
@@ -163,7 +178,7 @@ def clickArea(region):
 	region.click()
 	time.sleep(0.1)
 
-def clickPosition(position):
+def clickPos(position):
 	WORK_SCOPE.click(position)
 	time.sleep(0.1)
 
@@ -177,7 +192,7 @@ def hoverArea(region):
 	assert(region.getH() != 0)
 	pass # TODO
 
-def hoverPosition(position):
+def hoverPos(position):
 	global WORK_SCOPE
 	WORK_SCOPE.hover(position)
 
@@ -208,42 +223,42 @@ def rightClick():
 	mouse.click(button=mouse.RIGHT)
 
 def flick(direction):
-	assert(direction <= DIRECTION_RIGHT)
+	assert(direction <= SHIFT_RIGHT)
 	# calculate filck distance
-	distance = getHeight() if direction < DIRECTION_LEFT else getWidth()
+	distance = getHeight() if direction < SHIFT_LEFT else getWidth()
 	distance /= 2
-	distance -= 200 if direction < DIRECTION_LEFT else 30
+	distance -= 200 if direction < SHIFT_LEFT else 30
 	setMoveMouseDelay(0.01)
-	hoverPosition(getCenter())
+	hoverPos(getCenter())
 	mouseDown()
 	time.sleep(0.01)
 	flickStep = int(distance / 4)
 	for count in range(0, 4):
-		if direction == DIRECTION_UP:
+		if direction == SHIFT_UP:
 			pos = pos.above(flickStep)
-		elif direction == DIRECTION_DOWN:
+		elif direction == SHIFT_DOWN:
 			pos = pos.below(flickStep)
-		elif direction == DIRECTION_LEFT:
+		elif direction == SHIFT_LEFT:
 			pos = pos.left(flickStep)
-		elif direction == DIRECTION_RIGHT:
+		elif direction == SHIFT_RIGHT:
 			pos = pos.right(flickStep)
-		hoverPosition(pos)
+		hoverPos(pos)
 		time.sleep(0.01)
 	mouseUp()
 	setMoveMouseDelay(0.3)
 	time.sleep(0.2)
 	
 def flickDown():
-	flick(DIRECTION_DOWN)
+	flick(SHIFT_DOWN)
 
 def flickUp():
-	flick(DIRECTION_UP)
+	flick(SHIFT_UP)
 
 def flickLeft():
-	flick(DIRECTION_LEFT)
+	flick(SHIFT_LEFT)
 
 def flickRight():
-	flick(DIRECTION_RIGHT)
+	flick(SHIFT_RIGHT)
 	
 def typeChar(text):
 	global WORK_SCOPE
