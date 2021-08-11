@@ -13,11 +13,13 @@ import time
 
 from app import *
 
-TOP_BACK_BTN_X_OFFSET	= 43
-TOP_BACK_BTN_Y_OFFSET	= 80
-ARTICLE_SUMMARY_H_LIMIT	= 200
-ARTICLE_POS_X_OFFSET	= 40
-ARTICLE_POS_Y_OFFSET	= 50
+TOP_BACK_BTN_X_OFFSET		= 43
+TOP_BACK_BTN_Y_OFFSET		= 80
+ARTICLE_SUMMARY_H_LIMIT		= 200
+ARTICLE_POS_X_OFFSET		= 40
+ARTICLE_POS_Y_OFFSET		= 50
+NECESSARY_READING_TIME		= 150
+RESIDENCE_ARTICLE_SECOND	= 32
 
 class QuTouTiao(App):
 	def __init__(self, platform):
@@ -189,14 +191,22 @@ class QuTouTiao(App):
 				self.foundThenClick('congratulation_for_open_box', SHIFT_DOWN, 400)
 	'''
 
+# Enter 'mine' page everyday to get qualification for withdraw cash
+class QTTsignIn(Task):
+	def execute(self):
+		self.app.start()
+		self.app.clickMine()
+		self.app.stop()
+
+# Read news (article) to get golden coin
 class QTTReadingNews(Task):
 	def execute(self):
 		self.app.start()
-		for count in range(0, 2000):
+		for count in range(0, NECESSARY_READING_TIMES):
 			self.app.clickRefresh()
 			self.app.clickOneArticle()
 			time.sleep(0.5)
-			self.app.browseOneArticle(34)
+			self.app.browseOneArticle(RESIDENCE_ARTICLE_SECOND)
 			self.app.clickTopLeftBack()
 			time.sleep(0.5)
 		self.app.stop()
