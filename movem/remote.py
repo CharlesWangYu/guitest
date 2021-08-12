@@ -9,6 +9,7 @@
 '''
 import pdb
 import logging
+import os
 import subprocess
 import win32gui
 import win32con
@@ -23,7 +24,7 @@ class RemoteCtrl:
 	def __init__(self):
 		self.uiaApp		= None
 		self.rectangle	= None
-		self.phoneType	= ''
+		self.sysType	= ''
 		self.scale		= self.getScale()
 	
 	def connect(self):
@@ -31,6 +32,9 @@ class RemoteCtrl:
 	
 	def disconnect(self):
 		pass
+	
+	def platform(self):
+		return self.sysType
 	
 	def getScale(self):
 		hDC = win32gui.GetDC(0)
@@ -51,14 +55,8 @@ class RemoteCtrl:
 
 class Scrcpy(RemoteCtrl):
 	def connect(self):
-		'''
-		The hardware and UI system information of smart phone can be capture
-		with the following adb command in terminal.
-		1. "adb shell getprop ro.product.model"				[M2007J17C]
-		2. "adb shell getprop ro.product.odm.marketname"	[Redmi Note 9 Pro]
-		3. "adb shell getprop ro.miui.ui.version.code"		[11]
-		4. "adb shell getprop ro.miui.ui.version.name"		[V125]
-		'''
+		# get platform information
+		self.adb()
 		# start up
 		cmd = 'scrcpy -Sw -Tt -m 1024 --window-x 10 --disable-screensaver'
 		subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, close_fds=True)
@@ -83,10 +81,31 @@ class Scrcpy(RemoteCtrl):
 	
 	def disconnect(self):
 		closeWindow(self.uiaApp)
-		logging.info('Disconnect with smart phone(Andriod system).')
+		logging.info('Disconnect with smart phone (Andriod system).')
+		
+	def adb(self):
+		'''
+		The hardware and UI system information of smart phone can be capture
+		with the following adb command in terminal.
+		1. "adb shell getprop ro.product.model"				[M2007J17C]
+		2. "adb shell getprop ro.product.odm.marketname"	[Redmi Note 9 Pro]
+		3. "adb shell getprop ro.miui.ui.version.code"		[11]
+		4. "adb shell getprop ro.miui.ui.version.name"		[V125]
+		'''
+		cmd = 'adb shell getprop ro.product.model'
+		out = os.popen(cmd)
+		deviceInfo = out.read().splitlines()[0]
+		out.close()
+		cmd = 'adb shell getprop ro.miui.ui.version.name'
+		out = os.popen(cmd)
+		guiSysInfo = out.read().splitlines()[0]
+		out.close()
+		self.sysType = deviceInfo + '_' + guiSysInfo
+		logging.info('Smart phone platform is "%s".' % (self.sysType))
 
 if __name__ == '__main__':
 	#pdb.set_trace()
 	logging.basicConfig(level = logging.INFO)
 	remote = Scrcpy()
 	remote.connect()
+	remote.disconnect()

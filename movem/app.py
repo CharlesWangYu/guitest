@@ -13,6 +13,7 @@ import re
 import os
 import time
 import fnmatch
+from configparser import ConfigParser
 
 from sikuli2 import *
 
@@ -41,7 +42,8 @@ class App: # Abstract class
 		self.QBtnPos = shiftPos(self.homePos, SHIFT_LEFT, SEARCH_ICON_X_OFFSET)
 		self.QBtnPos = shiftPos(self.QBtnPos, SHIFT_UP, SEARCH_ICON_Y_OFFSET)
 		self.XBtnPos = shiftPos(self.homePos, SHIFT_UP, TASK_CLEAR_Y_OFFSET)
-		#self.xUSBPos = shiftPos(self.homePos, SHIFT_UP, FOOT_BAR_Y_OFFSET)
+		self.config  = ConfigParser()
+		self.config.read(self.pltPath + '_user_info.cfg', encoding='UTF-8')
 		self.imgPath = ''
 		setTimeout(1)
 	
@@ -82,22 +84,15 @@ class App: # Abstract class
 		#time.sleep(0.1)
 		return clickPos(targetPos)
 	
-	def isFuncBtnShown(self):
-		for fileName in os.listdir(self.pltPath):
-			if fnmatch.fnmatchcase(fileName, 'home*.jpg'):
-				if existImage(self.__platImg(fileName)):
-					return True
-		return None
-
 	def clickAndroidHomeBtn(self):
 		clickPos(self.homePos)
-
+	
 	def clickAndroidTaskBtn(self):
 		clickPos(self.taskPos)
-
+	
 	def clickAndroidBackBtn(self):
 		clickPos(self.backPos)
-
+	
 	def clickAndroidSearchBtn(self):
 		clickPos(self.QBtnPos)
 	
@@ -108,11 +103,15 @@ class App: # Abstract class
 		if existImage(self.__platImg('black_sreen.jpg')):
 			hoverPos(getCenter())
 			rightClick()
-		if existImage(self.__platImg('connected_usb.jpg')):
-			hoverPos(getCenter())
-			flickUp()
-		if existImage(self.__platImg('wait_unlock.jpg')):
-			typeChar('771130')
+		for fileName in os.listdir(self.pltPath):
+			if fnmatch.fnmatchcase(fileName, 'lock_usb_debug*.jpg'):
+				if existImage(self.__platImg(fileName)):
+					hoverPos(getCenter())
+					flickUp()
+		for fileName in os.listdir(self.pltPath):
+			if fnmatch.fnmatchcase(fileName, 'wait_unlock*.jpg'):
+				if existImage(self.__platImg(fileName)):
+					typeChar(self.config['MISC']['PASSWORD'])
 	
 	def typeInAndroidSearchBar(self, text):
 		x = getTopLeftX()
@@ -120,7 +119,7 @@ class App: # Abstract class
 		w = getWidth()
 		h = getHeight() - scaleLength(TOP_SEARCH_H_OFFSET)
 		topSearchBar = scaleArea(x, y, w, h)
-		clickImage(self.__platImg('search_frame_cancel.jpg'), topSearchBar)
+		clickImage(self.__platImg('x_in_bottom_search_bar.jpg'), topSearchBar)
 		typeChar(text)
 	
 	def start(self):
@@ -129,10 +128,6 @@ class App: # Abstract class
 		if not self.foundThenClick('icon_small', SHIFT_DOWN, MULTI_TASK_Y_OFFSET):
 			self.clickAndroidHomeBtn()
 			self.clickAndroidSearchBtn()
-			'''
-			icon = self.findFirstImage('icon_middle')
-			if icon is None:
-			'''
 			appName = self.__class__.__name__
 			self.typeInAndroidSearchBar(appName.lower())
 			icon = self.findFirstImage('icon_small')
@@ -144,11 +139,10 @@ class App: # Abstract class
 	
 	def stop(self):
 		self.clickAndroidHomeBtn()
+		time.sleep(0.2)
 		self.clickAndroidTaskBtn()
+		time.sleep(0.3)
 		self.clickAndroidTaskClearBtn()
-		self.clickAndroidTaskBtn()
-		hoverPos(shiftPos(getCenter(), SHIFT_DOWN, MULTI_TASK_Y_OFFSET))
-		flickRight()
 		time.sleep(0.5)
 	
 	def initEntry(self):
@@ -158,10 +152,6 @@ class App: # Abstract class
 		pass
 	
 	'''
-	def closeUSBUseDlg(self):
-		if existImage(self.__platImg('usb_use.jpg')):
-			clickPos(self.xUSBPos)
-	
 	def findAllPolymorphicImage(self, imgName):
 		if re.search('\.', imgName): # determined image file name
 			return findAll(self.img(imgName))
@@ -235,11 +225,10 @@ class Task:
 	
 	def execute(self):
 		pass
-
+	
 class UnlockSmartPhone(Task):
 	def execute(self):
 		self.app.unlockScreen()
-		#self.app.closeUSBUseDlg()
 	
 class ClearActiveApp(Task):
 	def execute(self):
@@ -251,8 +240,10 @@ if __name__ == '__main__':
 	logging.basicConfig(level = logging.INFO)
 	ctrl = remote.Scrcpy()
 	ctrl.connect()
-	app = App('M2007J17C_V125')
+	app = App(ctrl.platform())
+	app.unlockScreen()
 	app.clickAndroidHomeBtn()
 	app.clickAndroidTaskBtn()
 	app.clickAndroidTaskClearBtn()
 	app.typeInAndroidSearchBar('jingdong')
+	ctrl.disconnect()

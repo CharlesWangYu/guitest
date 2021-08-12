@@ -252,7 +252,7 @@ def flick(direction):
 	for count in range(0, 4):
 		pos = shiftPos(pos, direction, int(distance / 4))
 		hoverPos(pos)
-		time.sleep(0.01)
+		#time.sleep(0.01)
 	mouseUp()
 	setMoveMouseDelay(0.3)
 	time.sleep(0.2)
@@ -268,6 +268,23 @@ def flickLeft():
 
 def flickRight():
 	flick(SHIFT_RIGHT)
+
+def longFlickUp():
+	distance = getTopLeft().getY() + getHeight() - scaleLength(400)
+	pos = shiftPos(getCenter(), SHIFT_DOWN, (getHeight() / 2 - scaleLength(200)))
+	hoverPos(pos)
+	mouseDown()
+	time.sleep(0.1)
+	for count in range(0, 8):
+		if count < 2: delay = 0.02
+		elif count < 4: delay = 0.01
+		else: delay = 0.005
+		setMoveMouseDelay(delay)
+		pos = shiftPos(pos, SHIFT_UP, int(distance / 8))
+		hoverPos(pos)
+	mouseUp()
+	setMoveMouseDelay(0.3)
+	time.sleep(0.2)
 	
 def typeChar(text):
 	global WORK_SCOPE
