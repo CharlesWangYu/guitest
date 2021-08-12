@@ -23,6 +23,9 @@ if __name__ == '__main__':
 	app = QuTouTiao('M2007J17C_V125') # TODO : App(ctrl.type)
 	# create task list and execute tasks
 	tasks = []
-	tasks.append(QTTReadingNews(app))
+	tasks.append(UnlockSmartPhone(app))
+	tasks.append(ClearActiveApp(app))
+	tasks.append(QTTSignIn(app))
+	tasks.append(QTTReadNews(app))
 	for task in tasks:
 		task.execute()

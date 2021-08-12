@@ -19,14 +19,14 @@ ARTICLE_SUMMARY_H_LIMIT		= 200
 ARTICLE_POS_X_OFFSET		= 40
 ARTICLE_POS_Y_OFFSET		= 50
 NECESSARY_READING_TIMES		= 150
-RESIDENCE_ARTICLE_SECOND	= 32
+RESIDENCE_ARTICLE_SECOND	= 22
 
 class QuTouTiao(App):
 	def __init__(self, platform):
 		super(QuTouTiao, self).__init__(platform)
 		self.imgPath = os.path.abspath('.') + '\\res\\app\\qutoutiao\\'
-		self.isFirstOpen = True
-		self.isCanceledGetRightNow = False
+		#self.isFirstOpen = True
+		#self.isCanceledGetRightNow = False
 		
 	def initEntry(self):
 		'''
@@ -70,7 +70,8 @@ class QuTouTiao(App):
 						pos = shiftPos(pos, SHIFT_UP, ARTICLE_POS_Y_OFFSET)
 						pos = shiftPos(pos, SHIFT_LEFT, ARTICLE_POS_X_OFFSET)
 						clickPos(pos)
-						return
+						time.sleep(0.5)
+						if self.isEnteredArticle(): return
 			hoverPos(getCenter())
 			if cnt % 2 == 0: wheelDown(5)
 			else: self.clickRefresh()
@@ -82,8 +83,15 @@ class QuTouTiao(App):
 		for x in range(0, int(seconds/2)):
 			if x % 2 == 0: wheelDown(3)
 			else: wheelUp(2)
-			time.sleep(2)
+			self.checkReadingReward()
 	
+	def checkReadingReward(self):
+		if self.foundThenClick('reward_for_reading'):
+			time.sleep(0.5)
+			self.clickAndroidBackBtn()
+	
+	def isEnteredArticle(self):
+		return self.findFirstImage('reward_to_author')
 	'''
 	def igoreRubbishInfo(self):
 		setTimeout(1)
@@ -192,14 +200,15 @@ class QuTouTiao(App):
 	'''
 
 # Enter 'mine' page everyday to get qualification for withdraw cash
-class QTTsignIn(Task):
+class QTTSignIn(Task):
 	def execute(self):
 		self.app.start()
 		self.app.clickMine()
+		time.sleep(3)
 		self.app.stop()
 
 # Read news (article) to get golden coin
-class QTTReadingNews(Task):
+class QTTReadNews(Task):
 	def execute(self):
 		self.app.start()
 		for count in range(0, NECESSARY_READING_TIMES):
@@ -207,7 +216,7 @@ class QTTReadingNews(Task):
 			self.app.clickOneArticle()
 			time.sleep(0.5)
 			self.app.browseOneArticle(RESIDENCE_ARTICLE_SECOND)
-			self.app.clickTopLeftBack()
+			self.app.clickAndroidBackBtn()
 			time.sleep(0.5)
 		self.app.stop()
 
@@ -241,6 +250,6 @@ if __name__ == '__main__':
 	ctrl.connect()
 	app = QuTouTiao('M2007J17C_V125')
 	tasks = TaskSet()
-	tasks.register(QTTReadingNews(app))
+	tasks.register(QTTReadNews(app))
 	tasks.execute()
 	

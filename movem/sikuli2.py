@@ -60,6 +60,10 @@ def initScreenScale(scale):
 def scaleLength(length):
 	global WORK_SCALE
 	return WORK_SCALE * length
+
+def scaleArea(x, y, w, h):
+	global WORK_SCALE
+	return lackey.Region(x, y, WORK_SCALE * w, WORK_SCALE * h)
 	
 def getCenter(region=None):
 	global WORK_SCOPE

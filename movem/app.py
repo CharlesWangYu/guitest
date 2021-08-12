@@ -27,7 +27,9 @@ SEARCH_ICON_X_OFFSET	= 155
 SEARCH_ICON_Y_OFFSET	= 55
 TASK_CLEAR_Y_OFFSET		= 98
 USB_USE_CANCEL_OFFSET	= 100
-MULTI_TASK_Y_OFFSET		= 100
+MULTI_TASK_Y_OFFSET		= 50
+TOP_SEARCH_Y_OFFSET		= 30
+TOP_SEARCH_H_OFFSET		= 700
 	
 class App: # Abstract class
 	def __init__(self, platform):
@@ -42,8 +44,6 @@ class App: # Abstract class
 		#self.xUSBPos = shiftPos(self.homePos, SHIFT_UP, FOOT_BAR_Y_OFFSET)
 		self.imgPath = ''
 		setTimeout(1)
-		self.unlockScreen()
-		#self.closeUSBUseDlg()
 	
 	def __platImg(self, fileName):
 		return self.pltPath + fileName
@@ -115,7 +115,12 @@ class App: # Abstract class
 			typeChar('771130')
 	
 	def typeInAndroidSearchBar(self, text):
-		clickImage(self.__platImg('search_frame_cancel.jpg'))
+		x = getTopLeftX()
+		y = getTopLeftY() - scaleLength(TOP_SEARCH_Y_OFFSET)
+		w = getWidth()
+		h = getHeight() - scaleLength(TOP_SEARCH_H_OFFSET)
+		topSearchBar = scaleArea(x, y, w, h)
+		clickImage(self.__platImg('search_frame_cancel.jpg'), topSearchBar)
 		typeChar(text)
 	
 	def start(self):
@@ -124,13 +129,15 @@ class App: # Abstract class
 		if not self.foundThenClick('icon_small', SHIFT_DOWN, MULTI_TASK_Y_OFFSET):
 			self.clickAndroidHomeBtn()
 			self.clickAndroidSearchBtn()
+			'''
 			icon = self.findFirstImage('icon_middle')
 			if icon is None:
-				appName = self.__class__.__name__
-				self.typeInAndroidSearchBar(appName.lower())
-				icon = self.findFirstImage('icon_small')
-				if icon is None:
-					logging.info('APP "' + appName + '" hasn\'t been installed on this andriod device.')
+			'''
+			appName = self.__class__.__name__
+			self.typeInAndroidSearchBar(appName.lower())
+			icon = self.findFirstImage('icon_small')
+			if icon is None:
+				logging.info('APP "' + appName + '" hasn\'t been installed on this andriod device.')
 			assert(icon != None)
 			self.foundThenClick(icon)
 		self.initEntry()
@@ -140,11 +147,8 @@ class App: # Abstract class
 		self.clickAndroidTaskBtn()
 		self.clickAndroidTaskClearBtn()
 		self.clickAndroidTaskBtn()
-		icon = self.findFirstImage('icon_small')
-		if not icon is None:
-			pos = shiftPos(getCenter(icon), SHIFT_DOWN, MULTI_TASK_Y_OFFSET)
-			hoverPos(pos)
-			flickRight()
+		hoverPos(shiftPos(getCenter(), SHIFT_DOWN, MULTI_TASK_Y_OFFSET))
+		flickRight()
 		time.sleep(0.5)
 	
 	def initEntry(self):
@@ -231,6 +235,15 @@ class Task:
 	
 	def execute(self):
 		pass
+
+class UnlockSmartPhone(Task):
+	def execute(self):
+		self.app.unlockScreen()
+		#self.app.closeUSBUseDlg()
+	
+class ClearActiveApp(Task):
+	def execute(self):
+		self.app.stop()
 	
 if __name__ == '__main__':
 	import remote
@@ -242,3 +255,4 @@ if __name__ == '__main__':
 	app.clickAndroidHomeBtn()
 	app.clickAndroidTaskBtn()
 	app.clickAndroidTaskClearBtn()
+	app.typeInAndroidSearchBar('jingdong')

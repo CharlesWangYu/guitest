@@ -60,7 +60,7 @@ class Scrcpy(RemoteCtrl):
 		4. "adb shell getprop ro.miui.ui.version.name"		[V125]
 		'''
 		# start up
-		cmd = 'scrcpy -Sw -Tt -m 600 --disable-screensaver'
+		cmd = 'scrcpy -Sw -Tt -m 1024 --window-x 10 --disable-screensaver'
 		subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, close_fds=True)
 		# capture remote screen
 		self.uiaApp = getNullUIAElem()
