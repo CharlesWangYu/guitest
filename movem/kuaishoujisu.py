@@ -22,8 +22,8 @@ class KuaiShouJiSu(App):
 		pass
 	
 	def browseVideo(self, minute):
-		for x in range(0, int(minute * 2)):
-			time.sleep(30)
+		for x in range(0, int(minute * 6)):
+			time.sleep(10)
 			hoverPos(getCenter())
 			longFlickUp()
 

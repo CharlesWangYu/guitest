@@ -12,6 +12,7 @@ import logging
 
 from remote import *
 from qutoutiao import *
+from kuaishoujisu import *
 
 if __name__ == '__main__':
 	#pdb.set_trace()
@@ -20,15 +21,21 @@ if __name__ == '__main__':
 	#disableSikuliLog()
 	remote = Scrcpy()
 	remote.connect()
-	app = QuTouTiao(remote.platform())
+	app = App(remote.platform())
+	qtt = QuTouTiao(remote.platform())
+	ksj = KuaiShouJiSu(remote.platform())
 	# create task list and execute tasks
 	tasks = []
 	tasks.append(UnlockSmartPhone(app))
 	tasks.append(ClearActiveApp(app))
-	tasks.append(QTTOpen(app))
-	tasks.append(QTTSignIn(app))
-	tasks.append(QTTReadNews(app))
-	tasks.append(QTTClose(app))
+	tasks.append(KSJSOpen(ksj))
+	#tasks.append(KSJSSignIn(ksj))
+	tasks.append(KSJSBrowseVideo(ksj))
+	tasks.append(KSJSClose(ksj))
+	tasks.append(QTTOpen(qtt))
+	tasks.append(QTTSignIn(qtt))
+	tasks.append(QTTReadNews(qtt))
+	tasks.append(QTTClose(qtt))
 	for task in tasks:
 		task.execute()
 	remote.disconnect()

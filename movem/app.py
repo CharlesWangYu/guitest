@@ -46,6 +46,7 @@ class App: # Abstract class
 		self.config.read(self.pltPath + '_user_info.cfg', encoding='UTF-8')
 		self.imgPath = ''
 		setTimeout(1)
+		setMoveMouseDelay(0.3)
 	
 	def __platImg(self, fileName):
 		return self.pltPath + fileName
@@ -119,7 +120,10 @@ class App: # Abstract class
 		w = getWidth()
 		h = getHeight() - scaleLength(TOP_SEARCH_H_OFFSET)
 		topSearchBar = scaleArea(x, y, w, h)
-		clickImage(self.__platImg('x_in_bottom_search_bar.jpg'), topSearchBar)
+		clickImage(self.__platImg('x_in_top_search_bar.jpg'), topSearchBar)
+		time.sleep(0.3)
+		clickImage(self.__platImg('key_input_eng_chi.jpg'))
+		time.sleep(0.2)
 		typeChar(text)
 	
 	def start(self):
@@ -129,6 +133,7 @@ class App: # Abstract class
 			self.clickAndroidHomeBtn()
 			self.clickAndroidSearchBtn()
 			appName = self.__class__.__name__
+			print('input char = %s' % appName.lower())
 			self.typeInAndroidSearchBar(appName.lower())
 			icon = self.findFirstImage('icon_small')
 			if icon is None:
@@ -242,8 +247,10 @@ if __name__ == '__main__':
 	ctrl.connect()
 	app = App(ctrl.platform())
 	app.unlockScreen()
+	app.typeInAndroidSearchBar('jingdong')
+	'''
 	app.clickAndroidHomeBtn()
 	app.clickAndroidTaskBtn()
 	app.clickAndroidTaskClearBtn()
-	app.typeInAndroidSearchBar('jingdong')
 	ctrl.disconnect()
+	'''

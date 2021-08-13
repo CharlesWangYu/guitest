@@ -79,7 +79,7 @@ class QuTouTiao(App):
 	
 	def checkReadingReward(self):
 		if self.foundThenClick('reward_for_reading'):
-			time.sleep(0.5)
+			time.sleep(1)
 			self.clickAndroidBackBtn()
 	
 	def isInsideAbstract(self):
