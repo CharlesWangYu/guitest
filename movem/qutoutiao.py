@@ -62,8 +62,12 @@ class QuTouTiao(App):
 						pos = shiftPos(pos, SHIFT_UP, ABSTRACT_POS_Y_OFFSET)
 						pos = shiftPos(pos, SHIFT_LEFT, ABSTRACT_POS_X_OFFSET)
 						clickPos(pos)
-						time.sleep(0.5)
-						if self.isInsideNews(): return
+						time.sleep(1)
+						if self.isInsideNormalNews():
+							return
+						elif self.isInsidePoliticalNews():
+							self.app.clickAndroidBackBtn()
+							time.sleep(0.5)
 			hoverPos(getCenter())
 			if cnt % 2 == 0: wheelDown(5)
 			else: self.clickRefresh()
@@ -71,22 +75,34 @@ class QuTouTiao(App):
 			cnt += 1
 	
 	def readOneNews(self, seconds):
-		hoverPos(getCenter())
 		for x in range(0, int(seconds/2)):
+			hoverPos(getCenter())
 			if x % 2 == 0: wheelDown(3)
 			else: wheelUp(2)
 			self.checkReadingReward()
 	
+	def dailySign(self):
+		self.clickMine()
+		time.sleep(1)
+		if self.foundThenClick('daily_sign'):
+			time.sleep(2)
+			self.clickAndroidBackBtn()
+			time.sleep(0.5)
+	
 	def checkReadingReward(self):
 		if self.foundThenClick('reward_for_reading'):
-			time.sleep(1)
+			time.sleep(2.5)
 			self.clickAndroidBackBtn()
+			time.sleep(1)
 	
 	def isInsideAbstract(self):
 		return self.findFirstImage('flag_abstract_page')
 	
-	def isInsideNews(self):
+	def isInsideNormalNews(self):
 		return self.findFirstImage('flag_news_page')
+	
+	def isInsidePoliticalNews(self):
+		return self.findFirstImage('flag_politics_page')
 		
 	'''
 	def igoreRubbishInfo(self):
@@ -206,8 +222,7 @@ class QTTClose(Task):
 # Enter 'mine' page everyday to get qualification for withdraw cash
 class QTTSignIn(Task):
 	def execute(self):
-		self.app.clickMine()
-		time.sleep(3)
+		self.app.dailySign()
 	
 # Read news (article) to get golden coin
 class QTTReadNews(Task):

@@ -22,6 +22,8 @@ try:
 except NameError:
     basestring = str
 
+EXECUTION_BACKGROUND	= 0
+EXECUTION_FOREGROUND	= 1
 FOOT_BAR_X_OFFSET		= 90
 FOOT_BAR_Y_OFFSET		= 32
 SEARCH_ICON_X_OFFSET	= 155
@@ -55,7 +57,7 @@ class App: # Abstract class
 		return self.imgPath + imgName
 	
 	def findFirstImage(self, imgName):
-		if re.search('\.', imgName): # determined search with full image file name
+		if re.search('\\.', imgName): # determined search with full image file name
 			if existImage(self.img(imgName)):
 				return imgName
 			else : 
@@ -68,7 +70,7 @@ class App: # Abstract class
 			return None
 		
 	def findAllImage(self, imgName):
-		if re.search('\.', imgName): # determined image file name
+		if re.search('\\.', imgName): # determined image file name
 			return findImages(self.img(imgName))
 		else: # ambiguous image file name
 			for fileName in os.listdir(self.imgPath):
@@ -78,12 +80,18 @@ class App: # Abstract class
 	
 	def foundThenClick(self, imgName, direction=None, offset=0):
 		imgFile = self.findFirstImage(imgName)
-		if imgFile is None: return False # can't find source image in panel
-		targetPos = getImageArea(self.img(imgFile)).getCenter()
+		if imgFile is None:
+			return False # can't find source image in panel
+		imageArea = getImageArea(self.img(imgFile))
+		if getWidth(imageArea) + getHeight(imageArea) == 0:
+			logging.info('Image %s has been disappeared.' % imgFile)
+			return False
+		targetPos = imageArea.getCenter()
 		if direction is not None:
 			targetPos = shiftPos(targetPos, direction, offset)
 		#time.sleep(0.1)
-		return clickPos(targetPos)
+		clickPos(targetPos)
+		return True
 	
 	def clickAndroidHomeBtn(self):
 		clickPos(self.homePos)
@@ -128,21 +136,24 @@ class App: # Abstract class
 	
 	def start(self):
 		self.clickAndroidHomeBtn()
-		self.clickAndroidTaskBtn()
-		if not self.foundThenClick('icon_small', SHIFT_DOWN, MULTI_TASK_Y_OFFSET):
-			self.clickAndroidHomeBtn()
-			self.clickAndroidSearchBtn()
-			appName = self.__class__.__name__
-			print('input char = %s' % appName.lower())
-			self.typeInAndroidSearchBar(appName.lower())
-			icon = self.findFirstImage('icon_small')
-			if icon is None:
-				logging.info('APP "' + appName + '" hasn\'t been installed on this andriod device.')
-			assert(icon != None)
-			self.foundThenClick(icon)
+		time.sleep(0.8)
+		self.clickAndroidSearchBtn()
+		appName = self.__class__.__name__
+		self.typeInAndroidSearchBar(appName.lower())
+		icon = self.findFirstImage('icon_small')
+		if icon is None:
+			logging.info('APP "' + appName + '" hasn\'t been installed on this andriod device.')
+		assert(icon != None)
+		self.foundThenClick(icon)
 		self.initEntry()
 	
 	def stop(self):
+		self.clickAndroidHomeBtn()
+		time.sleep(0.2)
+		self.clickAndroidTaskBtn()
+		time.sleep(0.3)
+	
+	def clearAll(self):
 		self.clickAndroidHomeBtn()
 		time.sleep(0.2)
 		self.clickAndroidTaskBtn()
@@ -158,7 +169,7 @@ class App: # Abstract class
 	
 	'''
 	def findAllPolymorphicImage(self, imgName):
-		if re.search('\.', imgName): # determined image file name
+		if re.search('\\.', imgName): # determined image file name
 			return findAll(self.img(imgName))
 		else: # ambiguous image file name
 			for fileName in os.listdir(self.imgPath):
@@ -167,7 +178,7 @@ class App: # Abstract class
 			return []
 	
 	def clickPolymorphicImage(self, imgName):
-		if re.search('\.', imgName): # determined image file name
+		if re.search('\\.', imgName): # determined image file name
 			clickImage(self.img(imgName))
 		else: # ambiguous image file name
 			for fileName in os.listdir(self.imgPath):
@@ -175,22 +186,18 @@ class App: # Abstract class
 					if clickImage(self.img(fileName)):
 						return True
 			return False
-	'''
 	
-	'''
-	This method used to click target after the image has been found.
-	The target of click can be a image or a certain area or location.
-	Args:
-		imgName		: image file name for the Pattern in lacky
-		direction	: Offset direction
-		offset		: Offset when clicked
-		delay		: The delay from the finding image to clicking
-		target		: Pattern or Region or Location in lacky or (x,y)
-					  The default is the image found
-	Return:
-		Boolean		: Whether the find and click operation is successful
-	'''
-	'''
+	#This method used to click target after the image has been found.
+	#The target of click can be a image or a certain area or location.
+	#Args:
+	#	imgName		: image file name for the Pattern in lacky
+	#	direction	: Offset direction
+	#	offset		: Offset when clicked
+	#	delay		: The delay from the finding image to clicking
+	#	target		: Pattern or Region or Location in lacky or (x,y)
+	#				  The default is the image found
+	#Return:
+	#	Boolean		: Whether the find and click operation is successful
 	def foundThenClick(self, imgName, direction=None, offset=0, delay=0, target=None):
 		assert target is None or isinstance(target, basestring) or isinstance(target, lacky.Region) or isinstance(target, lacky.Location) or isinstance(target, tuple)
 		

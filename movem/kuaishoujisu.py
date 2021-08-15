@@ -19,11 +19,13 @@ class KuaiShouJiSu(App):
 		self.imgPath = os.path.abspath('.') + '\\res\\app\\kuaishoujisu\\'
 	
 	def initEntry(self):
-		pass
+		for i in range(0, 4):
+			time.sleep(1)
+			self.foundThenClick('i_know')
 	
 	def browseVideo(self, minute):
-		for x in range(0, int(minute * 6)):
-			time.sleep(10)
+		for x in range(0, int(minute * 10)):
+			time.sleep(6)
 			hoverPos(getCenter())
 			longFlickUp()
 
