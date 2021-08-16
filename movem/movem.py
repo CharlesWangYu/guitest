@@ -13,6 +13,7 @@ import logging
 from remote import *
 from qutoutiao import *
 from kuaishoujisu import *
+from fanqiechangting import *
 
 if __name__ == '__main__':
 	#pdb.set_trace()
