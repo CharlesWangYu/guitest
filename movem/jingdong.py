@@ -13,26 +13,47 @@ import time
 
 from app import *
 
+FOOTER_BTN_HOME_X	= 55
+FOOTER_BTN_SORT_X	= 135
+FOOTER_BTN_FIND_X	= 220
+FOOTER_BTN_CART_X	= 300
+FOOTER_BTN_MINE_X	= 385
+FOOTER_BTN_Y		= 920
+STUDIO_SEARCH_BAR_X	= 100
+STUDIO_SEARCH_BAR_Y	= 185
+
 class JingDong(App):
 	def __init__(self, platform):
 		super(JingDong, self).__init__(platform)
 		self.imgPath = os.path.abspath('.') + '\\res\\app\\jingdong\\'
+	
+	def initEntry(self):
+		time.sleep(3)
 
 	def clickHome(self):
-		self.foundThenClick('foot_home')
+		clickPos(scalePos(FOOTER_BTN_HOME_X, FOOTER_BTN_Y))
 
 	def clickSort(self):
-		self.foundThenClick('foot_sort')
+		clickPos(scalePos(FOOTER_BTN_SORT_X, FOOTER_BTN_Y))
 
-	def clickDiscovery(self):
-		self.foundThenClick('foot_discovery')
+	def clickFind(self):
+		clickPos(scalePos(FOOTER_BTN_FIND_X, FOOTER_BTN_Y))
 
 	def clickCart(self):
-		self.foundThenClick('foot_cart')
+		clickPos(scalePos(FOOTER_BTN_CART_X, FOOTER_BTN_Y))
 
 	def clickMine(self):
-		self.foundThenClick('foot_mine')
-
+		clickPos(scalePos(FOOTER_BTN_MINE_X, FOOTER_BTN_Y))
+	
+	def enterLiveBroadcast(self):
+		self.clickHome()
+		return self.findThenClick('live_room_entry')
+	
+	def enterLiveBroadcast(self):
+		self.clickHome()
+		return self.findThenClick('live_room_entry')
+	
+	'''
 	def clickLiveRoomBack(self):
 		pos = sikuli2.getTopRight().left(30).below(70)
 		sikuli2.clickPos(pos)
@@ -194,6 +215,7 @@ class JingDong(App):
 		if not sikuli2.clickArea(target): return False
 		#self.foundThenClick('bean_after_overturn', App.BELOW, 270)
 		return True
+	'''
 	
 class JDOpen(Task):
 	def execute(self):
@@ -203,6 +225,7 @@ class JDClose(Task):
 	def execute(self):
 		self.app.stop()
 
+'''
 class JDBoBoRock(Task):
 	def execute(self):
 		if not self.app.enterBoBoRock(): return
@@ -278,22 +301,21 @@ class JDFlopInSkinCareShop(Task):
 		if self.app.overturnCard():
 			logging.info('The beans in skin care shop have been successfully obtained!')
 		self.app.clickAndroidBackBtn()
+'''
 
 if __name__ == '__main__':
 	import remote
 	#pdb.set_trace()
-	#os._exit(0)
 	logging.basicConfig(level = logging.INFO)
 	ctrl = remote.Scrcpy()
 	ctrl.connect()
 	app = JingDong(ctrl.platform())
-	#app.clickLiveRoomShare()
-	#os._exit(0)
+	app.foundThenClick('test')
+	'''
 	tasks = TaskSet()
 	tasks.register(JDClose(app))
 	tasks.register(JDOpen(app))
 	tasks.register(JDBoBoRock(app))
-	'''
 	tasks.register(JDSignInSuperMarket(app))
 	tasks.register(JDFlopInMakeupShop(app))
 	tasks.register(JDFlopInMotherAndBabyShop(app))

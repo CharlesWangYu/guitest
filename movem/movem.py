@@ -24,6 +24,7 @@ if __name__ == '__main__':
 	app = App(remote.platform())
 	qtt = QuTouTiao(remote.platform())
 	ksj = KuaiShouJiSu(remote.platform())
+	fqc = FanQieChangTing(remote.platform())
 	# create task list and execute tasks
 	tasks = []
 	tasks.append(UnlockSmartPhone(app))
@@ -32,6 +33,8 @@ if __name__ == '__main__':
 	#tasks.append(KSJSSignIn(ksj))
 	tasks.append(KSJSBrowseVideo(ksj))
 	tasks.append(KSJSClose(ksj))
+	tasks.append(FQCTOpen(app))
+	tasks.append(FQCTKeepListening(app))
 	tasks.append(QTTOpen(qtt))
 	tasks.append(QTTSignIn(qtt))
 	tasks.append(QTTReadNews(qtt))

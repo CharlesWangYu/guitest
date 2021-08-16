@@ -122,24 +122,29 @@ class App: # Abstract class
 				if existImage(self.__platImg(fileName)):
 					typeChar(self.config['MISC']['PASSWORD'])
 	
-	def typeInAndroidSearchBar(self, text):
+	def typeInSearchBar(self, text):
+		# calculate top search bar position
 		x = getTopLeftX()
 		y = getTopLeftY() - scaleLength(TOP_SEARCH_Y_OFFSET)
 		w = getWidth()
 		h = getHeight() - scaleLength(TOP_SEARCH_H_OFFSET)
 		topSearchBar = scaleArea(x, y, w, h)
+		# click and type action
+		self.clickAndroidSearchBtn()
+		time.sleep(0.2)
 		clickImage(self.__platImg('x_in_top_search_bar.jpg'), topSearchBar)
 		time.sleep(0.3)
 		clickImage(self.__platImg('key_input_eng_chi.jpg'))
 		time.sleep(0.2)
-		typeChar(text)
+		#typeChar(text)
+		pasteChar(text)
+		time.sleep(0.2)
 	
 	def start(self):
 		self.clickAndroidHomeBtn()
 		time.sleep(0.8)
-		self.clickAndroidSearchBtn()
 		appName = self.__class__.__name__
-		self.typeInAndroidSearchBar(appName.lower())
+		self.typeInSearchBar(appName.lower())
 		icon = self.findFirstImage('icon_small')
 		if icon is None:
 			logging.info('APP "' + appName + '" hasn\'t been installed on this andriod device.')
@@ -167,70 +172,6 @@ class App: # Abstract class
 		# This method should be implement in subclass.
 		pass
 	
-	'''
-	def findAllPolymorphicImage(self, imgName):
-		if re.search('\\.', imgName): # determined image file name
-			return findAll(self.img(imgName))
-		else: # ambiguous image file name
-			for fileName in os.listdir(self.imgPath):
-				if fnmatch.fnmatchcase(fileName, imgName + '*.jpg'):
-					return findAll(self.img(fileName))
-			return []
-	
-	def clickPolymorphicImage(self, imgName):
-		if re.search('\\.', imgName): # determined image file name
-			clickImage(self.img(imgName))
-		else: # ambiguous image file name
-			for fileName in os.listdir(self.imgPath):
-				if fnmatch.fnmatchcase(fileName, imgName + '*.jpg'):
-					if clickImage(self.img(fileName)):
-						return True
-			return False
-	
-	#This method used to click target after the image has been found.
-	#The target of click can be a image or a certain area or location.
-	#Args:
-	#	imgName		: image file name for the Pattern in lacky
-	#	direction	: Offset direction
-	#	offset		: Offset when clicked
-	#	delay		: The delay from the finding image to clicking
-	#	target		: Pattern or Region or Location in lacky or (x,y)
-	#				  The default is the image found
-	#Return:
-	#	Boolean		: Whether the find and click operation is successful
-	def foundThenClick(self, imgName, direction=None, offset=0, delay=0, target=None):
-		assert target is None or isinstance(target, basestring) or isinstance(target, lacky.Region) or isinstance(target, lacky.Location) or isinstance(target, tuple)
-		
-		imgFile = self.findFirstImage(imgName)
-		if imgFile is None: return False # can't find source image in panel
-		# init target
-		if target is None:
-			targetPos = getImageArea(self.img(imgFile)).getCenter()
-		elif isinstance(target, basestring):
-			clickTarget = self.findFirstImage(target)
-			if clickTarget is None: return False # can't find target image in panel
-			targetPos = getImageArea(self.img(clickTarget)).getCenter()
-		elif isinstance(target, lacky.Region):
-			targetPos = target.getCenter()
-		elif isinstance(target, lacky.Location):
-			targetPos = target
-		elif isinstance(target, tuple):
-			targetPos = lacky.Location(target)
-		# calculate shift
-		if not direction is None:
-			if direction == SHIFT_UP:
-				targetPos = targetPos.above(offset)
-			elif direction == SHIFT_DOWN:
-				targetPos = targetPos.below(offset)
-			elif direction == SHIFT_LEFT:
-				targetPos = targetPos.left(offset)
-			elif direction == SHIFT_RIGHT:
-				targetPos = targetPos.right(offset)
-		# delay and click target
-		if delay != 0 : time.sleep(delay)
-		return clickPos(targetPos)
-	'''
-	
 class Task:
 	def __init__(self, app):
 		self.app = app
@@ -254,7 +195,7 @@ if __name__ == '__main__':
 	ctrl.connect()
 	app = App(ctrl.platform())
 	app.unlockScreen()
-	app.typeInAndroidSearchBar('jingdong')
+	app.typeInSearchBar('京东')
 	'''
 	app.clickAndroidHomeBtn()
 	app.clickAndroidTaskBtn()

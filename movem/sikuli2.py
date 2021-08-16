@@ -61,6 +61,10 @@ def scaleLength(length):
 	global WORK_SCALE
 	return WORK_SCALE * length
 
+def scalePos(x, y):
+	global WORK_SCALE
+	return lackey.Position(x, y)
+	
 def scaleArea(x, y, w, h):
 	global WORK_SCALE
 	return lackey.Region(x, y, WORK_SCALE * w, WORK_SCALE * h)
@@ -289,6 +293,11 @@ def longFlickUp():
 def typeChar(text):
 	global WORK_SCOPE
 	WORK_SCOPE.type(text)
+	time.sleep(0.1)
+
+def pasteChar(text):
+	global WORK_SCOPE
+	WORK_SCOPE.paste(text)
 	time.sleep(0.1)
 
 # Set Attribute API
