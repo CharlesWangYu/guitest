@@ -63,7 +63,7 @@ def scaleLength(length):
 
 def scalePos(x, y):
 	global WORK_SCALE
-	return lackey.Position(x, y)
+	return lackey.Location(x, y)
 	
 def scaleArea(x, y, w, h):
 	global WORK_SCALE
@@ -113,6 +113,12 @@ def getTopLeftY(region=None):
 	global WORK_SCOPE
 	if region is None: region = WORK_SCOPE
 	return region.getTopLeft().getY() # return a numeric
+
+def getX(pos):
+	return pos.getX() # return a numeric
+	
+def getY(pos):
+	return pos.getY() # return a numeric
 
 def getImageArea(imgName, region=None):
 	global WORK_SCOPE

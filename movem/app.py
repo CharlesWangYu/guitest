@@ -185,7 +185,7 @@ class UnlockSmartPhone(Task):
 	
 class ClearActiveApp(Task):
 	def execute(self):
-		self.app.stop()
+		self.app.clearAll()
 	
 if __name__ == '__main__':
 	import remote

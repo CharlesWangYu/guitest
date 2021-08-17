@@ -13,15 +13,23 @@ import time
 
 from app import *
 
-FOOTER_BTN_HOME_X	= 55
-FOOTER_BTN_SORT_X	= 135
-FOOTER_BTN_FIND_X	= 220
-FOOTER_BTN_CART_X	= 300
-FOOTER_BTN_MINE_X	= 385
-FOOTER_BTN_Y		= 920
-STUDIO_SEARCH_BAR_X	= 100
-STUDIO_SEARCH_BAR_Y	= 185
+BRAND_LIST = ['芝华仕','老板','方太','海尔','长虹','TCL','康佳','创维','酷开','海信','万家乐','小天鹅','火星人','美的','格力','苏泊尔','格兰仕','小米']
 
+FOOTER_BTN_HOME_X_OFFSET	= 55	# form left of screen
+FOOTER_BTN_SORT_X_OFFSET	= 135	# form left of screen
+FOOTER_BTN_FIND_X_OFFSET	= 220	# form left of screen
+FOOTER_BTN_CART_X_OFFSET	= 300	# form left of screen
+FOOTER_BTN_MINE_X_OFFSET	= 385	# form left of screen
+FOOTER_BTN_Y_OFFSET			= 70	# form bottom of screen
+STUDIO_SEARCH_BAR_X_OFFSET	= 100	# form left of screen
+STUDIO_SEARCH_BAR_Y_OFFSET	= 130	# form top of screen
+STUDIO_TO_ATTENTION			= 200
+
+
+def getAttentionImgYCoordinate(region):
+	assert isinstance(region, lackey.Region)
+	return getY(getCenter(region))
+	
 class JingDong(App):
 	def __init__(self, platform):
 		super(JingDong, self).__init__(platform)
@@ -31,28 +39,80 @@ class JingDong(App):
 		time.sleep(3)
 
 	def clickHome(self):
-		clickPos(scalePos(FOOTER_BTN_HOME_X, FOOTER_BTN_Y))
+		pos = shiftPos(getBottomLeft(), SHIFT_UP, FOOTER_BTN_Y_OFFSET)
+		pos = shiftPos(pos, SHIFT_RIGHT, FOOTER_BTN_HOME_X_OFFSET)
+		clickPos(pos)
 
 	def clickSort(self):
-		clickPos(scalePos(FOOTER_BTN_SORT_X, FOOTER_BTN_Y))
+		pos = shiftPos(getBottomLeft(), SHIFT_UP, FOOTER_BTN_Y_OFFSET)
+		pos = shiftPos(pos, SHIFT_RIGHT, FOOTER_BTN_SORT_X_OFFSET)
+		clickPos(pos)
 
 	def clickFind(self):
-		clickPos(scalePos(FOOTER_BTN_FIND_X, FOOTER_BTN_Y))
+		pos = shiftPos(getBottomLeft(), SHIFT_UP, FOOTER_BTN_Y_OFFSET)
+		pos = shiftPos(pos, SHIFT_RIGHT, FOOTER_BTN_FIND_X_OFFSET)
+		clickPos(pos)
 
 	def clickCart(self):
-		clickPos(scalePos(FOOTER_BTN_CART_X, FOOTER_BTN_Y))
+		pos = shiftPos(getBottomLeft(), SHIFT_UP, FOOTER_BTN_Y_OFFSET)
+		pos = shiftPos(pos, SHIFT_RIGHT, FOOTER_BTN_CART_X_OFFSET)
+		clickPos(pos)
 
 	def clickMine(self):
-		clickPos(scalePos(FOOTER_BTN_MINE_X, FOOTER_BTN_Y))
+		pos = shiftPos(getBottomLeft(), SHIFT_UP, FOOTER_BTN_Y_OFFSET)
+		pos = shiftPos(pos, SHIFT_RIGHT, FOOTER_BTN_MINE_X_OFFSET)
+		clickPos(pos)
 	
-	def enterLiveBroadcast(self):
+	def enterLiveBroadcastChannel(self):
 		self.clickHome()
-		return self.findThenClick('live_room_entry')
+		time.sleep(0.3)
+		return self.foundThenClick('live_broadcast_channel')
 	
-	def enterLiveBroadcast(self):
-		self.clickHome()
-		return self.findThenClick('live_room_entry')
+	def listLiveRooms(self, brand):
+		pos = shiftPos(getTopLeft(), SHIFT_RIGHT, STUDIO_SEARCH_BAR_X_OFFSET)
+		pos = shiftPos(pos, SHIFT_DOWN, STUDIO_SEARCH_BAR_Y_OFFSET)
+		clickPos(pos) # click search bar in live room
+		time.sleep(1)
+		pasteChar(brand)
+		time.sleep(1)
+		self.foundThenClick('search_button_in_keyboard')
+		time.sleep(0.5)
+		self.foundThenClick('search_more_live_room')
+		time.sleep(0.2)
+		attentionList = findImages(self.img('studio_with_attention.jpg'))
+		attentionList.extend(findImages(self.img('studio_without_attention.jpg')))
+		attentionList.sort(key=getAttentionImgYCoordinate)
+		logging.info('There are %d live rooms with %s brand have been found.' % (len(attentionList), brand))
+		studioList = []
+		for img in attentionList:
+			x = getX(getCenter(img)) - scaleLength(STUDIO_TO_ATTENTION)
+			y = getY(getCenter(img))
+			studioList.append(scalePos(x, y))
+		return studioList # return a studios' position list
 	
+	def isLiveRoom(self):
+		if self.findFirstImage('flag_live_room') is None: return False
+		else: return True
+		
+	def collectBeansFromLiveRoom(self, brand):
+		time.sleep(1)
+		liveRooms = self.listLiveRooms(brand)
+		for room in liveRooms:
+			clickPos(room)
+			time.sleep(2)
+			if not self.isLiveRoom(): # is not active live room
+				self.clickAndroidBackBtn()
+				time.sleep(0.3)
+				continue
+			if self.foundThenClick('interactive_lottery'): # has lottery card
+				time.sleep(1)
+				self.foundThenClick('lottery_right_now')
+				time.sleep(1)
+				self.clickAndroidBackBtn()
+				time.sleep(0.5)
+			self.clickAndroidBackBtn()
+			time.sleep(0.3)
+		
 	'''
 	def clickLiveRoomBack(self):
 		pos = sikuli2.getTopRight().left(30).below(70)
@@ -224,7 +284,13 @@ class JDOpen(Task):
 class JDClose(Task):
 	def execute(self):
 		self.app.stop()
-
+	
+class JDCollectFromLiveRoom(Task):
+	def execute(self):
+		self.app.enterLiveBroadcastChannel()
+		for brand in BRAND_LIST:
+			self.app.collectBeansFromLiveRoom(brand)
+	
 '''
 class JDBoBoRock(Task):
 	def execute(self):
@@ -310,19 +376,12 @@ if __name__ == '__main__':
 	ctrl = remote.Scrcpy()
 	ctrl.connect()
 	app = JingDong(ctrl.platform())
-	app.foundThenClick('test')
-	'''
-	tasks = TaskSet()
-	tasks.register(JDClose(app))
-	tasks.register(JDOpen(app))
-	tasks.register(JDBoBoRock(app))
-	tasks.register(JDSignInSuperMarket(app))
-	tasks.register(JDFlopInMakeupShop(app))
-	tasks.register(JDFlopInMotherAndBabyShop(app))
-	tasks.register(JDFlopInChildrenClothingShop(app))
-	tasks.register(JDFlopInUnderWearShop(app))
-	tasks.register(JDFlopInDrinkingShop(app))
-	tasks.register(JDFlopInDigitalDeviceShop(app))
-	tasks.register(JDFlopInSkinCareShop(app))
-	'''
-	tasks.execute()
+	tasks = []
+	#tasks.append(UnlockSmartPhone(app))
+	tasks.append(ClearActiveApp(app))
+	tasks.append(JDOpen(app))
+	tasks.append(JDCollectFromLiveRoom(app))
+	tasks.append(JDClose(app))
+	for task in tasks:
+		task.execute()
+	ctrl.disconnect()
