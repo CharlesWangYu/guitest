@@ -82,7 +82,7 @@ class JingDong(App):
 		attentionList = findImages(self.img('studio_with_attention.jpg'))
 		attentionList.extend(findImages(self.img('studio_without_attention.jpg')))
 		attentionList.sort(key=getAttentionImgYCoordinate)
-		logging.info('There are %d live rooms with %s brand have been found.' % (len(attentionList), brand))
+		#logging.info('There are %d live rooms with %s brand have been found.' % (len(attentionList), brand))
 		studioList = []
 		for img in attentionList:
 			x = getX(getCenter(img)) - scaleLength(STUDIO_TO_ATTENTION)
@@ -101,17 +101,20 @@ class JingDong(App):
 			clickPos(room)
 			time.sleep(2)
 			if not self.isLiveRoom(): # is not active live room
-				self.clickAndroidBackBtn()
-				time.sleep(0.3)
+				time.sleep(0.8)
+				self.clickAndroidBackBtn() # return from inactive live room
+				time.sleep(0.8)
 				continue
 			if self.foundThenClick('interactive_lottery'): # has lottery card
-				time.sleep(1)
+				time.sleep(0.8)
 				self.foundThenClick('lottery_right_now')
-				time.sleep(1)
-				self.clickAndroidBackBtn()
-				time.sleep(0.5)
-			self.clickAndroidBackBtn()
-			time.sleep(0.3)
+				time.sleep(0.8)
+				self.clickAndroidBackBtn() # return form lottery message
+				time.sleep(0.8)
+			self.clickAndroidBackBtn() # return from live room
+			time.sleep(0.5)
+		self.clickAndroidBackBtn() # return from live room list to live broadcast channel
+		time.sleep(0.5)
 		
 	'''
 	def clickLiveRoomBack(self):
