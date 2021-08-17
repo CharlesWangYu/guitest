@@ -30,12 +30,14 @@ if __name__ == '__main__':
 	tasks = []
 	tasks.append(UnlockSmartPhone(app))
 	tasks.append(ClearActiveApp(app))
+	'''
 	tasks.append(KSJSOpen(ksj))
 	#tasks.append(KSJSSignIn(ksj))
 	tasks.append(KSJSBrowseVideo(ksj))
 	tasks.append(KSJSClose(ksj))
 	tasks.append(FQCTOpen(app))
 	tasks.append(FQCTKeepListening(app))
+	'''
 	tasks.append(QTTOpen(qtt))
 	tasks.append(QTTSignIn(qtt))
 	tasks.append(QTTReadNews(qtt))
