@@ -9,11 +9,14 @@
 '''
 import pdb
 import logging
+import os
 import time
 import win32gui
 import win32con
 import win32print
 import lackey
+
+from PIL import Image
 
 #WIDTH			= win32print.GetDeviceCaps(win32gui.GetDC(0), win32con.DESKTOPHORZRES)
 #HEIGHT			= win32print.GetDeviceCaps(win32gui.GetDC(0), win32con.DESKTOPVERTRES)
@@ -44,16 +47,14 @@ lackey的主要封装：
 '''
 
 # Init API
-def initScreenScope(uiaRect):
+def initCanvas(uiaRect, scale):
 	global		WORK_SCOPE
+	global		WORK_SCALE
 	left		= uiaRect.left
 	top			= uiaRect.top
 	width		= uiaRect.right - uiaRect.left
 	height		= uiaRect.bottom - uiaRect.top
 	WORK_SCOPE	= lackey.Region(left, top, width, height)
-
-def initScreenScale(scale):
-	global		WORK_SCALE
 	WORK_SCALE 	= scale
 	
 # Static API
@@ -63,11 +64,11 @@ def scaleLength(length):
 
 def scalePos(x, y):
 	global WORK_SCALE
-	return lackey.Location(x, y)
+	return lackey.Location(x + getTopLeftX(), y + getTopLeftY())
 	
 def scaleArea(x, y, w, h):
 	global WORK_SCALE
-	return lackey.Region(x, y, WORK_SCALE * w, WORK_SCALE * h)
+	return lackey.Region(x + getTopLeftX(), y + getTopLeftY(), WORK_SCALE * w, WORK_SCALE * h)
 	
 def getCenter(region=None):
 	global WORK_SCOPE
@@ -248,14 +249,15 @@ def rightClick():
 	mouse = lackey.Mouse()
 	mouse.click(button=mouse.RIGHT)
 
-def flick(direction):
+def flick(direction, startPos=None):
 	assert(direction <= SHIFT_RIGHT)
 	# calculate filck distance
 	distance = getHeight() if direction < SHIFT_LEFT else getWidth()
 	distance /= 2
 	distance -= 200 if direction < SHIFT_LEFT else 30
 	setMoveMouseDelay(0.01)
-	pos = getCenter()
+	if startPos is None: pos = getCenter()
+	else: pos = startPos
 	hoverPos(pos)
 	mouseDown()
 	time.sleep(0.01)
@@ -267,18 +269,32 @@ def flick(direction):
 	setMoveMouseDelay(0.3)
 	time.sleep(0.2)
 	
-def flickDown():
-	flick(SHIFT_DOWN)
+def flickDown(startPos=None):
+	flick(SHIFT_DOWN, startPos)
 
-def flickUp():
-	flick(SHIFT_UP)
+def flickUp(startPos=None):
+	flick(SHIFT_UP, startPos)
 
-def flickLeft():
-	flick(SHIFT_LEFT)
+def flickLeft(startPos=None):
+	flick(SHIFT_LEFT, startPos)
 
-def flickRight():
-	flick(SHIFT_RIGHT)
+def flickRight(startPos=None):
+	flick(SHIFT_RIGHT, startPos)
 
+def shortFlickUp():
+	distance = scaleLength(240)
+	pos = shiftPos(getCenter(), SHIFT_DOWN, 100)
+	hoverPos(pos)
+	mouseDown()
+	time.sleep(0.1)
+	setMoveMouseDelay(0.2)
+	for count in range(0, 4):
+		pos = shiftPos(pos, SHIFT_UP, int(distance / 4))
+		hoverPos(pos)
+	mouseUp()
+	setMoveMouseDelay(0.3)
+	time.sleep(0.2)
+	
 def longFlickUp():
 	distance = getTopLeft().getY() + getHeight() - scaleLength(400)
 	pos = shiftPos(getCenter(), SHIFT_DOWN, (getHeight() / 2 - scaleLength(200)))
@@ -305,6 +321,21 @@ def pasteChar(text):
 	global WORK_SCOPE
 	WORK_SCOPE.paste(text)
 	time.sleep(0.1)
+
+# OCR process API
+def testImageArea(x, y, w, h):
+	region = scaleArea(x, y, w, h)
+	region.saveScreenCapture(os.path.abspath('.') + '\\', 'test')
+	
+def saveImageFile(path=None, file=None, region=None):
+	global CANVAS
+	if region is None: region = CANVAS
+	if (path is None) and (file is None):
+		region.saveScreenCapture()
+	elif file is None:
+		region.saveScreenCapture(path)
+	else:
+		region.saveScreenCapture(path, file)
 
 # Set Attribute API
 def setSimThreshold(threshold):

@@ -18,7 +18,7 @@ import time
 from win32api import GetSystemMetrics
 
 from uia2 import *
-from sikuli2 import initScreenScope, initScreenScale
+from sikuli2 import initCanvas
 
 class RemoteCtrl:
 	def __init__(self):
@@ -74,8 +74,7 @@ class Scrcpy(RemoteCtrl):
 		top		= self.rectangle.top
 		width	= self.rectangle.right - self.rectangle.left
 		height	= self.rectangle.bottom - self.rectangle.top
-		initScreenScope(self.rectangle)
-		initScreenScale(self.scale)
+		initCanvas(self.rectangle, self.scale)
 		logging.info('Screen area is (%d,%d,%d,%d)' %(left, top, width, height))
 		logging.info('Screen scale is "%.2f".' % (self.scale))
 	

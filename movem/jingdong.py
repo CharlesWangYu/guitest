@@ -36,7 +36,7 @@ class JingDong(App):
 		self.imgPath = os.path.abspath('.') + '\\res\\app\\jingdong\\'
 	
 	def initEntry(self):
-		time.sleep(3)
+		time.sleep(20)
 
 	def clickHome(self):
 		pos = shiftPos(getBottomLeft(), SHIFT_UP, FOOTER_BTN_Y_OFFSET)
@@ -379,6 +379,8 @@ if __name__ == '__main__':
 	ctrl = remote.Scrcpy()
 	ctrl.connect()
 	app = JingDong(ctrl.platform())
+	app.stop()
+	'''
 	tasks = []
 	#tasks.append(UnlockSmartPhone(app))
 	tasks.append(ClearActiveApp(app))
@@ -387,4 +389,5 @@ if __name__ == '__main__':
 	tasks.append(JDClose(app))
 	for task in tasks:
 		task.execute()
+	'''
 	ctrl.disconnect()

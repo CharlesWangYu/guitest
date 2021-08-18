@@ -56,16 +56,16 @@ class App: # Abstract class
 	def img(self, imgName):
 		return self.imgPath + imgName
 	
-	def findFirstImage(self, imgName):
+	def findFirstImage(self, imgName, region=None):
 		if re.search('\\.', imgName): # determined search with full image file name
-			if existImage(self.img(imgName)):
+			if existImage(self.img(imgName), region):
 				return imgName
 			else : 
 				return None
 		else: # fuzzy search with key word in image file name
 			for fileName in os.listdir(self.imgPath):
 				if fnmatch.fnmatchcase(fileName, imgName + '*.jpg'):
-					if existImage(self.img(fileName)):
+					if existImage(self.img(fileName), region):
 						return fileName
 			return None
 		
@@ -124,10 +124,10 @@ class App: # Abstract class
 	
 	def typeInSearchBar(self, text):
 		# calculate top search bar position
-		x = getTopLeftX()
-		y = getTopLeftY() - scaleLength(TOP_SEARCH_Y_OFFSET)
+		x = 0
+		y = TOP_SEARCH_Y_OFFSET
 		w = getWidth()
-		h = getHeight() - scaleLength(TOP_SEARCH_H_OFFSET)
+		h = getHeight() - TOP_SEARCH_H_OFFSET
 		topSearchBar = scaleArea(x, y, w, h)
 		# click and type action
 		self.clickAndroidSearchBtn()
@@ -157,6 +157,18 @@ class App: # Abstract class
 		time.sleep(0.2)
 		self.clickAndroidTaskBtn()
 		time.sleep(0.3)
+		for i in range(0, 6):
+			icon = self.findFirstImage('icon_small', scaleArea(0, 0, 420, 880))
+			if icon is None:
+				shortFlickUp()
+				time.sleep(1.5)
+			else:
+				region = getImageArea(self.img(icon))
+				flickRight(getCenter(region))
+				time.sleep(1.5)
+				break
+		self.clickAndroidHomeBtn()
+		time.sleep(0.5)
 	
 	def clearAll(self):
 		self.clickAndroidHomeBtn()
@@ -194,11 +206,12 @@ if __name__ == '__main__':
 	ctrl = remote.Scrcpy()
 	ctrl.connect()
 	app = App(ctrl.platform())
+	testImageArea(0, 0, 420, 880) # for test
+	'''
 	app.unlockScreen()
 	app.typeInSearchBar('京东')
-	'''
 	app.clickAndroidHomeBtn()
 	app.clickAndroidTaskBtn()
 	app.clickAndroidTaskClearBtn()
-	ctrl.disconnect()
 	'''
+	ctrl.disconnect()

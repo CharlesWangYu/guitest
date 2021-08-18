@@ -28,7 +28,7 @@ if __name__ == '__main__':
 	fqc = FanQieChangTing(remote.platform())
 	# create task list and execute tasks
 	tasks = []
-	tasks.append(UnlockSmartPhone(app))
+	#tasks.append(UnlockSmartPhone(app)) # waste time because of searching images
 	tasks.append(ClearActiveApp(app))
 	'''
 	tasks.append(KSJSOpen(ksj))

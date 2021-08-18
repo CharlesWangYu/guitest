@@ -54,7 +54,7 @@ if __name__ == '__main__':
 	ctrl.connect()
 	app = KuaiShouJiSu(ctrl.platform())
 	tasks = []
-	tasks.append(UnlockSmartPhone(app))
+	#tasks.append(UnlockSmartPhone(app))
 	tasks.append(ClearActiveApp(app))
 	tasks.append(KSJSOpen(app))
 	#tasks.append(KSJSSignIn(app))

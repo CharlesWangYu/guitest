@@ -258,7 +258,6 @@ if __name__ == '__main__':
 	ctrl.connect()
 	app = QuTouTiao(ctrl.platform())
 	tasks = []
-	tasks.append(UnlockSmartPhone(app))
 	tasks.append(ClearActiveApp(app))
 	tasks.append(QTTOpen(app))
 	tasks.append(QTTSignIn(app))
