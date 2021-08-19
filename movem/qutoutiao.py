@@ -57,7 +57,7 @@ class QuTouTiao(App):
 			if len(xIcons) > 1:
 				for x in range(len(xIcons)-1, 0, -1):
 					height = xIcons[x].getY() - xIcons[x-1].getY()
-					if height < scaleHeight(MAX_NEWS_ABSTRACT_HEIGHT):
+					if height < heightL2P(MAX_NEWS_ABSTRACT_HEIGHT):
 						pos = getTopLeft(xIcons[x])
 						pos = shiftPos(pos, SHIFT_UP, ABSTRACT_POS_Y_OFFSET)
 						pos = shiftPos(pos, SHIFT_LEFT, ABSTRACT_POS_X_OFFSET)
@@ -96,13 +96,16 @@ class QuTouTiao(App):
 			time.sleep(1)
 	
 	def isInsideAbstract(self):
-		return self.findFirstImage('flag_abstract_page')
+		if self.matchImage('flag_abstract_page') is None: return False
+		else: return True
 	
 	def isInsideNormalNews(self):
-		return self.findFirstImage('flag_news_page')
+		if self.matchImage('flag_news_page') is None: return False
+		else: return True
 	
 	def isInsidePoliticalNews(self):
-		return self.findFirstImage('flag_politics_page')
+		if self.matchImage('flag_politics_page') is None: return False
+		else: return True
 		
 	'''
 	def igoreRubbishInfo(self):

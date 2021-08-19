@@ -50,6 +50,7 @@ class App: # Abstract class
 		self.imgPath = ''
 		setTimeout(1)
 		setMoveMouseDelay(0.3)
+		setSimThreshold(0.7)
 	
 	def __platImg(self, fileName):
 		return self.pltPath + fileName
@@ -57,7 +58,7 @@ class App: # Abstract class
 	def img(self, imgName):
 		return self.imgPath + imgName
 	
-	def findFirstImage(self, imgName, region=None):
+	def matchImage(self, imgName, region=None):
 		if re.search('\\.', imgName): # determined search with full image file name
 			if existImage(self.img(imgName), region):
 				return imgName
@@ -69,25 +70,35 @@ class App: # Abstract class
 					if existImage(self.img(fileName), region):
 						return fileName
 			return None
+	
+	def findBestImage(self, imgName, region=None):
+		if re.search('\\.', imgName): # determined image file name
+			return findImage(self.img(imgName))
+		else: # ambiguous image file name
+			for fileName in os.listdir(self.imgPath):
+				if fnmatch.fnmatchcase(fileName, imgName + '*.jpg'):
+					return findImage(self.img(fileName))
+			return None
 		
 	def findAllImage(self, imgName):
 		if re.search('\\.', imgName): # determined image file name
 			return findImages(self.img(imgName))
 		else: # ambiguous image file name
+			imgList = []
 			for fileName in os.listdir(self.imgPath):
 				if fnmatch.fnmatchcase(fileName, imgName + '*.jpg'):
-					return findImages(self.img(fileName))
-			return []
+					imgList.extend(findImages(self.img(fileName)))
+			return imgList
 	
-	def foundThenClick(self, imgName, direction=None, offset=0):
-		imgFile = self.findFirstImage(imgName)
+	def foundThenClick(self, imgName, direction=None, offset=0, region=None):
+		imgFile = self.matchImage(imgName, region)
 		if imgFile is None:
 			return False # can't find source image in panel
-		imageArea = getImageArea(self.img(imgFile))
-		if getWidth(imageArea) + getHeight(imageArea) == 0:
+		image = getImageArea(self.img(imgFile))
+		if image is None:
 			logging.info('Image %s has been disappeared.' % imgFile)
 			return False
-		targetPos = imageArea.getCenter()
+		targetPos = image.getCenter()
 		if direction is not None:
 			targetPos = shiftPos(targetPos, direction, offset)
 		#time.sleep(0.1)
@@ -127,9 +138,9 @@ class App: # Abstract class
 		# calculate top search bar position
 		x = 0
 		y = TOP_SEARCH_Y_OFFSET
-		w = 431
-		h = 961 - TOP_SEARCH_H_OFFSET
-		topSearchBar = scaleArea(x, y, w, h)
+		w = STANDARD_WIDTH
+		h = STANDARD_HEIGHT - TOP_SEARCH_H_OFFSET
+		topSearchBar = areaL2P((x, y, w, h))
 		# click and type action
 		self.clickAndroidSearchBtn()
 		time.sleep(0.2)
@@ -146,12 +157,10 @@ class App: # Abstract class
 		time.sleep(0.8)
 		appName = self.__class__.__name__
 		self.typeInSearchBar(appName.lower())
-		icon = self.findFirstImage('icon_small')
-		if icon is None:
-			logging.info('APP "' + appName + '" hasn\'t been installed on this andriod device.')
-		assert(icon != None)
-		self.foundThenClick(icon)
-		self.initEntry()
+		if self.foundThenClick('icon_small'):
+			self.initEntry()
+		else:
+			raise Exception('APP "' + appName + '" hasn\'t been installed on this andriod device.')
 	
 	def stop(self):
 		self.clickAndroidHomeBtn()
@@ -159,15 +168,15 @@ class App: # Abstract class
 		self.clickAndroidTaskBtn()
 		time.sleep(0.3)
 		for i in range(0, 6):
-			icon = self.findFirstImage('icon_small', scaleArea(0, 0, 420, 880))
-			if icon is None:
-				shortFlickUp()
-				time.sleep(1.5)
-			else:
-				region = getImageArea(self.img(icon))
-				flickRight(getCenter(region))
-				time.sleep(1.5)
+			imgName = self.matchImage('icon_small', areaL2P((0, 0, 420, 880)))
+			if imgName is not None:
+				icon = getImageArea(self.img(imgName))
+				flickRight(getCenter(icon))
+				time.sleep(0.5)
 				break
+			else:
+				shortFlickUp()
+				time.sleep(0.1)
 		self.clickAndroidHomeBtn()
 		time.sleep(0.5)
 	
@@ -206,7 +215,8 @@ if __name__ == '__main__':
 	logging.basicConfig(level = logging.INFO)
 	ctrl = remote.Scrcpy()
 	ctrl.connect()
-	app = App(ctrl.platform())
+	m = ctrl.getPhoneModel()
+	app = App(m)
 	testImageArea(0, 0, 420, 880) # for test
 	'''
 	app.unlockScreen()

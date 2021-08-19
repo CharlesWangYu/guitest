@@ -22,10 +22,11 @@ if __name__ == '__main__':
 	#disableSikuliLog()
 	remote = Scrcpy()
 	remote.connect()
-	app = App(remote.platform())
-	qtt = QuTouTiao(remote.platform())
-	ksj = KuaiShouJiSu(remote.platform())
-	fqc = FanQieChangTing(remote.platform())
+	m = remote.getPhoneModel()
+	app = App(m)
+	qtt = QuTouTiao(m)
+	ksj = KuaiShouJiSu(m)
+	fqc = FanQieChangTing(m)
 	# create task list and execute tasks
 	tasks = []
 	#tasks.append(UnlockSmartPhone(app)) # waste time because of searching images

@@ -24,9 +24,10 @@ FOOTER_BTN_Y_OFFSET			= 70	# form bottom of screen
 STUDIO_SEARCH_BAR_X_OFFSET	= 100	# form left of screen
 STUDIO_SEARCH_BAR_Y_OFFSET	= 130	# form top of screen
 STUDIO_TO_ATTENTION			= 200
+MIN_STUDIO_ITEM_Y_INTERVAL	= 30	# actual interval is 66
 
 
-def getAttentionImgYCoordinate(region):
+def getCenterY(region):
 	assert isinstance(region, lackey.Region)
 	return getY(getCenter(region))
 	
@@ -36,7 +37,7 @@ class JingDong(App):
 		self.imgPath = os.path.abspath('.') + '\\res\\app\\jingdong\\'
 	
 	def initEntry(self):
-		time.sleep(20)
+		time.sleep(3)
 
 	def clickHome(self):
 		pos = shiftPos(getBottomLeft(), SHIFT_UP, FOOTER_BTN_Y_OFFSET)
@@ -79,19 +80,22 @@ class JingDong(App):
 		time.sleep(0.5)
 		self.foundThenClick('search_more_live_room')
 		time.sleep(0.2)
-		attentionList = findImages(self.img('studio_with_attention.jpg'))
-		attentionList.extend(findImages(self.img('studio_without_attention.jpg')))
-		attentionList.sort(key=getAttentionImgYCoordinate)
+		attentionList = self.findAllImage('studio_with_attention')
+		attentionList.extend(self.findAllImage('studio_without_attention'))
+		attentionList.sort(key=getCenterY)
 		#logging.info('There are %d live rooms with %s brand have been found.' % (len(attentionList), brand))
 		studioList = []
+		previousY = 0
 		for img in attentionList:
-			x = getX(getCenter(img)) - scaleWidth(STUDIO_TO_ATTENTION)
-			y = getY(getCenter(img))
-			studioList.append(scalePos(x, y))
+			if getCenterY(img) - previousY < heightL2P(MIN_STUDIO_ITEM_Y_INTERVAL): continue
+			logging.info('The live room label.[Y=%d]' % getCenterY(img))
+			pos = getCenter(img)
+			pos = shiftPos(pos, SHIFT_LEFT, STUDIO_TO_ATTENTION)
+			studioList.append(pos)
 		return studioList # return a studios' position list
 	
 	def isLiveRoom(self):
-		if self.findFirstImage('flag_live_room') is None: return False
+		if self.matchImage('flag_live_room') is None: return False
 		else: return True
 		
 	def collectBeansFromLiveRoom(self, brand):
@@ -378,7 +382,8 @@ if __name__ == '__main__':
 	logging.basicConfig(level = logging.INFO)
 	ctrl = remote.Scrcpy()
 	ctrl.connect()
-	app = JingDong(ctrl.platform())
+	m = ctrl.getPhoneModel()
+	app = JingDong(m)
 	app.stop()
 	'''
 	tasks = []
