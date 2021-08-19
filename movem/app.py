@@ -24,6 +24,7 @@ except NameError:
 
 EXECUTION_BACKGROUND	= 0
 EXECUTION_FOREGROUND	= 1
+SCREEN_WIDTH_HALF		= 216
 FOOT_BAR_X_OFFSET		= 90
 FOOT_BAR_Y_OFFSET		= 32
 SEARCH_ICON_X_OFFSET	= 155
@@ -37,7 +38,7 @@ TOP_SEARCH_H_OFFSET		= 700
 class App: # Abstract class
 	def __init__(self, platform):
 		self.pltPath = os.path.abspath('.') + '\\res\\platform\\' + platform + '\\'
-		self.homePos = shiftPos(getBottomLeft(), SHIFT_RIGHT, int(getWidth()/2))
+		self.homePos = shiftPos(getBottomLeft(), SHIFT_RIGHT, SCREEN_WIDTH_HALF)
 		self.homePos = shiftPos(self.homePos, SHIFT_UP, FOOT_BAR_Y_OFFSET)
 		self.taskPos = shiftPos(self.homePos, SHIFT_LEFT,  FOOT_BAR_X_OFFSET)
 		self.backPos = shiftPos(self.homePos, SHIFT_RIGHT, FOOT_BAR_X_OFFSET)
@@ -126,8 +127,8 @@ class App: # Abstract class
 		# calculate top search bar position
 		x = 0
 		y = TOP_SEARCH_Y_OFFSET
-		w = getWidth()
-		h = getHeight() - TOP_SEARCH_H_OFFSET
+		w = 431
+		h = 961 - TOP_SEARCH_H_OFFSET
 		topSearchBar = scaleArea(x, y, w, h)
 		# click and type action
 		self.clickAndroidSearchBtn()

@@ -85,7 +85,7 @@ class JingDong(App):
 		#logging.info('There are %d live rooms with %s brand have been found.' % (len(attentionList), brand))
 		studioList = []
 		for img in attentionList:
-			x = getX(getCenter(img)) - scaleLength(STUDIO_TO_ATTENTION)
+			x = getX(getCenter(img)) - scaleWidth(STUDIO_TO_ATTENTION)
 			y = getY(getCenter(img))
 			studioList.append(scalePos(x, y))
 		return studioList # return a studios' position list

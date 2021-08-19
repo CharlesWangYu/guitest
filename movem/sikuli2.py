@@ -21,9 +21,12 @@ from PIL import Image
 #WIDTH			= win32print.GetDeviceCaps(win32gui.GetDC(0), win32con.DESKTOPHORZRES)
 #HEIGHT			= win32print.GetDeviceCaps(win32gui.GetDC(0), win32con.DESKTOPVERTRES)
 WORK_SCOPE		= lackey.Region(0, 0, 0, 0) # (x, y, w, h = args)
-WORK_SCALE		= 1
+WORK_X_SCALE	= 1.0 # standard width is 431 (Redmi Note9 Pro with scrcpy frame)
+WORK_Y_SCALE	= 1.0 # standard width is 961 (Redmi Note9 Pro with scrcpy frame)
 SIM_THRESHOLD	= 0.7	# It is minimum similarity threshold
 TIMEOUT_SECOND	= 8
+STANDARD_WIDTH	= 431.0
+STANDARD_HEIGHT	= 961.0
 
 SHIFT_UP		= 0
 SHIFT_DOWN		= 1
@@ -47,28 +50,30 @@ lackey的主要封装：
 '''
 
 # Init API
-def initCanvas(uiaRect, scale):
-	global		WORK_SCOPE
-	global		WORK_SCALE
-	left		= uiaRect.left
-	top			= uiaRect.top
-	width		= uiaRect.right - uiaRect.left
-	height		= uiaRect.bottom - uiaRect.top
-	WORK_SCOPE	= lackey.Region(left, top, width, height)
-	WORK_SCALE 	= scale
+def initCanvas(uiaRect):
+	global			WORK_SCOPE
+	global			WORK_X_SCALE
+	global			WORK_Y_SCALE
+	left			= uiaRect.left
+	top				= uiaRect.top
+	width			= uiaRect.right - uiaRect.left
+	height			= uiaRect.bottom - uiaRect.top
+	WORK_SCOPE		= lackey.Region(left, top, width, height)
+	WORK_X_SCALE 	= width  / STANDARD_WIDTH
+	WORK_Y_SCALE 	= height / STANDARD_HEIGHT
 	
 # Static API
-def scaleLength(length):
-	global WORK_SCALE
-	return WORK_SCALE * length
+def scaleWidth(w):
+	return int(WORK_X_SCALE * w)
 
+def scaleHeight(h):
+	return int(WORK_Y_SCALE * h)
+	
 def scalePos(x, y):
-	global WORK_SCALE
 	return lackey.Location(x + getTopLeftX(), y + getTopLeftY())
 	
 def scaleArea(x, y, w, h):
-	global WORK_SCALE
-	return lackey.Region(x + getTopLeftX(), y + getTopLeftY(), WORK_SCALE * w, WORK_SCALE * h)
+	return lackey.Region(x + getTopLeftX(), y + getTopLeftY(), int(WORK_X_SCALE * w), int(WORK_Y_SCALE * h))
 	
 def getCenter(region=None):
 	global WORK_SCOPE
@@ -134,15 +139,14 @@ def shiftPos(srcPos, direction, offset):
 	assert(isinstance(srcPos, lackey.Location))
 	assert(direction <= SHIFT_RIGHT)
 	assert(offset >= 0)
-	shift = WORK_SCALE * offset
 	if direction == SHIFT_UP:
-		desPos = srcPos.above(shift)
+		desPos = srcPos.above(int(WORK_Y_SCALE * offset))
 	elif direction == SHIFT_DOWN:
-		desPos = srcPos.below(shift)
+		desPos = srcPos.below(int(WORK_Y_SCALE * offset))
 	elif direction == SHIFT_LEFT:
-		desPos = srcPos.left(shift)
+		desPos = srcPos.left(int(WORK_X_SCALE * offset))
 	elif direction == SHIFT_RIGHT:
-		desPos = srcPos.right(shift)
+		desPos = srcPos.right(int(WORK_X_SCALE * offset))
 	return desPos
 	
 def existImage(imgName, region=None, timeout=None):
@@ -252,7 +256,7 @@ def rightClick():
 def flick(direction, startPos=None):
 	assert(direction <= SHIFT_RIGHT)
 	# calculate filck distance
-	distance = getHeight() if direction < SHIFT_LEFT else getWidth()
+	distance = 961 if direction < SHIFT_LEFT else 431
 	distance /= 2
 	distance -= 200 if direction < SHIFT_LEFT else 30
 	setMoveMouseDelay(0.01)
@@ -282,7 +286,7 @@ def flickRight(startPos=None):
 	flick(SHIFT_RIGHT, startPos)
 
 def shortFlickUp():
-	distance = scaleLength(240)
+	distance = scaleHeight(240)
 	pos = shiftPos(getCenter(), SHIFT_DOWN, 100)
 	hoverPos(pos)
 	mouseDown()
@@ -296,8 +300,8 @@ def shortFlickUp():
 	time.sleep(0.2)
 	
 def longFlickUp():
-	distance = getTopLeft().getY() + getHeight() - scaleLength(400)
-	pos = shiftPos(getCenter(), SHIFT_DOWN, (getHeight() / 2 - scaleLength(200)))
+	distance = scaleHeight(961-400)
+	pos = shiftPos(getCenter(), SHIFT_DOWN, (961 / 2 - 200))
 	hoverPos(pos)
 	mouseDown()
 	time.sleep(0.1)

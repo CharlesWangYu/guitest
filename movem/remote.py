@@ -18,7 +18,7 @@ import time
 from win32api import GetSystemMetrics
 
 from uia2 import *
-from sikuli2 import initCanvas
+from sikuli2 import initCanvas, WORK_X_SCALE, WORK_Y_SCALE
 
 class RemoteCtrl:
 	def __init__(self):
@@ -59,6 +59,7 @@ class Scrcpy(RemoteCtrl):
 		self.adb()
 		# start up
 		cmd = 'scrcpy -Sw -Tt -m 1024 --window-x 10 --disable-screensaver'
+		cmd = 'scrcpy -m 1024 --window-x 10'
 		subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, close_fds=True)
 		# capture remote screen
 		self.uiaApp = getNullUIAElem()
@@ -74,9 +75,8 @@ class Scrcpy(RemoteCtrl):
 		top		= self.rectangle.top
 		width	= self.rectangle.right - self.rectangle.left
 		height	= self.rectangle.bottom - self.rectangle.top
-		initCanvas(self.rectangle, self.scale)
+		initCanvas(self.rectangle)
 		logging.info('Screen area is (%d,%d,%d,%d)' %(left, top, width, height))
-		logging.info('Screen scale is "%.2f".' % (self.scale))
 	
 	def disconnect(self):
 		closeWindow(self.uiaApp)
@@ -100,7 +100,8 @@ class Scrcpy(RemoteCtrl):
 		guiSysInfo = out.read().splitlines()[0]
 		out.close()
 		self.sysType = deviceInfo + '_' + guiSysInfo
-		logging.info('Smart phone platform is "%s".' % (self.sysType))
+		self.sysType = self.sysType.replace(' ', '')
+		logging.info('Smart phone platform type is "%s".' % (self.sysType))
 
 if __name__ == '__main__':
 	#pdb.set_trace()
