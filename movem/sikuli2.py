@@ -11,21 +11,15 @@ import pdb
 import logging
 import os
 import time
-import win32gui
-import win32con
-import win32print
 import lackey
 
 from PIL import Image
 
 # All distances in this project are screenshots and measured on a specific monitor. When the projection software is used on different monitors, a specific distance and coordinate transformation must be performed. The width and height of the projection software on a standard monitor are 431x961 pixels respectively.
-STANDARD_WIDTH	= 431
-STANDARD_HEIGHT	= 961
-WORK_SCOPE		= lackey.Region(0, 0, 0, 0) # (x, y, w, h = args)
-WORK_X_SCALE	= 1.0 # standard width is 431
-WORK_Y_SCALE	= 1.0 # standard width is 961
-#SIM_THRESHOLD	= 0.7 # It is minimum similarity threshold
 TIMEOUT_SECOND	= 8
+CANVAS			= lackey.Region(0, 0, 0, 0) # (x, y, w, h = args)
+X_SCALE			= 1.0 # standard width is 431
+Y_SCALE			= 1.0 # standard width is 961
 
 SHIFT_UP		= 0
 SHIFT_DOWN		= 1
@@ -50,83 +44,87 @@ lackey的主要封装：
 
 ###### Init API ######
 def initCanvas(uiaRect):
-	global			WORK_SCOPE
-	global			WORK_X_SCALE
-	global			WORK_Y_SCALE
-	left			= uiaRect.left
-	top				= uiaRect.top
-	width			= uiaRect.right - uiaRect.left
-	height			= uiaRect.bottom - uiaRect.top
-	WORK_SCOPE		= lackey.Region(left, top, width, height)
-	WORK_X_SCALE 	= float(width)  / float(STANDARD_WIDTH)
-	WORK_Y_SCALE 	= float(height) / float(STANDARD_HEIGHT)
+	global	CANVAS
+	left	= uiaRect.left
+	top		= uiaRect.top
+	width	= uiaRect.right - uiaRect.left
+	height	= uiaRect.bottom - uiaRect.top
+	CANVAS	= lackey.Region(left, top, width, height)
+
+def initScale(xScale, yScale):
+	assert(isinstance(xScale, float))
+	assert(isinstance(yScale, float))
+	global	X_SCALE
+	global	Y_SCALE
+	X_SCALE = xScale
+	Y_SCALE = yScale
 	
 ###### Static API ######
 # The following API is used to transfer between logical and physical values.
 def widthP2L(pw):
 	assert(isinstance(pw, int))
-	return int(pw / WORK_X_SCALE)
+	return int(pw / X_SCALE)
 	
 def widthL2P(lw):
 	assert(isinstance(lw, int))
-	return int(lw * WORK_X_SCALE)
+	return int(lw * X_SCALE)
 	
 def heightP2L(ph):
 	assert(isinstance(ph, int))
-	return int(ph / WORK_Y_SCALE)
+	return int(ph / Y_SCALE)
 	
 def heightL2P(lh):
 	assert(isinstance(lh, int))
-	return int(lh * WORK_Y_SCALE)
+	return int(lh * Y_SCALE)
 
 def posP2L(pPos):
 	assert(isinstance(pPos, lackey.Location) or (isinstance(pPos, tuple) and len(pPos) == 2))
 	if isinstance(pPos, lackey.Location): pos = pPos
 	else: pos = makePos(pPos)
-	lx = int((pos.getX() - getTopLeftX()) / WORK_X_SCALE)
-	ly = int((pos.getY() - getTopLeftY()) / WORK_Y_SCALE)
+	lx = int((pos.getX() - getTopLeftX()) / X_SCALE)
+	ly = int((pos.getY() - getTopLeftY()) / Y_SCALE)
 	return lackey.Location(lx, ly)
 
 def posL2P(lPos):
 	assert(isinstance(lPos, lackey.Location) or (isinstance(lPos, tuple) and len(lPos) == 2))
 	if isinstance(lPos, lackey.Location): pos = lPos
 	else: pos = makePos(lPos)
-	px = int(pos.getX() * WORK_X_SCALE + getTopLeftX())
-	py = int(pos.getY() * WORK_Y_SCALE + getTopLeftY())
+	px = int(pos.getX() * X_SCALE + getTopLeftX())
+	py = int(pos.getY() * Y_SCALE + getTopLeftY())
 	return lackey.Location(px, py)
 
 def areaP2L(pArea):
 	assert(isinstance(pArea, lackey.Region) or (isinstance(pArea, tuple) and len(pArea) == 4))
 	if isinstance(pArea, lackey.Region): area = pArea
 	else: area = makeArea(pArea)
-	lx = int((getTopLeftX(area) - getTopLeftX()) / WORK_X_SCALE)
-	ly = int((getTopLeftY(area) - getTopLeftY()) / WORK_Y_SCALE)
-	lw = int(getWidth(area)  / WORK_X_SCALE)
-	lh = int(getHeight(area) / WORK_Y_SCALE)
+	lx = int((getTopLeftX(area) - getTopLeftX()) / X_SCALE)
+	ly = int((getTopLeftY(area) - getTopLeftY()) / Y_SCALE)
+	lw = int(getWidth(area)  / X_SCALE)
+	lh = int(getHeight(area) / Y_SCALE)
 	return lackey.Region(lx, ly, lw, lh)
 
 def areaL2P(lArea):
 	assert(isinstance(lArea, lackey.Region) or (isinstance(lArea, tuple) and len(lArea) == 4))
 	if isinstance(lArea, lackey.Region): area = lArea
 	else: area = makeArea(lArea)
-	px = int(getTopLeftX(area) * WORK_X_SCALE + getTopLeftX())
-	py = int(getTopLeftY(area) * WORK_Y_SCALE + getTopLeftY())
-	pw = int(getWidth(area)  * WORK_X_SCALE)
-	ph = int(getHeight(area) * WORK_Y_SCALE)
+	px = int(getTopLeftX(area) * X_SCALE + getTopLeftX())
+	py = int(getTopLeftY(area) * Y_SCALE + getTopLeftY())
+	pw = int(getWidth(area)  * X_SCALE)
+	ph = int(getHeight(area) * Y_SCALE)
 	return lackey.Region(px, py, pw, ph)
 
 '''
 def scaleWidth(w):
-	return int(WORK_X_SCALE * w)
+	return int(X_SCALE * w)
 
 def scaleHeight(h):
-	return int(WORK_Y_SCALE * h)
+	return int(Y_SCALE * h)
 	
 def scalePos(x, y):
 	return lackey.Location(x + getTopLeftX(), y + getTopLeftY())
 	
 def scaleArea(x, y, w, h):
-	return lackey.Region(x + getTopLeftX(), y + getTopLeftY(), int(WORK_X_SCALE * w), int(WORK_Y_SCALE * h))
+	return lackey.Region(x + getTopLeftX(), y + getTopLeftY(), int(X_SCALE * w), int(Y_SCALE * h))
 '''
 
 # The following API does not distinguish logical and physical values.
@@ -139,39 +137,39 @@ def makePos(pos):
 	return lackey.Location(pos)
 	
 def getCenter(region=None):
-	if region is None: region = WORK_SCOPE
+	if region is None: region = CANVAS
 	return region.getCenter() # return a coordinate
 
 def getTopLeft(region=None):
-	if region is None: region = WORK_SCOPE
+	if region is None: region = CANVAS
 	return region.getTopLeft() # return a coordinate
 
 def getTopRight(region=None):
-	if region is None: region = WORK_SCOPE
+	if region is None: region = CANVAS
 	return region.getTopRight() # return a coordinate
 
 def getBottomLeft(region=None):
-	if region is None: region = WORK_SCOPE
+	if region is None: region = CANVAS
 	return region.getBottomLeft() # return a coordinate
 
 def getBottomRight(region=None):
-	if region is None: region = WORK_SCOPE
+	if region is None: region = CANVAS
 	return region.getBottomRight() # return a coordinate
 
 def getWidth(region=None):
-	if region is None: region = WORK_SCOPE
+	if region is None: region = CANVAS
 	return region.getW() # return a numeric
 
 def getHeight(region=None):
-	if region is None: region = WORK_SCOPE
+	if region is None: region = CANVAS
 	return region.getH() # return a numeric
 
 def getTopLeftX(region=None):
-	if region is None: region = WORK_SCOPE
+	if region is None: region = CANVAS
 	return region.getTopLeft().getX() # return a numeric
 
 def getTopLeftY(region=None):
-	if region is None: region = WORK_SCOPE
+	if region is None: region = CANVAS
 	return region.getTopLeft().getY() # return a numeric
 
 def getX(pos):
@@ -182,7 +180,7 @@ def getY(pos):
 
 # This API is used to get the physical area
 def getImageArea(imgName, region=None):
-	if region is None: region = WORK_SCOPE
+	if region is None: region = CANVAS
 	match = region.exists(imgName)
 	'''
 	if match != None and match.getScore() >= SIM_THRESHOLD :
@@ -217,7 +215,7 @@ def shiftLogicalPos(srcPos, direction, logicalOffset):
 	return desPos
 	
 def existImage(imgName, region=None, timeout=None):
-	if region is None: region = WORK_SCOPE
+	if region is None: region = CANVAS
 	if timeout is None: 
 		match = region.exists(imgName)
 	else:
@@ -226,11 +224,11 @@ def existImage(imgName, region=None, timeout=None):
 	return match != None
 
 def findImage(imgName, region=None):
-	if region is None: region = WORK_SCOPE
+	if region is None: region = CANVAS
 	return region.findBest(imgName)
 	
 def findImages(imgName, region=None):
-	if region is None: region = WORK_SCOPE
+	if region is None: region = CANVAS
 	return list(region.findAll(imgName))
 
 ###### Dynamic API ######
@@ -244,7 +242,7 @@ def waitImage(imgName):
 	return count != timeout # True: success, False: overtime
 
 def clickImage(imgName, region=None):
-	if region is None: region = WORK_SCOPE
+	if region is None: region = CANVAS
 	if existImage(imgName, region):
 		region.click(imgName)
 		time.sleep(0.1)
@@ -253,14 +251,14 @@ def clickImage(imgName, region=None):
 		return False
 
 def clickImageBlock(imgName, region=None):
-	if region is None: region = WORK_SCOPE
+	if region is None: region = CANVAS
 	while not existImage(imgName, region):
 		time.sleep(0.1)
 	return region.click(imgName)
 	time.sleep(0.1)
 
 def clickImageTimeOut(imgName, region=None):
-	if region is None: region = WORK_SCOPE
+	if region is None: region = CANVAS
 	count = 0
 	timeout = TIMEOUT_SECOND * 10
 	while (not existImage(imgName, region)) and (count < timeout):
@@ -278,11 +276,11 @@ def clickArea(region):
 	time.sleep(0.1)
 
 def clickPos(position):
-	WORK_SCOPE.click(position)
+	CANVAS.click(position)
 	time.sleep(0.1)
 
 def hoverImage(imgName, region=None):
-	if region is None: region = WORK_SCOPE
+	if region is None: region = CANVAS
 	region.hover(imgName)
 
 def hoverArea(region):
@@ -291,21 +289,21 @@ def hoverArea(region):
 	pass # TODO
 
 def hoverPos(position):
-	WORK_SCOPE.hover(position)
+	CANVAS.hover(position)
 
 def wheelDown(steps):
-	WORK_SCOPE.wheel(0, steps) # 0:Down
+	CANVAS.wheel(0, steps) # 0:Down
 	time.sleep(0.1)
 
 def wheelUp(steps):
-	WORK_SCOPE.wheel(1, steps) # 1:Up
+	CANVAS.wheel(1, steps) # 1:Up
 	time.sleep(0.1)
 
 def mouseDown():
-	WORK_SCOPE.mouseDown()
+	CANVAS.mouseDown()
 
 def mouseUp():
-	WORK_SCOPE.mouseUp()
+	CANVAS.mouseUp()
 	
 def leftClick():
 	mouse = lackey.Mouse()
@@ -363,7 +361,7 @@ def shortFlickUp():
 	
 def longFlickUp():
 	distance = heightL2P(961-400)
-	pos = shiftPos(getCenter(), SHIFT_DOWN, (961 / 2 - 200))
+	pos = shiftPos(getCenter(), SHIFT_DOWN, int(961 / 2 - 200))
 	hoverPos(pos)
 	mouseDown()
 	time.sleep(0.1)
@@ -379,11 +377,11 @@ def longFlickUp():
 	time.sleep(0.2)
 	
 def typeChar(text):
-	WORK_SCOPE.type(text)
+	CANVAS.type(text)
 	time.sleep(0.1)
 
 def pasteChar(text):
-	WORK_SCOPE.paste(text)
+	CANVAS.paste(text)
 	time.sleep(0.1)
 
 ###### OCR process API ######
@@ -392,7 +390,7 @@ def testImageArea(x, y, w, h):
 	region.saveScreenCapture(os.path.abspath('.') + '\\', 'test')
 	
 def saveImageFile(path=None, file=None, region=None):
-	if region is None: region = WORK_SCOPE
+	if region is None: region = CANVAS
 	if (path is None) and (file is None):
 		region.saveScreenCapture()
 	elif file is None:
@@ -402,8 +400,6 @@ def saveImageFile(path=None, file=None, region=None):
 
 ###### Set Attribute API ######
 def setSimThreshold(similarity):
-	#global SIM_THRESHOLD
-	#SIM_THRESHOLD = similarity
 	lackey.SettingsMaster.MinSimilarity = similarity
 
 def setMoveMouseDelay(seconds):

@@ -20,6 +20,8 @@ class RemoteCtrl:
 	def __init__(self):
 		self.uiaApp		= None
 		self.rectangle	= None
+		self.scrcpy		= None
+		self.scrcpyLog	= None
 		self.phoneModel = self.getPhoneModel()
 	
 	def connect(self):
@@ -55,7 +57,8 @@ class Scrcpy(RemoteCtrl):
 		# start up
 		cmd = 'scrcpy -Sw -Tt -m 1024 --window-x 10 --disable-screensaver'
 		cmd = 'scrcpy -m 1024 --window-x 10'
-		subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, close_fds=True)
+		self.scrcpyLog = open('scrcpy.log','wb')
+		self.scrcpy = subprocess.Popen(cmd, shell=True, stdout=self.scrcpyLog, stderr=self.scrcpyLog, close_fds=True)
 		# capture remote screen
 		self.uiaApp = getNullUIAElem()
 		while not isUIAElem(self.uiaApp):
@@ -72,10 +75,13 @@ class Scrcpy(RemoteCtrl):
 		width	= right - left
 		height	= bottom - top
 		logging.info('Screen area is (%d,%d,%d,%d)' %(left, top, width, height))
-		logging.info('X scale = %.2f, Y scale = %.2f' %(width/431.0, height/961.0))
 	
 	def disconnect(self):
 		closeWindow(self.uiaApp)
+		self.scrcpyLog.close()
+		subprocess.Popen.terminate(self.scrcpy)
+		time.sleep(2)
+		os.remove('./scrcpy.log')
 		logging.info('Disconnect the Andriod smartphone.')
 
 if __name__ == '__main__':

@@ -48,6 +48,9 @@ class App: # Abstract class
 		self.config  = ConfigParser()
 		self.config.read(self.pltPath + '_user_info.cfg', encoding='UTF-8')
 		self.imgPath = ''
+		xScale = float(getWidth())  / float(431.0)
+		yScale = float(getHeight()) / float(961.0)
+		initScale(xScale, yScale)
 		setTimeout(1)
 		setMoveMouseDelay(0.3)
 		setSimThreshold(0.7)
@@ -138,8 +141,8 @@ class App: # Abstract class
 		# calculate top search bar position
 		x = 0
 		y = TOP_SEARCH_Y_OFFSET
-		w = STANDARD_WIDTH
-		h = STANDARD_HEIGHT - TOP_SEARCH_H_OFFSET
+		w = 431
+		h = 961 - TOP_SEARCH_H_OFFSET
 		topSearchBar = areaL2P((x, y, w, h))
 		# click and type action
 		self.clickAndroidSearchBtn()

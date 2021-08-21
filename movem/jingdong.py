@@ -13,7 +13,7 @@ import time
 
 from app import *
 
-BRAND_LIST = ['芝华仕','老板','方太','海尔','长虹','TCL','康佳','创维','酷开','海信','万家乐','小天鹅','火星人','美的','格力','苏泊尔','格兰仕','小米']
+BRAND_LIST = ['艾美特','爱使达','赫尔兹','海澜之家','芝华仕','老板','方太','海尔','长虹','TCL','康佳','创维','酷开','海信','万家乐','小天鹅','万和','史密斯','火星人','容声','美的','格力','苏泊尔','格兰仕','联想','小米','三星','LG']
 
 FOOTER_BTN_HOME_X_OFFSET	= 55	# form left of screen
 FOOTER_BTN_SORT_X_OFFSET	= 135	# form left of screen
@@ -88,10 +88,11 @@ class JingDong(App):
 		previousY = 0
 		for img in attentionList:
 			if getCenterY(img) - previousY < heightL2P(MIN_STUDIO_ITEM_Y_INTERVAL): continue
-			logging.info('The live room label.[Y=%d]' % getCenterY(img))
 			pos = getCenter(img)
 			pos = shiftPos(pos, SHIFT_LEFT, STUDIO_TO_ATTENTION)
 			studioList.append(pos)
+			previousY = getCenterY(img)
+			logging.info('The live room label.[Y=%d]' % getCenterY(img))
 		return studioList # return a studios' position list
 	
 	def isLiveRoom(self):
@@ -384,8 +385,7 @@ if __name__ == '__main__':
 	ctrl.connect()
 	m = ctrl.getPhoneModel()
 	app = JingDong(m)
-	app.stop()
-	'''
+	#app.stop()
 	tasks = []
 	#tasks.append(UnlockSmartPhone(app))
 	tasks.append(ClearActiveApp(app))
@@ -394,5 +394,4 @@ if __name__ == '__main__':
 	tasks.append(JDClose(app))
 	for task in tasks:
 		task.execute()
-	'''
 	ctrl.disconnect()
