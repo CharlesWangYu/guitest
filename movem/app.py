@@ -37,26 +37,30 @@ TOP_SEARCH_H_OFFSET		= 700
 	
 class App: # Abstract class
 	def __init__(self, platform):
-		self.pltPath = os.path.abspath('.') + '\\res\\platform\\' + platform + '\\'
-		self.homePos = shiftPos(getBottomLeft(), SHIFT_RIGHT, SCREEN_WIDTH_HALF)
-		self.homePos = shiftPos(self.homePos, SHIFT_UP, FOOT_BAR_Y_OFFSET)
-		self.taskPos = shiftPos(self.homePos, SHIFT_LEFT,  FOOT_BAR_X_OFFSET)
-		self.backPos = shiftPos(self.homePos, SHIFT_RIGHT, FOOT_BAR_X_OFFSET)
-		self.QBtnPos = shiftPos(self.homePos, SHIFT_LEFT, SEARCH_ICON_X_OFFSET)
-		self.QBtnPos = shiftPos(self.QBtnPos, SHIFT_UP, SEARCH_ICON_Y_OFFSET)
-		self.XBtnPos = shiftPos(self.homePos, SHIFT_UP, TASK_CLEAR_Y_OFFSET)
-		self.config  = ConfigParser()
-		self.config.read(self.pltPath + '_user_info.cfg', encoding='UTF-8')
-		self.imgPath = ''
-		xScale = float(getWidth())  / float(431.0)
-		yScale = float(getHeight()) / float(961.0)
+		# get model config information
+		self.config = ConfigParser()
+		self.config.read(os.path.abspath('.') + '\\res\\' + platform + '\\' + 'dev_info.cfg', encoding='UTF-8')
+		# initialize scale setting in sikuli
+		standardWidth  = self.config['ANDROID']['STANDARD_WIDTH']
+		standardHeight = self.config['ANDROID']['STANDARD_HEIGHT']
+		xScale = float(getWidth())  / float(standardWidth)
+		yScale = float(getHeight()) / float(standardHeight)
 		initScale(xScale, yScale)
+		# select folder adapt to suitable size 
+		folderName = self.__getSizeFolderName(getWidth(), getHeight())
+		self.keyPath = os.path.abspath('.') + '\\res\\' + platform + '\\' + folderName + '\\'
+		self.sysPath = self.keyPath + 'android\\'
+		self.imgPath = ''
+		# others sikuli initialization
 		setTimeout(1)
 		setMoveMouseDelay(0.3)
 		setSimThreshold(0.7)
 	
+	def __getSizeFolderName(self, width, height):
+		return '431x961'
+	
 	def __platImg(self, fileName):
-		return self.pltPath + fileName
+		return self.sysPath + fileName
 	
 	def img(self, imgName):
 		return self.imgPath + imgName
@@ -109,19 +113,29 @@ class App: # Abstract class
 		return True
 	
 	def clickAndroidHomeBtn(self):
-		clickPos(self.homePos)
+		x = int(self.config['ANDROID']['FOOT_HOME_POS_X'])
+		y = int(self.config['ANDROID']['FOOT_BTNS_POS_Y'])
+		clickPos(posL2P(makePos(x, y)))
 	
 	def clickAndroidTaskBtn(self):
-		clickPos(self.taskPos)
+		x = int(self.config['ANDROID']['FOOT_TASK_POS_X'])
+		y = int(self.config['ANDROID']['FOOT_BTNS_POS_Y'])
+		clickPos(posL2P(makePos(x, y)))
 	
 	def clickAndroidBackBtn(self):
-		clickPos(self.backPos)
+		x = int(self.config['ANDROID']['FOOT_BACK_POS_X'])
+		y = int(self.config['ANDROID']['FOOT_BTNS_POS_Y'])
+		clickPos(posL2P(makePos(x, y)))
 	
 	def clickAndroidSearchBtn(self):
-		clickPos(self.QBtnPos)
+		x = int(self.config['ANDROID']['FOOT_SEARCH_ICON_X'])
+		y = int(self.config['ANDROID']['FOOT_SEARCH_ICON_Y'])
+		clickPos(posL2P(makePos(x, y)))
 	
 	def clickAndroidTaskClearBtn(self):
-		clickPos(self.XBtnPos)
+		x = int(self.config['ANDROID']['FOOT_TASK_CLEAR_X'])
+		y = int(self.config['ANDROID']['FOOT_TASK_CLEAR_Y'])
+		clickPos(posL2P(makePos(x, y)))
 	
 	def unlockScreen(self):
 		if existImage(self.__platImg('black_sreen.jpg')):
@@ -135,15 +149,15 @@ class App: # Abstract class
 		for fileName in os.listdir(self.pltPath):
 			if fnmatch.fnmatchcase(fileName, 'wait_unlock*.jpg'):
 				if existImage(self.__platImg(fileName)):
-					typeChar(self.config['MISC']['PASSWORD'])
+					typeChar(self.config['MISC']['UNLOCK_PASSWORD'])
 	
 	def typeInSearchBar(self, text):
 		# calculate top search bar position
-		x = 0
-		y = TOP_SEARCH_Y_OFFSET
-		w = 431
-		h = 961 - TOP_SEARCH_H_OFFSET
-		topSearchBar = areaL2P((x, y, w, h))
+		x = int(self.config['ANDROID']['HEAD_SEARCH_BAR_X'])
+		y = int(self.config['ANDROID']['HEAD_SEARCH_BAR_Y'])
+		w = int(self.config['ANDROID']['HEAD_SEARCH_BAR_W'])
+		h = int(self.config['ANDROID']['HEAD_SEARCH_BAR_H'])
+		topSearchBar = areaL2P(makeArea(x, y, w, h))
 		# click and type action
 		self.clickAndroidSearchBtn()
 		time.sleep(0.2)
@@ -170,8 +184,11 @@ class App: # Abstract class
 		time.sleep(0.2)
 		self.clickAndroidTaskBtn()
 		time.sleep(0.3)
+		w = int(self.config['ANDROID']['STANDARD_WIDTH'])
+		h = int(self.config['ANDROID']['APP_ICON_SCOPE_H'])
+		iconScope = areaL2P(makeArea(0, 0, w, h))
 		for i in range(0, 6):
-			imgName = self.matchImage('icon_small', areaL2P((0, 0, 420, 880)))
+			imgName = self.matchImage('icon_small', iconScope)
 			if imgName is not None:
 				icon = getImageArea(self.img(imgName))
 				flickRight(getCenter(icon))

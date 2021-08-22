@@ -13,7 +13,7 @@ import time
 
 from app import *
 
-BRAND_LIST = ['艾美特','爱使达','赫尔兹','海澜之家','芝华仕','老板','方太','海尔','长虹','TCL','康佳','创维','酷开','海信','万家乐','小天鹅','万和','史密斯','火星人','容声','美的','格力','苏泊尔','格兰仕','联想','小米','三星','LG']
+BRAND_LIST = ['海澜之家','芝华仕','老板','方太','海尔','长虹','TCL','康佳','创维','酷开','海信','万家乐','小天鹅','万和','史密斯','火星人','容声','美的','格力','苏泊尔','格兰仕','联想','小米','三星','LG']
 
 FOOTER_BTN_HOME_X_OFFSET	= 55	# form left of screen
 FOOTER_BTN_SORT_X_OFFSET	= 135	# form left of screen
@@ -32,9 +32,9 @@ def getCenterY(region):
 	return getY(getCenter(region))
 	
 class JingDong(App):
-	def __init__(self, platform):
-		super(JingDong, self).__init__(platform)
-		self.imgPath = os.path.abspath('.') + '\\res\\app\\jingdong\\'
+	def __init__(self, model):
+		super(JingDong, self).__init__(model)
+		self.imgPath = self.keyPath + 'jingdong\\'
 	
 	def initEntry(self):
 		time.sleep(3)

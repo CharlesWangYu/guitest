@@ -16,9 +16,9 @@ from app import *
 PLAY_PAUSE_BTN_Y_OFFSET	= 60
 
 class FanQieChangTing(App):
-	def __init__(self, platform):
-		super(FanQieChangTing, self).__init__(platform)
-		self.imgPath = os.path.abspath('.') + '\\res\\app\\fanqiechangting\\'
+	def __init__(self, model):
+		super(FanQieChangTing, self).__init__(model)
+		self.imgPath = self.keyPath + 'fanqiechangting\\'
 	
 	def initEntry(self):
 		time.sleep(3)

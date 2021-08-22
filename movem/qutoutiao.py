@@ -22,9 +22,9 @@ NECESSARY_READING_TIMES		= 150
 RESIDENCE_ARTICLE_SECOND	= 22
 
 class QuTouTiao(App):
-	def __init__(self, platform):
-		super(QuTouTiao, self).__init__(platform)
-		self.imgPath = os.path.abspath('.') + '\\res\\app\\qutoutiao\\'
+	def __init__(self, model):
+		super(QuTouTiao, self).__init__(model)
+		self.imgPath = self.keyPath + 'qutoutiao\\'
 		
 	def initEntry(self):
 		pass

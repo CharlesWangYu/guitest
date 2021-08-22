@@ -78,39 +78,31 @@ def heightL2P(lh):
 	return int(lh * Y_SCALE)
 
 def posP2L(pPos):
-	assert(isinstance(pPos, lackey.Location) or (isinstance(pPos, tuple) and len(pPos) == 2))
-	if isinstance(pPos, lackey.Location): pos = pPos
-	else: pos = makePos(pPos)
-	lx = int((pos.getX() - getTopLeftX()) / X_SCALE)
-	ly = int((pos.getY() - getTopLeftY()) / Y_SCALE)
+	assert(isinstance(pPos, lackey.Location))
+	lx = int((pPos.getX() - getTopLeftX()) / X_SCALE)
+	ly = int((pPos.getY() - getTopLeftY()) / Y_SCALE)
 	return lackey.Location(lx, ly)
 
 def posL2P(lPos):
-	assert(isinstance(lPos, lackey.Location) or (isinstance(lPos, tuple) and len(lPos) == 2))
-	if isinstance(lPos, lackey.Location): pos = lPos
-	else: pos = makePos(lPos)
-	px = int(pos.getX() * X_SCALE + getTopLeftX())
-	py = int(pos.getY() * Y_SCALE + getTopLeftY())
+	assert(isinstance(lPos, lackey.Location))
+	px = int(lPos.getX() * X_SCALE + getTopLeftX())
+	py = int(lPos.getY() * Y_SCALE + getTopLeftY())
 	return lackey.Location(px, py)
 
 def areaP2L(pArea):
-	assert(isinstance(pArea, lackey.Region) or (isinstance(pArea, tuple) and len(pArea) == 4))
-	if isinstance(pArea, lackey.Region): area = pArea
-	else: area = makeArea(pArea)
-	lx = int((getTopLeftX(area) - getTopLeftX()) / X_SCALE)
-	ly = int((getTopLeftY(area) - getTopLeftY()) / Y_SCALE)
-	lw = int(getWidth(area)  / X_SCALE)
-	lh = int(getHeight(area) / Y_SCALE)
+	assert(isinstance(pArea, lackey.Region))
+	lx = int((getTopLeftX(pArea) - getTopLeftX()) / X_SCALE)
+	ly = int((getTopLeftY(pArea) - getTopLeftY()) / Y_SCALE)
+	lw = int(getWidth(pArea)  / X_SCALE)
+	lh = int(getHeight(pArea) / Y_SCALE)
 	return lackey.Region(lx, ly, lw, lh)
 
 def areaL2P(lArea):
-	assert(isinstance(lArea, lackey.Region) or (isinstance(lArea, tuple) and len(lArea) == 4))
-	if isinstance(lArea, lackey.Region): area = lArea
-	else: area = makeArea(lArea)
-	px = int(getTopLeftX(area) * X_SCALE + getTopLeftX())
-	py = int(getTopLeftY(area) * Y_SCALE + getTopLeftY())
-	pw = int(getWidth(area)  * X_SCALE)
-	ph = int(getHeight(area) * Y_SCALE)
+	assert(isinstance(lArea, lackey.Region))
+	px = int(getTopLeftX(lArea) * X_SCALE + getTopLeftX())
+	py = int(getTopLeftY(lArea) * Y_SCALE + getTopLeftY())
+	pw = int(getWidth(lArea)  * X_SCALE)
+	ph = int(getHeight(lArea) * Y_SCALE)
 	return lackey.Region(px, py, pw, ph)
 
 '''
@@ -128,13 +120,14 @@ def scaleArea(x, y, w, h):
 '''
 
 # The following API does not distinguish logical and physical values.
-def makeArea(region):
-	assert(isinstance(region, tuple) and len(region) == 4)
-	return lackey.Region(region)
+def makeArea(x, y, w, h):
+	assert(isinstance(x, int) and isinstance(y, int))
+	assert(isinstance(w, int) and isinstance(h, int))
+	return lackey.Region(x, y, w, h)
 
-def makePos(pos):
-	assert(isinstance(pos, tuple) and len(pos) == 2)
-	return lackey.Location(pos)
+def makePos(x, y):
+	assert(isinstance(x, int) and isinstance(y, int))
+	return lackey.Location(x, y)
 	
 def getCenter(region=None):
 	if region is None: region = CANVAS

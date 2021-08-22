@@ -14,9 +14,9 @@ import time
 from app import *
 
 class KuaiShouJiSu(App):
-	def __init__(self, platform):
-		super(KuaiShouJiSu, self).__init__(platform)
-		self.imgPath = os.path.abspath('.') + '\\res\\app\\kuaishoujisu\\'
+	def __init__(self, model):
+		super(KuaiShouJiSu, self).__init__(model)
+		self.imgPath = self.keyPath + 'kuaishoujisu\\'
 	
 	def initEntry(self):
 		for i in range(0, 4):
