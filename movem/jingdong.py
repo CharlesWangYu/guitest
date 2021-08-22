@@ -15,18 +15,6 @@ from app import *
 
 BRAND_LIST = ['海澜之家','芝华仕','老板','方太','海尔','长虹','TCL','康佳','创维','酷开','海信','万家乐','小天鹅','万和','史密斯','火星人','容声','美的','格力','苏泊尔','格兰仕','联想','小米','三星','LG']
 
-FOOTER_BTN_HOME_X_OFFSET	= 55	# form left of screen
-FOOTER_BTN_SORT_X_OFFSET	= 135	# form left of screen
-FOOTER_BTN_FIND_X_OFFSET	= 220	# form left of screen
-FOOTER_BTN_CART_X_OFFSET	= 300	# form left of screen
-FOOTER_BTN_MINE_X_OFFSET	= 385	# form left of screen
-FOOTER_BTN_Y_OFFSET			= 70	# form bottom of screen
-STUDIO_SEARCH_BAR_X_OFFSET	= 100	# form left of screen
-STUDIO_SEARCH_BAR_Y_OFFSET	= 130	# form top of screen
-STUDIO_TO_ATTENTION			= 200
-MIN_STUDIO_ITEM_Y_INTERVAL	= 30	# actual interval is 66
-
-
 def getCenterY(region):
 	assert isinstance(region, lackey.Region)
 	return getY(getCenter(region))
@@ -37,32 +25,32 @@ class JingDong(App):
 		self.imgPath = self.keyPath + 'jingdong\\'
 	
 	def initEntry(self):
-		time.sleep(3)
+		time.sleep(5)
 
 	def clickHome(self):
-		pos = shiftPos(getBottomLeft(), SHIFT_UP, FOOTER_BTN_Y_OFFSET)
-		pos = shiftPos(pos, SHIFT_RIGHT, FOOTER_BTN_HOME_X_OFFSET)
-		clickPos(pos)
+		x = int(self.config['JINGDONG']['FOOT_HOME_POS_X'])
+		y = int(self.config['JINGDONG']['FOOT_BTNS_POS_Y'])
+		clickPos(posL2P(makePos(x, y)))
 
 	def clickSort(self):
-		pos = shiftPos(getBottomLeft(), SHIFT_UP, FOOTER_BTN_Y_OFFSET)
-		pos = shiftPos(pos, SHIFT_RIGHT, FOOTER_BTN_SORT_X_OFFSET)
-		clickPos(pos)
+		x = int(self.config['JINGDONG']['FOOT_SORT_POS_X'])
+		y = int(self.config['JINGDONG']['FOOT_BTNS_POS_Y'])
+		clickPos(posL2P(makePos(x, y)))
 
 	def clickFind(self):
-		pos = shiftPos(getBottomLeft(), SHIFT_UP, FOOTER_BTN_Y_OFFSET)
-		pos = shiftPos(pos, SHIFT_RIGHT, FOOTER_BTN_FIND_X_OFFSET)
-		clickPos(pos)
+		x = int(self.config['JINGDONG']['FOOT_FIND_POS_X'])
+		y = int(self.config['JINGDONG']['FOOT_BTNS_POS_Y'])
+		clickPos(posL2P(makePos(x, y)))
 
 	def clickCart(self):
-		pos = shiftPos(getBottomLeft(), SHIFT_UP, FOOTER_BTN_Y_OFFSET)
-		pos = shiftPos(pos, SHIFT_RIGHT, FOOTER_BTN_CART_X_OFFSET)
-		clickPos(pos)
+		x = int(self.config['JINGDONG']['FOOT_CART_POS_X'])
+		y = int(self.config['JINGDONG']['FOOT_BTNS_POS_Y'])
+		clickPos(posL2P(makePos(x, y)))
 
 	def clickMine(self):
-		pos = shiftPos(getBottomLeft(), SHIFT_UP, FOOTER_BTN_Y_OFFSET)
-		pos = shiftPos(pos, SHIFT_RIGHT, FOOTER_BTN_MINE_X_OFFSET)
-		clickPos(pos)
+		x = int(self.config['JINGDONG']['FOOT_MINE_POS_X'])
+		y = int(self.config['JINGDONG']['FOOT_BTNS_POS_Y'])
+		clickPos(posL2P(makePos(x, y)))
 	
 	def enterLiveBroadcastChannel(self):
 		self.clickHome()
@@ -70,13 +58,13 @@ class JingDong(App):
 		return self.foundThenClick('live_broadcast_channel')
 	
 	def listLiveRooms(self, brand):
-		pos = shiftPos(getTopLeft(), SHIFT_RIGHT, STUDIO_SEARCH_BAR_X_OFFSET)
-		pos = shiftPos(pos, SHIFT_DOWN, STUDIO_SEARCH_BAR_Y_OFFSET)
-		clickPos(pos) # click search bar in live room
+		x = int(self.config['JINGDONG']['STUDIO_SEARCH_X'])
+		y = int(self.config['JINGDONG']['STUDIO_SEARCH_Y'])
+		clickPos(posL2P(makePos(x, y))) # click search bar in live room
 		time.sleep(1)
 		pasteChar(brand)
 		time.sleep(1)
-		self.foundThenClick('search_button_in_keyboard')
+		self.clickKDBSearchGoBtn()
 		time.sleep(0.5)
 		self.foundThenClick('search_more_live_room')
 		time.sleep(0.2)
@@ -87,12 +75,13 @@ class JingDong(App):
 		studioList = []
 		previousY = 0
 		for img in attentionList:
-			if getCenterY(img) - previousY < heightL2P(MIN_STUDIO_ITEM_Y_INTERVAL): continue
+			minInterval = heightL2P(int(self.config['JINGDONG']['MIN_STUDIO_ITEM_H']))
+			if getCenterY(img) - previousY < minInterval: continue
 			pos = getCenter(img)
-			pos = shiftPos(pos, SHIFT_LEFT, STUDIO_TO_ATTENTION)
+			pos = shiftPos(pos, SHIFT_LEFT, int(self.config['JINGDONG']['STUDIO_TO_ATTENTION']))
 			studioList.append(pos)
 			previousY = getCenterY(img)
-			logging.info('The live room label.[Y=%d]' % getCenterY(img))
+			#logging.info('The live room label.[Y=%d]' % getCenterY(img))
 		return studioList # return a studios' position list
 	
 	def isLiveRoom(self):
@@ -383,8 +372,7 @@ if __name__ == '__main__':
 	logging.basicConfig(level = logging.INFO)
 	ctrl = remote.Scrcpy()
 	ctrl.connect()
-	m = ctrl.getPhoneModel()
-	app = JingDong(m)
+	app = JingDong(ctrl.phoneModel)
 	#app.stop()
 	tasks = []
 	#tasks.append(UnlockSmartPhone(app))

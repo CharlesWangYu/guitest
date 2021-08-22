@@ -22,7 +22,7 @@ if __name__ == '__main__':
 	#disableSikuliLog()
 	remote = Scrcpy()
 	remote.connect()
-	m = remote.getPhoneModel()
+	m = remote.phoneModel
 	app = App(m)
 	qtt = QuTouTiao(m)
 	ksj = KuaiShouJiSu(m)
@@ -31,12 +31,12 @@ if __name__ == '__main__':
 	tasks = []
 	#tasks.append(UnlockSmartPhone(app)) # waste time because of searching images
 	tasks.append(ClearActiveApp(app))
-	tasks.append(KSJSOpen(ksj))
-	#tasks.append(KSJSSignIn(ksj))
-	tasks.append(KSJSBrowseVideo(ksj))
-	tasks.append(KSJSClose(ksj))
 	tasks.append(FQCTOpen(fqc))
 	tasks.append(FQCTKeepListening(fqc))
+	tasks.append(KSJSOpen(ksj))
+	#tasks.append(KSJSSignIn(ksj))
+	#tasks.append(KSJSBrowseVideo(ksj))
+	tasks.append(KSJSClose(ksj))
 	tasks.append(QTTOpen(qtt))
 	tasks.append(QTTSignIn(qtt))
 	tasks.append(QTTReadNews(qtt))

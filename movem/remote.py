@@ -10,6 +10,7 @@
 import pdb
 import logging
 import os
+import sys
 import subprocess
 import time
 
@@ -53,10 +54,15 @@ class RemoteCtrl:
 		return model
 
 class Scrcpy(RemoteCtrl):
+	def __is64BitSystem(self):
+		return sys.maxsize > 2**32
+	
 	def connect(self):
 		# start up
-		cmd = 'scrcpy -Sw -Tt -m 1024 --window-x 10 --disable-screensaver'
-		cmd = 'scrcpy -m 1024 --window-x 10'
+		if self.__is64BitSystem():
+			cmd = 'scrcpy -Sw -Tt -m 1024 --window-x 10 --disable-screensaver'
+		else:
+			cmd = 'scrcpy -w -Tt -m 1024 --window-x 10 --disable-screensaver'
 		self.scrcpyLog = open('scrcpy.log','wb')
 		self.scrcpy = subprocess.Popen(cmd, shell=True, stdout=self.scrcpyLog, stderr=self.scrcpyLog, close_fds=True)
 		# capture remote screen
@@ -89,4 +95,4 @@ if __name__ == '__main__':
 	logging.basicConfig(level = logging.INFO)
 	remote = Scrcpy()
 	remote.connect()
-	remote.disconnect()
+	#remote.disconnect()

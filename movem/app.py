@@ -11,6 +11,7 @@ import pdb
 import logging
 import re
 import os
+import sys
 import time
 import fnmatch
 from configparser import ConfigParser
@@ -24,31 +25,23 @@ except NameError:
 
 EXECUTION_BACKGROUND	= 0
 EXECUTION_FOREGROUND	= 1
-SCREEN_WIDTH_HALF		= 216
-FOOT_BAR_X_OFFSET		= 90
-FOOT_BAR_Y_OFFSET		= 32
-SEARCH_ICON_X_OFFSET	= 155
-SEARCH_ICON_Y_OFFSET	= 55
-TASK_CLEAR_Y_OFFSET		= 98
-USB_USE_CANCEL_OFFSET	= 100
-MULTI_TASK_Y_OFFSET		= 50
-TOP_SEARCH_Y_OFFSET		= 30
-TOP_SEARCH_H_OFFSET		= 700
 	
 class App: # Abstract class
-	def __init__(self, platform):
+	def __init__(self, model):
 		# get model config information
+		self.pltPath = os.path.abspath('.') + '\\res\\' + model + '\\'
 		self.config = ConfigParser()
-		self.config.read(os.path.abspath('.') + '\\res\\' + platform + '\\' + 'dev_info.cfg', encoding='UTF-8')
+		self.config.read(self.pltPath + 'dev_info.cfg', encoding='UTF-8')
 		# initialize scale setting in sikuli
 		standardWidth  = self.config['ANDROID']['STANDARD_WIDTH']
 		standardHeight = self.config['ANDROID']['STANDARD_HEIGHT']
 		xScale = float(getWidth())  / float(standardWidth)
 		yScale = float(getHeight()) / float(standardHeight)
 		initScale(xScale, yScale)
-		# select folder adapt to suitable size 
+		# select folder adapt to suitable size
+		self.__getAllFolderName()
 		folderName = self.__getSizeFolderName(getWidth(), getHeight())
-		self.keyPath = os.path.abspath('.') + '\\res\\' + platform + '\\' + folderName + '\\'
+		self.keyPath = self.pltPath + folderName + '\\'
 		self.sysPath = self.keyPath + 'android\\'
 		self.imgPath = ''
 		# others sikuli initialization
@@ -57,7 +50,31 @@ class App: # Abstract class
 		setSimThreshold(0.7)
 	
 	def __getSizeFolderName(self, width, height):
-		return '431x961'
+		folderList = self.__getAllFolderName()
+		minDistance = sys.maxsize
+		minDistanceIndex = 0
+		for index, folder in enumerate(folderList):
+			str = folder.split("x", 1)
+			typeWidth  = int(str[0])
+			typeHeight = int(str[1])
+			dX = abs(int(str[0]) - width)
+			dY = abs(int(str[1]) - height)
+			distance = dX ** 2 + dY ** 2
+			if distance < minDistance:
+				minDistance = distance
+				minDistanceIndex = index
+		return folderList[minDistanceIndex]
+	
+	def __getAllFolderName(self):
+		list = []
+		files = os.listdir(self.pltPath)
+		assert len(files) > 0
+		for item in files:
+			m = os.path.join(self.pltPath, item)
+			if (os.path.isdir(m)):
+				h = os.path.split(m)
+				list.append(h[1])
+		return list
 	
 	def __platImg(self, fileName):
 		return self.sysPath + fileName
@@ -137,6 +154,11 @@ class App: # Abstract class
 		y = int(self.config['ANDROID']['FOOT_TASK_CLEAR_Y'])
 		clickPos(posL2P(makePos(x, y)))
 	
+	def clickKDBSearchGoBtn(self):
+		x = int(self.config['KEYBOARD']['SEARCH_GO_BTN_X'])
+		y = int(self.config['KEYBOARD']['SEARCH_GO_BTN_Y'])
+		clickPos(posL2P(makePos(x, y)))	
+	
 	def unlockScreen(self):
 		if existImage(self.__platImg('black_sreen.jpg')):
 			hoverPos(getCenter())
@@ -161,9 +183,9 @@ class App: # Abstract class
 		# click and type action
 		self.clickAndroidSearchBtn()
 		time.sleep(0.2)
-		clickImage(self.__platImg('x_in_top_search_bar.jpg'), topSearchBar)
+		clickImage(self.__platImg('x_in_top_search_bar.jpg'), topSearchBar) # TODO
 		time.sleep(0.3)
-		clickImage(self.__platImg('key_input_eng_chi.jpg'))
+		clickImage(self.__platImg('key_input_eng_chi.jpg')) # TODO
 		time.sleep(0.2)
 		#typeChar(text)
 		pasteChar(text)

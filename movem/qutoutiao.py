@@ -13,14 +13,6 @@ import time
 
 from app import *
 
-MAX_NEWS_ABSTRACT_HEIGHT	= 200
-TOP_BACK_BTN_X_OFFSET		= 43
-TOP_BACK_BTN_Y_OFFSET		= 80
-ABSTRACT_POS_X_OFFSET		= 40
-ABSTRACT_POS_Y_OFFSET		= 50
-NECESSARY_READING_TIMES		= 150
-RESIDENCE_ARTICLE_SECOND	= 22
-
 class QuTouTiao(App):
 	def __init__(self, model):
 		super(QuTouTiao, self).__init__(model)
@@ -31,7 +23,6 @@ class QuTouTiao(App):
 	
 	def clickTask(self):
 		self.foundThenClick('foot_task')
-		#self.cancelSignSuccess()
 	
 	def clickRefresh(self):
 		self.foundThenClick('foot_refresh')
@@ -41,14 +32,14 @@ class QuTouTiao(App):
 		self.foundThenClick('foot_mine')
 	
 	def clickTopLeftBack(self):
-		pos = shiftPos(getTopLeft(), SHIFT_RIGHT, TOP_BACK_BTN_X_OFFSET)
-		pos = shiftPos(pos, SHIFT_DOWN, TOP_BACK_BTN_Y_OFFSET)
-		clickPos(pos)
+		x = int(self.config['QUTOUTIAO']['TOP_LEFT_BACK_X'])
+		y = int(self.config['QUTOUTIAO']['TOP_BACK_BTNS_Y'])
+		clickPos(posL2P(makePos(x, y)))
 	
 	def clickTopRightBack(self):
-		pos = shiftPos(getTopRight(), SHIFT_LEFT, TOP_BACK_BTN_X_OFFSET)
-		pos = shiftPos(pos, SHIFT_DOWN, TOP_BACK_BTN_Y_OFFSET)
-		clickPos(pos)
+		x = int(self.config['QUTOUTIAO']['TOP_RIGHT_BACK_X'])
+		y = int(self.config['QUTOUTIAO']['TOP_BACK_BTNS_Y'])
+		clickPos(posL2P(makePos(x, y)))
 	
 	def selectAnAbstract(self):
 		cnt = 0
@@ -57,10 +48,10 @@ class QuTouTiao(App):
 			if len(xIcons) > 1:
 				for x in range(len(xIcons)-1, 0, -1):
 					height = xIcons[x].getY() - xIcons[x-1].getY()
-					if height < heightL2P(MAX_NEWS_ABSTRACT_HEIGHT):
+					if height < heightL2P(int(self.config['QUTOUTIAO']['MAX_NEWS_ABSTRACT_H'])):
 						pos = getTopLeft(xIcons[x])
-						pos = shiftPos(pos, SHIFT_UP, ABSTRACT_POS_Y_OFFSET)
-						pos = shiftPos(pos, SHIFT_LEFT, ABSTRACT_POS_X_OFFSET)
+						pos = shiftPos(pos, SHIFT_UP, int(self.config['QUTOUTIAO']['ABSTRACT_Y_OFFSET']))
+						pos = shiftPos(pos, SHIFT_LEFT, int(self.config['QUTOUTIAO']['ABSTRACT_X_OFFSET']))
 						clickPos(pos)
 						time.sleep(1)
 						if self.isInsideNormalNews():
@@ -231,11 +222,13 @@ class QTTSignIn(Task):
 class QTTReadNews(Task):
 	def execute(self):
 		self.app.clickRefresh()
-		for count in range(0, NECESSARY_READING_TIMES):
+		readTimes	= int(self.app.config['QUTOUTIAO']['NECESSARY_READ_TIMES'])
+		readSeconds	= int(self.app.config['QUTOUTIAO']['RESIDENCE_NEWS_SECONDS'])
+		for count in range(0, readTimes):
 			self.app.clickRefresh()
 			self.app.selectAnAbstract()
 			time.sleep(0.5)
-			self.app.readOneNews(RESIDENCE_ARTICLE_SECOND)
+			self.app.readOneNews(readSeconds)
 			self.app.clickAndroidBackBtn()
 			time.sleep(0.5)
 	
@@ -259,7 +252,7 @@ if __name__ == '__main__':
 	logging.basicConfig(level = logging.INFO)
 	ctrl = remote.Scrcpy()
 	ctrl.connect()
-	app = QuTouTiao(ctrl.platform())
+	app = QuTouTiao(ctrl.phoneModel)
 	tasks = []
 	tasks.append(ClearActiveApp(app))
 	tasks.append(QTTOpen(app))

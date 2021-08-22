@@ -13,8 +13,6 @@ import time
 
 from app import *
 
-PLAY_PAUSE_BTN_Y_OFFSET	= 60
-
 class FanQieChangTing(App):
 	def __init__(self, model):
 		super(FanQieChangTing, self).__init__(model)
@@ -24,8 +22,9 @@ class FanQieChangTing(App):
 		time.sleep(3)
 	
 	def keepListening(self, mode=EXECUTION_BACKGROUND, minute=None):
-		playPauseBtnPos = shiftPos(self.homePos, SHIFT_UP, PLAY_PAUSE_BTN_Y_OFFSET)
-		clickPos(playPauseBtnPos)
+		x = int(self.config['FANQIECHANGTING']['PLAY_PAUSE_BTN_X'])
+		y = int(self.config['FANQIECHANGTING']['PLAY_PAUSE_BTN_Y'])
+		clickPos(posL2P(makePos(x, y)))
 		time.sleep(1)
 		if (mode == EXECUTION_BACKGROUND):
 			self.clickAndroidHomeBtn()
@@ -58,7 +57,7 @@ if __name__ == '__main__':
 	logging.basicConfig(level = logging.INFO)
 	ctrl = remote.Scrcpy()
 	ctrl.connect()
-	app = FanQieChangTing(ctrl.platform())
+	app = FanQieChangTing(ctrl.phoneModel)
 	tasks = []
 	#tasks.append(UnlockSmartPhone(app))
 	tasks.append(ClearActiveApp(app))

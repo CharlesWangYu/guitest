@@ -52,7 +52,7 @@ if __name__ == '__main__':
 	logging.basicConfig(level = logging.INFO)
 	ctrl = remote.Scrcpy()
 	ctrl.connect()
-	app = KuaiShouJiSu(ctrl.platform())
+	app = KuaiShouJiSu(ctrl.phoneModel)
 	tasks = []
 	#tasks.append(UnlockSmartPhone(app))
 	tasks.append(ClearActiveApp(app))
