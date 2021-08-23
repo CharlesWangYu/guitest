@@ -176,7 +176,7 @@ class App: # Abstract class
 	def typeInSearchBar(self, text):
 		# click bottom search bar
 		self.clickAndroidSearchBtn()
-		time.sleep(0.5)
+		time.sleep(1.5)
 		# click top search bar clear button or set focus to it
 		x = int(self.config['ANDROID']['HEAD_SEARCH_CLEAR_X'])
 		y = int(self.config['ANDROID']['HEAD_SEARCH_CLEAR_Y'])
@@ -188,7 +188,7 @@ class App: # Abstract class
 		# input character
 		#typeChar(text)
 		pasteChar(text)
-		time.sleep(0.5)
+		time.sleep(1)
 	
 	def start(self):
 		self.clickAndroidHomeBtn()

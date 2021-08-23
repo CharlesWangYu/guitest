@@ -35,6 +35,8 @@ if __name__ == '__main__':
 	tasks.append(FQCTKeepListening(fqc))
 	tasks.append(KSJSOpen(ksj))
 	#tasks.append(KSJSSignIn(ksj))
+	tasks.append(KSJSWatchLiveRoom(app))
+	tasks.append(KSJSWatchAd(app))
 	tasks.append(KSJSBrowseVideo(ksj))
 	tasks.append(KSJSClose(ksj))
 	tasks.append(QTTOpen(qtt))
