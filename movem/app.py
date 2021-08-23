@@ -47,7 +47,7 @@ class App: # Abstract class
 		# others sikuli initialization
 		setTimeout(1)
 		setMoveMouseDelay(0.3)
-		setSimThreshold(0.7)
+		setSimThreshold(0.75)
 	
 	def __getSizeFolderName(self, width, height):
 		folderList = self.__getAllFolderName()
@@ -174,22 +174,21 @@ class App: # Abstract class
 					typeChar(self.config['MISC']['UNLOCK_PASSWORD'])
 	
 	def typeInSearchBar(self, text):
-		# calculate top search bar position
-		x = int(self.config['ANDROID']['HEAD_SEARCH_BAR_X'])
-		y = int(self.config['ANDROID']['HEAD_SEARCH_BAR_Y'])
-		w = int(self.config['ANDROID']['HEAD_SEARCH_BAR_W'])
-		h = int(self.config['ANDROID']['HEAD_SEARCH_BAR_H'])
-		topSearchBar = areaL2P(makeArea(x, y, w, h))
-		# click and type action
+		# click bottom search bar
 		self.clickAndroidSearchBtn()
-		time.sleep(0.2)
-		clickImage(self.__platImg('x_in_top_search_bar.jpg'), topSearchBar) # TODO
-		time.sleep(0.3)
+		time.sleep(0.5)
+		# click top search bar clear button or set focus to it
+		x = int(self.config['ANDROID']['HEAD_SEARCH_CLEAR_X'])
+		y = int(self.config['ANDROID']['HEAD_SEARCH_CLEAR_Y'])
+		clickPos(posL2P(makePos(x, y)))
+		time.sleep(0.5)
+		# assure keyboard is in english input mode
 		clickImage(self.__platImg('key_input_eng_chi.jpg')) # TODO
-		time.sleep(0.2)
+		time.sleep(0.5)
+		# input character
 		#typeChar(text)
 		pasteChar(text)
-		time.sleep(0.2)
+		time.sleep(0.5)
 	
 	def start(self):
 		self.clickAndroidHomeBtn()

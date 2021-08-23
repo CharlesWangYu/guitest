@@ -76,7 +76,7 @@ class JingDong(App):
 		previousY = 0
 		for img in attentionList:
 			minInterval = heightL2P(int(self.config['JINGDONG']['MIN_STUDIO_ITEM_H']))
-			if getCenterY(img) - previousY < minInterval: continue
+			if abs(getCenterY(img) - previousY) < minInterval: continue
 			pos = getCenter(img)
 			pos = shiftPos(pos, SHIFT_LEFT, int(self.config['JINGDONG']['STUDIO_TO_ATTENTION']))
 			studioList.append(pos)
