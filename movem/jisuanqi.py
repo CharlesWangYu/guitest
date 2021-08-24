@@ -38,17 +38,12 @@ class JiSuanQi(App):
 	
 	def demo(self):
 		self.clickClear()
-		time.sleep(1)
 		self.clickClear()
-		time.sleep(1)
 		self.clickNum1()
-		time.sleep(1)
 		self.clickPlus()
-		time.sleep(1)
 		self.clickNum2()
-		time.sleep(1)
 		self.clickEqual()
-		time.sleep(5)
+		time.sleep(4)
 	
 class JSQDemo(Task):
 	def execute(self):
