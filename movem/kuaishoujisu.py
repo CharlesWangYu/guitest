@@ -23,7 +23,8 @@ class KuaiShouJiSu(App):
 			time.sleep(1)
 			self.foundThenClick('i_know')
 	
-	def browseVideo(self, minute):
+	def browseVideo(self):
+		minute = int(self.config['KUAISHOUJISU']['WATCH_VIDEO_MINUTES'])
 		for x in range(0, int(minute * 10)):
 			time.sleep(6)
 			hoverPos(getCenter())
@@ -41,26 +42,38 @@ class KuaiShouJiSu(App):
 		wheelDown(5)
 		time.sleep(2)
 	
-	def watchAdOnce(self):
-		self.foundThenClick('watch_ad')
-		time.sleep(35)
-		self.clickAndroidBackBtn()
+	def watchAd(self):
+		times = int(self.config['KUAISHOUJISU']['WATCH_AD_TIMES'])
+		self.toMakeMoney()
+		for count in range(0, times):
+			self.foundThenClick('watch_ad')
+			time.sleep(35)
+			self.clickAndroidBackBtn()
+			time.sleep(1)
 		time.sleep(1)
+		self.clickAndroidBackBtn()
 	
-	def watchLiveRoomOnce(self):
+	def watchLiveRoom(self):
+		c = int(self.config['KUAISHOUJISU']['WATCH_LIVE_ROOM_TIMES'])
 		x = int(self.config['KUAISHOUJISU']['LIVE_ROOM_ATTENTION_X'])
 		y = int(self.config['KUAISHOUJISU']['LIVE_ROOM_ATTENTION_Y'])
 		w = int(self.config['KUAISHOUJISU']['LIVE_ROOM_ATTENTION_W'])
 		h = int(self.config['KUAISHOUJISU']['LIVE_ROOM_ATTENTION_H'])
 		area = areaL2P(makeArea(x, y, w, h))
+		self.toMakeMoney()
 		self.foundThenClick('watch_live_broadcast')
-		time.sleep(65)
+		for count in range(0, c):
+			time.sleep(65)
+			hoverPos(getCenter())
+			longFlickUp()
 		self.clickAndroidBackBtn()
 		time.sleep(2)
+		# judge if come back success
 		while self.matchImage('attetion_right_now') is not None:
 			time.sleep(1)
 		self.foundThenClick('exit_live_broadcast', region=area)
 		time.sleep(1)
+		self.clickAndroidBackBtn()
 
 class KSJSOpen(Task):
 	def execute(self):
@@ -76,25 +89,15 @@ class KSJSSignIn(Task):
 	
 class KSJSWatchAd(Task):
 	def execute(self):
-		times = int(self.app.config['KUAISHOUJISU']['WATCH_AD_TIMES'])
-		self.app.toMakeMoney()
-		for count in range(0, times):
-			self.app.watchAdOnce()
-		time.sleep(1)
-		self.app.clickAndroidBackBtn()
+		self.app.watchAd()
 	
 class KSJSWatchLiveRoom(Task):
 	def execute(self):
-		times = int(self.app.config['KUAISHOUJISU']['WATCH_LIVE_ROOM_TIMES'])
-		self.app.toMakeMoney()
-		for count in range(0, times):
-			self.app.watchLiveRoomOnce()
-		time.sleep(1)
-		self.app.clickAndroidBackBtn()
+		self.app.watchLiveRoom()
 	
 class KSJSBrowseVideo(Task):
 	def execute(self):
-		self.app.browseVideo(180)
+		self.app.browseVideo()
 	
 if __name__ == '__main__':
 	import remote
