@@ -47,7 +47,7 @@ class KuaiShouJiSu(App):
 		self.toMakeMoney()
 		for count in range(0, times):
 			self.foundThenClick('watch_ad')
-			time.sleep(35)
+			time.sleep(55)
 			self.clickAndroidBackBtn()
 			time.sleep(1)
 		time.sleep(1)
