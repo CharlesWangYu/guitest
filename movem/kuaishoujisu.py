@@ -112,8 +112,8 @@ if __name__ == '__main__':
 	tasks.append(ClearActiveApp(app))
 	tasks.append(KSJSOpen(app))
 	#tasks.append(KSJSSignIn(app))
-	tasks.append(KSJSWatchLiveRoom(app))
-	tasks.append(KSJSWatchAd(app))
+	#tasks.append(KSJSWatchLiveRoom(app))
+	#tasks.append(KSJSWatchAd(app))
 	tasks.append(KSJSBrowseVideo(app))
 	tasks.append(KSJSClose(app))
 	for task in tasks:
