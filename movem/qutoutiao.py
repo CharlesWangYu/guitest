@@ -13,6 +13,10 @@ import time
 
 from app import *
 
+def getCenterY(region):
+	assert isinstance(region, lackey.Region)
+	return getY(getCenter(region))
+
 class QuTouTiao(App):
 	def __init__(self, model):
 		super(QuTouTiao, self).__init__(model)
@@ -21,15 +25,30 @@ class QuTouTiao(App):
 	def initEntry(self):
 		pass
 	
-	def clickTask(self):
-		self.foundThenClick('foot_task')
+	def clickFresh(self):
+		x = int(self.config['QUTOUTIAO']['FOOT_FRESH_POS_X'])
+		y = int(self.config['QUTOUTIAO']['FOOT_BTNS_POS_Y'])
+		clickPos(posL2P(makePos(x, y)))
 	
-	def clickRefresh(self):
-		self.foundThenClick('foot_refresh')
-		time.sleep(1.5) # Here are some delay because of connecting network
+	def clickVideo(self):
+		x = int(self.config['QUTOUTIAO']['FOOT_VIDEO_POS_X'])
+		y = int(self.config['QUTOUTIAO']['FOOT_BTNS_POS_Y'])
+		clickPos(posL2P(makePos(x, y)))
+	
+	def clickSVideo(self):
+		x = int(self.config['QUTOUTIAO']['FOOT_SVIDEO_POS_X'])
+		y = int(self.config['QUTOUTIAO']['FOOT_BTNS_POS_Y'])
+		clickPos(posL2P(makePos(x, y)))
+	
+	def clickTask(self):
+		x = int(self.config['QUTOUTIAO']['FOOT_TASK_POS_X'])
+		y = int(self.config['QUTOUTIAO']['FOOT_BTNS_POS_Y'])
+		clickPos(posL2P(makePos(x, y)))
 	
 	def clickMine(self):
-		self.foundThenClick('foot_mine')
+		x = int(self.config['QUTOUTIAO']['FOOT_MINE_POS_X'])
+		y = int(self.config['QUTOUTIAO']['FOOT_BTNS_POS_Y'])
+		clickPos(posL2P(makePos(x, y)))
 	
 	def clickTopLeftBack(self):
 		x = int(self.config['QUTOUTIAO']['TOP_LEFT_BACK_X'])
@@ -44,12 +63,13 @@ class QuTouTiao(App):
 	def selectAnAbstract(self):
 		cnt = 0
 		while True:
-			xIcons = self.findAllImage('x_below_news')
-			if len(xIcons) > 1:
-				for x in range(len(xIcons)-1, 0, -1):
-					height = xIcons[x].getY() - xIcons[x-1].getY()
+			xIconList = self.findAllImage('x_below_news')
+			xIconList.sort(key=getCenterY)
+			if len(xIconList) > 1:
+				for x in range(len(xIconList)-1, 1, -1):
+					height = getCenterY(xIconList[x]) - getCenterY(xIconList[x-1])
 					if height < heightL2P(int(self.config['QUTOUTIAO']['MAX_NEWS_ABSTRACT_H'])):
-						pos = getTopLeft(xIcons[x])
+						pos = getTopLeft(xIconList[x])
 						pos = shiftPos(pos, SHIFT_UP, int(self.config['QUTOUTIAO']['ABSTRACT_Y_OFFSET']))
 						pos = shiftPos(pos, SHIFT_LEFT, int(self.config['QUTOUTIAO']['ABSTRACT_X_OFFSET']))
 						clickPos(pos)
@@ -60,8 +80,11 @@ class QuTouTiao(App):
 							self.app.clickAndroidBackBtn()
 							time.sleep(0.5)
 			hoverPos(getCenter())
-			if cnt % 2 == 0: wheelDown(5)
-			else: self.clickRefresh()
+			if cnt % 2 == 0:
+				wheelDown(5)
+			else:
+				self.clickFresh()
+				time.sleep(1.5) # Here are some delay because of connecting network
 			time.sleep(0.5)
 			cnt += 1
 	
@@ -128,13 +151,13 @@ class QuTouTiao(App):
 			time.sleep(0.5)
 			if not self.findPolymorphicImage('praise'): return
 			self.clickTopLeftBack()
-			self.clickRefresh()
+			self.clickFresh()
 			hoverPos(getCenter())
 			wheelDown(5)
 			time.sleep(0.5)
 	
 	def receiveGoldCoin(self):
-		self.clickRefresh()
+		self.clickFresh()
 		self.foundThenClick('receive_gold_coin')
 	
 	def viewVideo(self, seconds):
@@ -166,7 +189,7 @@ class QuTouTiao(App):
 	def openTreasureBox(self):
 		for count in range(0, 3):
 			# ready to enter a task for opening treasure box
-			self.clickRefresh()
+			self.clickFresh()
 			self.clickTask()
 			hoverPos(getCenter())
 			wheelDown(1)
@@ -221,11 +244,11 @@ class QTTSignIn(Task):
 # Read news (article) to get golden coin
 class QTTReadNews(Task):
 	def execute(self):
-		self.app.clickRefresh()
+		self.app.clickFresh()
 		readTimes	= int(self.app.config['QUTOUTIAO']['NECESSARY_READ_TIMES'])
 		readSeconds	= int(self.app.config['QUTOUTIAO']['RESIDENCE_NEWS_SECONDS'])
 		for count in range(0, readTimes):
-			self.app.clickRefresh()
+			self.app.clickFresh()
 			self.app.selectAnAbstract()
 			time.sleep(0.5)
 			self.app.readOneNews(readSeconds)
@@ -254,9 +277,9 @@ if __name__ == '__main__':
 	ctrl.connect()
 	app = QuTouTiao(ctrl.phoneModel)
 	tasks = []
-	tasks.append(ClearActiveApp(app))
+	#tasks.append(ClearActiveApp(app))
 	tasks.append(QTTOpen(app))
-	tasks.append(QTTSignIn(app))
+	#tasks.append(QTTSignIn(app))
 	tasks.append(QTTReadNews(app))
 	tasks.append(QTTClose(app))
 	for task in tasks:

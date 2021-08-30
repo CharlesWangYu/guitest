@@ -63,7 +63,7 @@ class KuaiShouJiSu(App):
 		self.toMakeMoney()
 		self.foundThenClick('watch_live_broadcast')
 		for count in range(0, c):
-			time.sleep(65)
+			time.sleep(70)
 			hoverPos(getCenter())
 			longFlickUp()
 		self.clickAndroidBackBtn()
