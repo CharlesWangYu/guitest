@@ -66,11 +66,13 @@ class JingDong(App):
 		time.sleep(1)
 		self.clickKDBSearchGoBtn()
 		time.sleep(0.5)
+		setSimThreshold(0.7)
 		self.foundThenClick('search_more_live_room')
 		time.sleep(0.2)
 		attentionList = self.findAllImage('studio_with_attention')
 		attentionList.extend(self.findAllImage('studio_without_attention'))
 		attentionList.sort(key=getCenterY)
+		setSimThreshold(0.75)
 		#logging.info('There are %d live rooms with %s brand have been found.' % (len(attentionList), brand))
 		studioList = []
 		previousY = 0
