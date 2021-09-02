@@ -62,7 +62,7 @@ class Scrcpy(RemoteCtrl):
 		if self.phoneModel == 'RedmiK20Pro_V12':
 			cmd = 'scrcpy -w -Tt -m 1024 --window-x 10 --disable-screensaver'
 		else:
-			cmd = 'scrcpy -Sw -Tt -m 1024 --window-x 10 --disable-screensaver'
+			cmd = 'scrcpy -Sw -Tt -m 823 --window-x 10 --disable-screensaver'
 		self.scrcpyLog = open('scrcpy.log','wb')
 		self.scrcpy = subprocess.Popen(cmd, shell=True, stdout=self.scrcpyLog, stderr=self.scrcpyLog, close_fds=True)
 		# capture remote screen

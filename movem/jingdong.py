@@ -13,7 +13,7 @@ import time
 
 from app import *
 
-BRAND_LIST = ['鱼跃','飞利浦','麦克蜂','海澜之家','芝华仕','老板','方太','海尔','长虹','TCL','康佳','创维','酷开','海信','万家乐','小天鹅','万和','史密斯','火星人','容声','美的','格力','苏泊尔','格兰仕','联想','小米','三星','LG']
+BRAND_LIST = ['康夫','鱼跃','飞利浦','麦克蜂','海澜之家','芝华仕','老板','方太','海尔','长虹','TCL','康佳','创维','酷开','海信','万家乐','小天鹅','万和','帅康','史密斯','火星人','容声','美的','格力','苏泊尔','格兰仕','联想','小米','三星','LG']
 
 def getCenterY(region):
 	assert isinstance(region, lackey.Region)
@@ -87,7 +87,12 @@ class JingDong(App):
 		return studioList # return a studios' position list
 	
 	def isLiveRoom(self):
-		if self.matchImage('flag_live_room') is None: return False
+		x = int(self.config['JINGDONG']['STUDIO_FLAG_LEFT'])
+		y = int(self.config['JINGDONG']['STUDIO_FLAG_TOP'])
+		w = getWidth()  - x
+		h = getHeight() - y
+		area = areaL2P(makeArea(x, y, w, h))
+		if self.matchImage('flag_live_room', area) is None: return False
 		else: return True
 		
 	def collectBeansFromLiveRoom(self, brand):
@@ -101,12 +106,17 @@ class JingDong(App):
 				self.clickAndroidBackBtn() # return from inactive live room
 				time.sleep(0.8)
 				continue
-			if self.foundThenClick('interactive_lottery'): # has lottery card
+			x = int(self.config['JINGDONG']['STUDIO_LOTTERY_LEFT'])
+			y = 0
+			w = getWidth() - x
+			h = int(self.config['JINGDONG']['STUDIO_LOTTERY_BOTTOM'])
+			area = areaL2P(makeArea(x, y, w, h))
+			if self.foundThenClick('interactive_lottery', region=area): # has lottery card
 				time.sleep(0.8)
-				self.foundThenClick('lottery_right_now')
-				time.sleep(0.8)
-				self.clickAndroidBackBtn() # return form lottery message
-				time.sleep(0.8)
+				if self.foundThenClick('lottery_right_now'):
+					time.sleep(0.8)
+					self.clickAndroidBackBtn() # return form lottery message
+					time.sleep(0.8)
 			self.clickAndroidBackBtn() # return from live room
 			time.sleep(0.5)
 		self.clickAndroidBackBtn() # return from live room list to live broadcast channel
